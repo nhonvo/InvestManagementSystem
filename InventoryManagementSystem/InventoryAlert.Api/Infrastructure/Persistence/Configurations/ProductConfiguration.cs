@@ -1,8 +1,8 @@
-﻿using InventoryAlert.Api.Domain.Entities;
+using InventoryAlert.Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace InventoryAlert.Api.Infrastructure.Persistence
+namespace InventoryAlert.Api.Infrastructure.Persistence.Configurations
 {
     public class ProductConfiguration : IEntityTypeConfiguration<Product>
     {
@@ -16,14 +16,12 @@ namespace InventoryAlert.Api.Infrastructure.Persistence
                 .HasMaxLength(255);
 
             builder.HasIndex(p => p.Name).IsUnique();
-            builder.HasIndex(p => p.TickerSymbol).IsUnique(); // Index for performance
+            builder.HasIndex(p => p.TickerSymbol).IsUnique();
 
-            // Stock Mapping
             builder.Property(p => p.StockCount)
                 .IsRequired()
                 .HasDefaultValue(0);
 
-            // Pricing Mapping
             builder.Property(p => p.OriginPrice)
                 .HasColumnType("decimal(18,2)")
                 .IsRequired();
@@ -34,7 +32,7 @@ namespace InventoryAlert.Api.Infrastructure.Persistence
 
             builder.Property(p => p.PriceAlertThreshold)
                 .IsRequired()
-                .HasDefaultValue(0.2); // Default 20% surge
+                .HasDefaultValue(0.2);
 
             builder.Property(p => p.TickerSymbol)
                 .HasMaxLength(15);

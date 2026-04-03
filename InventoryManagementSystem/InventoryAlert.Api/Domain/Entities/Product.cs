@@ -1,10 +1,10 @@
-﻿namespace InventoryAlert.Api.Domain.Entities
+namespace InventoryAlert.Api.Domain.Entities
 {
     public class Product
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string TickerSymbol { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string TickerSymbol { get; set; } = string.Empty;
         public decimal OriginPrice { get; set; }  
         public decimal CurrentPrice { get; set; } // Last synced price from Finnhub
 

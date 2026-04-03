@@ -1,5 +1,6 @@
-﻿using InventoryAlert.Api.Infrastructure.External.Interfaces;
+using InventoryAlert.Api.Infrastructure.External.Interfaces;
 using InventoryAlert.Api.Infrastructure.External.Models;
+using InventoryAlert.Api.Web.Configuration;
 using RestSharp;
 
 namespace InventoryAlert.Api.Infrastructure.External
@@ -16,12 +17,11 @@ namespace InventoryAlert.Api.Infrastructure.External
             request.AddParameter("token", _appSettings.Finnhub.ApiKey);
 
             var response = await _restClient.ExecuteAsync<FinnhubQuoteResponse>(request, cancellationToken);
+
             if (response.IsSuccessful)
-            {
-               return response.Data;
-            }
-            // Log the error or handle it as needed
-            Console.WriteLine($"Error fetching quote for {symbol}: {response.ErrorMessage}");
+                return response.Data;
+
+            Console.WriteLine($"[FinnhubClient] Error fetching quote for {symbol}: {response.ErrorMessage}");
             return null;
         }
     }

@@ -1,52 +1,56 @@
-﻿using InventoryAlert.Api.Infrastructure.Persistence.Interfaces;
+using InventoryAlert.Api.Domain.Interfaces;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories
 {
-    public class UnitOfWork: IUnitOfWork // TODO: review unit of work pattern, consider to use repository pattern only if the project is simple, otherwise, consider to use both unit of work and repository pattern together
+    /// <summary>
+    /// Coordinates atomic transactions across one or more repositories.
+    /// Use when an operation spans multiple DB writes that must succeed or fail together.
+    /// </summary>
+    public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _dbContext;
-        public IProductRepository _productRepository { get; }
-        
+        public IProductRepository ProductRepository { get; }
+
         public UnitOfWork(AppDbContext dbContext)
         {
             _dbContext = dbContext;
-            _productRepository = new ProductRepository(_dbContext);
+            ProductRepository = new ProductRepository(_dbContext);
         }
 
-        public async Task SaveChangesAsync(CancellationToken token)
+        public async Task SaveChangesAsync(CancellationToken cancellationToken)
         {
-            await _dbContext.SaveChangesAsync(token);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task ExecuteTransactionAsync(Action action, CancellationToken token)
+        public async Task ExecuteTransactionAsync(Action action, CancellationToken cancellationToken)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 action();
-                await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync(token);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(token);
-                throw new Exception("Something wrong when excute",ex);
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException("Transaction failed and was rolled back.", ex);
             }
         }
 
-        public async Task ExecuteTransactionAsync(Func<Task> action, CancellationToken token)
+        public async Task ExecuteTransactionAsync(Func<Task> action, CancellationToken cancellationToken)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 await action();
-                await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync(token);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(token);
-                throw new Exception("Something wrong when excute",ex);
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException("Transaction failed and was rolled back.", ex);
             }
         }
     }

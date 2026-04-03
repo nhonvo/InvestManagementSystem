@@ -1,4 +1,4 @@
-using InventoryAlert.Api.Infrastructure.Persistence.Interfaces;
+using InventoryAlert.Api.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories
@@ -12,9 +12,10 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories
             var result = await _dbSet.AddAsync(entity, cancellationToken);
             return result.Entity;
         }
-        public async Task AddRangeAsync(IEnumerable<T> entity, CancellationToken cancellationToken)
+
+        public async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken)
         {
-            await _dbSet.AddRangeAsync(entity, cancellationToken);
+            await _dbSet.AddRangeAsync(entities, cancellationToken);
         }
 
         public async Task<T> DeleteAsync(T entity)
@@ -25,14 +26,12 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories
 
         public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken)
         {
-            var result = await _dbSet.ToListAsync(cancellationToken);
-            return result;
+            return await _dbSet.ToListAsync(cancellationToken);
         }
 
         public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken)
         {
-            var result = await _dbSet.FindAsync(id, cancellationToken);
-            return result;
+            return await _dbSet.FindAsync([id], cancellationToken);
         }
 
         public async Task<T> UpdateAsync(T entity)
@@ -40,6 +39,7 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories
             var result = _dbSet.Update(entity);
             return result.Entity;
         }
+
         public async Task UpdateRangeAsync(IEnumerable<T> entities)
         {
             _dbSet.UpdateRange(entities);
