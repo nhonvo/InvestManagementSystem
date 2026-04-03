@@ -32,6 +32,7 @@ public static class InfrastructureServiceExtensions
         {
             client.BaseAddress = new Uri(settings.Finnhub.ApiBaseUrl);
         });
+        // TODO: move hard code to static file
 
         services.AddScoped<IFinnhubClient>(sp =>
         {
