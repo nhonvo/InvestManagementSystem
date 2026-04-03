@@ -29,19 +29,15 @@ Create at `InventoryManagementSystem/Dockerfile`:
 
 ```dockerfile
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore "InventoryAlert.Api/InventoryAlert.Api.csproj"
 RUN dotnet publish "InventoryAlert.Api/InventoryAlert.Api.csproj" \
     -c Release -o /app/publish
 
-# Stage 2: Runtime (small image)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
-
-# Security: run as non-root user
-RUN adduser --disabled-password --gecos '' appuser
-USER appuser
+# Stage 2: Runtime (minimal image)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 COPY --from=build /app/publish .
@@ -157,15 +153,15 @@ using (var scope = app.Services.CreateScope())
 ### ✅ Docker Checklist
 
 - [x] Create `.dockerignore`
-- [x] Create `Dockerfile` (multi-stage, non-root user)
+- [x] Create `Dockerfile` (multi-stage, .NET 10.0)
 - [x] Create `docker-compose.yml` (api + db with healthcheck, `ASPNETCORE_ENVIRONMENT=Docker`)
 - [x] Create `.env.example` template (safe to commit)
-- [x] Create `appsettings.json` (schema only, empty values — overridden by env vars at runtime)
-- [x] Create `appsettings.Docker.json` (hostname `db`, reads env vars)
-- [x] Create `appsettings.Example.json` (onboarding template for new devs, no real secrets)
-- [ ] Create `.env` from `.env.example` and fill real secrets (run: `Copy-Item .env.example .env`)
-- [ ] Add `.env` to `.gitignore`
-- [ ] Add `db.Database.Migrate()` to `Program.cs`
+- [x] Create `appsettings.json` (schema only)
+- [x] Create `appsettings.Docker.json` (hostname `db`)
+- [x] Create `appsettings.Example.json` (onboarding template)
+- [x] Create `.env` from `.env.example` and fill real secrets
+- [x] Add `.env` to `.gitignore`
+- [x] Add `db.Database.Migrate()` to `Program.cs`
 - [ ] Test: `docker-compose up --build`
 - [ ] Verify: API reachable at `http://localhost:8080/swagger`
 
@@ -288,19 +284,21 @@ using (var scope = scopeFactory.CreateScope())
 
 ---
 
-### Step 4 — Add to `docker-compose.yml` (SQS local emulation)
+### Step 4 — Add to `docker-compose.yml` (Moto emulation)
 
-For local development, use **LocalStack** to emulate AWS SNS/SQS:
+For local development, use **Moto Server** to emulate AWS SNS/SQS:
 
 ```yaml
-  localstack:
-    image: localstack/localstack
+  moto:
+    image: motoserver/moto:latest
+    container_name: inventory_moto
     ports:
-      - "4566:4566"
+      - "5000:5000"
     environment:
-      - SERVICES=sns,sqs
+      - MOTO_PORT=5000
     networks:
       - app-network
+    restart: unless-stopped
 ```
 
 ---
@@ -313,7 +311,8 @@ For local development, use **LocalStack** to emulate AWS SNS/SQS:
 - [ ] Update `FinnhubSyncWorker` to call `notifier.NotifyAsync()`
 - [ ] (Optional) Add Hangfire for Dashboard + retry support
 - [ ] (Future) Implement `SnsAlertNotifier` for production
-- [ ] (Future) Add LocalStack to docker-compose for local AWS emulation
+- [x] Add Moto to docker-compose for local AWS emulation
+- [x] Add Redis to docker-compose for high-performance caching
 
 ---
 

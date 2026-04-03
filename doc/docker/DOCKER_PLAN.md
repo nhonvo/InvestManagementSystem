@@ -9,8 +9,8 @@ This document outlines the strategy for containerizing the **Automated Inventory
 Use a **Multi-Stage Build** to keep the final image size small and secure.
 
 ### Stages:
-1.  **Base:** `aspnet:9.0` (Runtime environment).
-2.  **Build:** `sdk:9.0` (Compiles the application).
+1.  **Base:** `aspnet:10.0` (Runtime environment).
+2.  **Build:** `sdk:10.0` (Compiles the application).
 3.  **Publish:** Optimizes the binaries.
 4.  **Final:** Copies published artifacts to the Base image.
 
@@ -25,22 +25,22 @@ A single command (`docker-compose up`) should spin up the entire ecosystem.
 | :--- | :--- | :--- |
 | **api** | (Your Dockerfile) | REST Endpoints & Application logic. |
 | **db** | `postgres:17-alpine` | Primary data storage. |
-| **hangfire** | (Same as api) | Running the background worker (Pricing & Alerts). |
-| **redis** | `redis:alpine` | (Optionally) distributed caching for API performance. |
+| **hangfire** | (Same as api) | (Planned) Running background jobs. |
+| **redis** | `redis:alpine` | ✅ Distributed caching for API performance. |
+| **moto** | `motoserver/moto` | ✅ AWS SNS/SQS emulation. |
 
 ---
 
 ## 🚀 3. Step-by-Step implementation
 
-- [ ] **Step 1: Create `.dockerignore`**
-    - Ignore `bin/`, `obj/`, `.git/`, and `appsettings.Development.json` to keep build contexts small.
-- [ ] **Step 2: Create `Dockerfile` in project root**
-    - Use `ENTRYPOINT` to start the webserver.
-- [ ] **Step 3: Create `docker-compose.yml`**
-    - Configure **Volumes** for PostgreSQL persistence (`/var/lib/postgresql/data`).
-    - Use **Networks** to allow services to talk to each other by name (e.g., `Host=db`).
-- [ ] **Step 4: Update `appsettings.json`**
-    - Use connection strings that point to the container name `db` instead of `localhost`.
+- [x] **Step 1: Create `.dockerignore`**
+    - Done: Excludes `bin/`, `obj/`, and dev secrets to keep build contexts small.
+- [x] **Step 2: Create `Dockerfile` in project root**
+    - Done: Uses multi-stage build and entrypoint configuration.
+- [x] **Step 3: Create `docker-compose.yml`**
+    - Done: Configured volumes, networks, and depends_on healthchecks.
+- [x] **Step 4: Update Configuration**
+    - Done: Implemented `appsettings.Docker.json` for container-to-container communication.
 
 ---
 
