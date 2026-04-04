@@ -7,13 +7,13 @@
 
 ## 📁 Final Project Names
 
-| Project | Type | Purpose |
-| :--- | :--- | :--- |
-| `InventoryAlert.Api` | ASP.NET Web API | ✅ Existing — extended with event endpoints |
-| `InventoryAlert.Contracts` | Class Library | NEW — shared event schemas |
-| `InventoryAlert.Worker` | Worker Service | NEW — Hangfire + SQS consumer |
-| `InventoryAlert.Sample` | Console App | NEW — sample event publisher |
-| `InventoryAlert.Tests` | xUnit Test | ✅ Existing |
+| Project                    | Type            | Purpose                                     |
+| :------------------------- | :-------------- | :------------------------------------------ |
+| `InventoryAlert.Api`       | ASP.NET Web API | ✅ Existing — extended with event endpoints |
+| `InventoryAlert.Contracts` | Class Library   | NEW — shared event schemas                  |
+| `InventoryAlert.Worker`    | Worker Service  | NEW — Hangfire + SQS consumer               |
+| `InventoryAlert.Sample`    | Console App     | NEW — sample event publisher                |
+| `InventoryAlert.Tests`     | xUnit Test      | ✅ Existing                                 |
 
 ---
 
@@ -47,16 +47,19 @@ dotnet sln add InventoryAlert.Sample/InventoryAlert.Sample.csproj
 ## ⚡ Step 3 — Add Project References
 
 ### `InventoryAlert.Api` references `Contracts`
+
 ```powershell
 dotnet add InventoryAlert.Api/InventoryAlert.Api.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
 
 ### `InventoryAlert.Worker` references `Contracts`
+
 ```powershell
 dotnet add InventoryAlert.Worker/InventoryAlert.Worker.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
 
 ### `InventoryAlert.Sample` references `Contracts`
+
 ```powershell
 dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
@@ -66,6 +69,7 @@ dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference Inventor
 ## ⚡ Step 4 — Install NuGet Packages
 
 ### `InventoryAlert.Api` — Event publishing
+
 ```powershell
 # AWS SNS publisher (talks to Moto at localhost:5000)
 dotnet add InventoryAlert.Api package AWSSDK.SimpleNotificationService
@@ -73,6 +77,7 @@ dotnet add InventoryAlert.Api package AWSSDK.SQS
 ```
 
 ### `InventoryAlert.Worker` — Hangfire + SQS consumer + Redis + DB
+
 ```powershell
 # Hangfire core
 dotnet add InventoryAlert.Worker package Hangfire.AspNetCore
@@ -92,7 +97,18 @@ dotnet add InventoryAlert.Worker package Microsoft.EntityFrameworkCore.Design
 dotnet add InventoryAlert.Worker package RestSharp
 ```
 
+### `InventoryAlert.Worker` — DynamoDB (Future Enterprise Extension)
+
+> **⚠️ Optional:** Only install when migrating from Postgres `EventLog` and Redis dedup
+> to the polyglot DynamoDB strategy described in `EVENT_DRIVEN_PLAN.md`.
+
+```powershell
+# DynamoDB client + object persistence model
+dotnet add InventoryAlert.Worker package AWSSDK.DynamoDBv2
+```
+
 ### `InventoryAlert.Sample` — HTTP client to call the API
+
 ```powershell
 dotnet add InventoryAlert.Sample package Microsoft.Extensions.Http
 ```
@@ -144,24 +160,24 @@ TELEGRAM_CHAT_ID=your_chat_id_here
 ## 🐳 Step 7 — Add Worker to `docker-compose.yml`
 
 ```yaml
-  worker:
-    build:
-      context: .
-      dockerfile: InventoryAlert.Worker/Dockerfile
-    container_name: inventory_worker
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Docker
-      - Database__DefaultConnection=host=db;port=5432;Database=InventoryAlertDb;Username=postgres;Password=password
-      - Redis__Connection=redis:6379
-      - Aws__EndpointUrl=http://moto:5000
-      - Aws__SnsTopicArn=arn:aws:sns:us-east-1:123456789012:inventory-events
-      - Aws__SqsQueueUrl=http://moto:5000/123456789012/event-queue
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - app-network
-    restart: unless-stopped
+worker:
+  build:
+    context: .
+    dockerfile: InventoryAlert.Worker/Dockerfile
+  container_name: inventory_worker
+  environment:
+    - ASPNETCORE_ENVIRONMENT=Docker
+    - Database__DefaultConnection=host=db;port=5432;Database=InventoryAlertDb;Username=postgres;Password=password
+    - Redis__Connection=redis:6379
+    - Aws__EndpointUrl=http://moto:5000
+    - Aws__SnsTopicArn=arn:aws:sns:us-east-1:123456789012:inventory-events
+    - Aws__SqsQueueUrl=http://moto:5000/123456789012/event-queue
+  depends_on:
+    db:
+      condition: service_healthy
+  networks:
+    - app-network
+  restart: unless-stopped
 ```
 
 ---

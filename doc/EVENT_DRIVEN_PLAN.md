@@ -346,6 +346,16 @@ EventLog
 
 ---
 
+## 🚀 Future Enterprise Extension (DynamoDB Polyglot Strategy)
+
+When raw telemetry events outgrow Postgres and Redis connections bottleneck:
+
+1. **Replaces Postgres `EventLog`:** A DynamoDB `InventoryAlert_EventLog` table would use `ExpiresAt` (Epoch) for AWS-native auto-cleanup, shedding millions of stale events without requiring massive SQL `DELETE` sweeps.
+2. **Replaces Redis Deduplication:** DynamoDB has persistent TTL semantics. Instead of limiting memory in Redis clusters, worker nodes can do a cost-efficient atomic `PutItem` to check if a `MessageId` or `alert:history:{symbol}` exists, naturally expiring stale histories.
+3. **Merges Timeseries Metrics:** Rather than maintaining `EarningsRecord`, `InsiderTransaction`, and `NewsRecord` across multiple SQL tables with foreign keys, a single NoSQL table `InventoryAlert_StockHistory` stores it all via composite Sort Keys (`NEWS#2026-04-04`, `EARNINGS#2026Q4`), creating a blazing-fast audit trail view.
+
+---
+
 ## 🖥️ Docker Services (Final State)
 
 ```yaml

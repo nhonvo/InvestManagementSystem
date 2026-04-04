@@ -7,8 +7,11 @@ import time
 from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor
 from bm25_core import save_index_binary, load_index_csv, save_index_csv
-from bm25_core import save_index_binary, load_index_csv, save_index_csv
 import json
+import io
+import sys
+import io
+import sys
 
 # Force UTF-8 for Windows compatibility with special characters
 if sys.platform == "win32":
