@@ -7,15 +7,16 @@
 
 ## 🔴 P0 — Critical / Blocking (Do First)
 
-### 1. Docker & Containerization
+### 1. Docker & Containerization ✅
 
 > **Source:** `ProductController.cs:L96` — *important high priority*
 
-Setup docker and containerization for the application. Create a `Dockerfile` to define the container image, and use Docker Compose to manage the multi-container setup (App + PostgreSQL). Review the configuration to ensure it can be easily configured using environment variables when running in a containerized environment.
+~~Setup docker and containerization for the application.~~ **✅ Complete.** See `SETUP_COMMANDS.md` and `EVENT_DRIVEN_PLAN.md` for full implementation details.
 
-- [ ] Create `Dockerfile` (multi-stage build)
-- [ ] Create `docker-compose.yml` (api + postgres)
-- [ ] Externalize config via environment variables
+- [x] Create `Dockerfile` (multi-stage build)
+- [x] Create `docker-compose.yml` (api + postgres + redis + moto + moto-init + worker)
+- [x] Externalize config via `appsettings.Docker.json` (not inline env vars)
+- [x] Moto init script (`SolutionFolder/moto-init/init-sqs.sh`) auto-creates SNS/SQS on boot
 
 ### 2. Global Exception Handling & Error Responses
 
@@ -33,9 +34,11 @@ Implement a global exception handling mechanism (middleware or filters) to catch
 
 Implement comprehensive logging using Serilog or NLog. Log important events (product creation, updates, deletions) and errors with appropriate log levels (Information, Warning, Error). Include contextual information (product ID, user ID). Configure multiple sinks (console, file, database).
 
+> **Note:** `FinnhubSyncWorker` logging should be addressed here but the worker itself is planned for **retirement** once `SyncPricesJob` in `InventoryAlert.Worker` is live (see `EVENT_DRIVEN_PLAN.md` — Phase C).
+
 - [ ] Install and configure Serilog
 - [ ] Add structured logging to `ProductServices`
-- [ ] Add logging to `FinnhubSyncWorker`
+- [ ] Add logging to `FinnhubSyncWorker` (temporary — will be removed with worker migration)
 
 ---
 
@@ -257,12 +260,14 @@ Review DI usage. Ensure constructor injection is used consistently. Review servi
 
 > **Source:** `ProductController.cs:L97` — *important high priority*
 
-Setup AWS SNS and SQS for messaging/notifications, and Hangfire for background job processing. Implement message producers/consumers for async communication.
+See `EVENT_DRIVEN_PLAN.md` for full architecture. Infrastructure scaffolding is complete:
 
-- [ ] Evaluate Hangfire vs current `BackgroundService`
-- [ ] Design message schema for price alerts
-- [ ] Implement SNS topic for alert notifications
-- [ ] Implement SQS consumer for processing alerts
+- [x] Evaluate Hangfire vs current `BackgroundService` → **Hangfire chosen**
+- [x] Design message schema for price alerts → `EventEnvelope` + payload records in `Contracts`
+- [x] `InventoryAlert.Worker` project created + NuGet packages installed
+- [x] Docker moto-init: SNS topic + SQS queues auto-created on boot
+- [ ] Implement `IEventPublisher` + `SnsEventPublisher` in Api (Phase B)
+- [ ] Implement `PollSqsJob`, `SyncPricesJob`, and event handlers in Worker (Phase C–D)
 
 ### 21. CI/CD Pipeline
 

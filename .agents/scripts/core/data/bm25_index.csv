@@ -7796,77 +7796,6 @@ doc,"# /search - BM25+ Premium Search (v4.6)
 1. **Rebuild**: `python .agents/scripts/core/bm25_indexer.py` after script, doc, or logic updates.
 
 **Next**: `/plan` or `/code`",41,d4c0fbfd8fc9e4f42a49deca44d2b440,.agents\workflows\search.md,1,257,"search, python, agents, scripts, core, code, phase, expert",1774065831.5389647,7,asnotracking dbcontext efcore appdbcontext entity framework,# /search - BM25+ Premium Search (v4.6) | /search - BM25+ Premium Search (v4.6) Objective: Surgical context retrieval acro
-doc,"# Coding Challenge: Automated Inventory Alert System
-
-## 🎯 Objective
-
-Build a C# Web API that monitors product stock levels and generates alerts when they fall below a certain threshold.
-
-## 🏗️ Requirements
-
-### 1. The Entity: `Product`
-
-| Property          | Type        | Description                           |
-| :---------------- | :---------- | :------------------------------------ |
-| `Id`              | `int`       | Primary Key                           |
-| `Name`            | `string`    | Unique name of the product            |
-| `StockCount`      | `int`       | Current units available               |
-| `AlertThreshold`  | `int`       | Trigger level for an alert            |
-| `LastAlertSentAt` | `DateTime?` | Timestamp of the last processed alert |
-
-### 2. Business Logic (API)
-
-Implement a RESTful API to manage your inventory:
-
-- `POST /api/products`: Add a new product.
-- `PUT /api/products/{id}/stock`: Update the stock count.
-- `GET /api/products/low-stock`: View all products currently below threshold.
-
-### 3. The Engine (Background Job)
-
-Implement a `BackgroundService` that:
-
-- Runs every **5 minutes**.
-- Scans the database for products where `StockCount <= AlertThreshold`.
-- **Constraint**: To prevent log spam, only log the alert if `LastAlertSentAt` is null OR more than **1 hour ago**.
-- Update the `LastAlertSentAt` once the alert is triggered/logged.
-
-### 4. Persistence
-
-- Use **PostgreSQL** with **Entity Framework Core**.
-
-- Ensure migrations are applied successfully.
-
-### 5. External Price Fetching (Finnhub)
-
-Integrate with the **Finnhub Stock API** to:
-
-- Add a property `TickerSymbol` to the `Product` entity.
-- Implement a background process to fetch the current market price for each symbol.
-- **Challenge**: If the market price is SIGNIFICANTLY higher than the original cost (e.g., > 20% increase), create a ""High Value"" alert even if stock is plentiful.
-
----
-
-## 🛠️ Tech Stack & Standards
-
-- **Framework**: .NET 8 or 9
-- **DB**: Npgsql.EntityFrameworkCore.PostgreSQL
-
-- **DI**: Remember to handle the **Scoped-in-Singleton** context issue correctly!
-- **Clean Code**: Use Primary Constructors where possible.
-- **Messaging**: Motor (for SNS/SQS abstraction) and Hangfire (for distributed job management).
-
----
-
-## 🧠 Practice Tasks
-
-1. **Project Initialization**: Build the standard Web API structure yourself.
-2. **Concurrency**: What happens if the background job is running while an API request updates the stock? Consider how EF Core handles tracking.
-3. **Resilience**: Add a `try-catch` inside your worker. If the service fails to connect to the database, it should back off and try again in 30 seconds.
-4. **Distributed Messaging**: Implement **Motor** to push ""Low Stock"" events to **AWS SNS/SQS** topics.
-5. **Robust Scheduling**: Move the inventory check job from `BackgroundService` to **Hangfire** to support persistence, retries, and a dashboard monitor.
-
-_Note: Your previous work has been moved to the `/refer` folder for reference._",71,c6a59e8068f90a661d0d2b8a5f0e97d2,doc\challenge.md,0,258,"stock, alert, product, products, implement, inventory, entity, lastalertsentat",1775162124.1332552,1,entity framework market data database update googl item quote dbcontext efcore migration inventory productservice stock price drop business logic application service notification external api symbol add-migration asnotracking iproductservice schema change loss stock ticker sku periodictimer appdbcontext msft hosted service efcore stock price aapl finnhubpricesyncworker threshold backgroundservice,# Coding Challenge: Automated Inventory Alert System | Coding Challenge: Automated Inventory Alert System  🎯 Objective Build a C Web AP
 doc,"# Enhancement & Tracking Plan
 
 This document tracks identified improvements, code smells, and `TODO` items across the **Automated Inventory Alert System**. Use this as a checklist for your practice sessions.
@@ -7917,7 +7846,7 @@ This document tracks identified improvements, code smells, and `TODO` items acro
 | `ProductServices.cs` | `.Result` usage | Never use `.Result` or `.Wait()`. Use `await`. |
 | `UnitOfWork.cs` | Violation of DI | Don't use `new ProductRepository()`. Inject it. |
 | `GenericRepository.cs` | Shadowing `T` | (Fixed in previous step) |
-| `Program.cs` | Massive file | Use **Extension Methods** (e.g., `builder.Services.AddInfrastructure()`) to keep it clean. |",51,db3d185b0867f7ed09ff20cde818a5a2,doc\ENHANCEMENT_PLAN.md,0,259,"logic, services, code, productservices, product, result, alert, move",1775215686.263774,1,price drop stock threshold iproductrepository httpput dbset inventory sku appdbcontext asnotracking httpget iunitofwork iproductservice dbcontext application service item domain entity efcore httppost loss data access business logic application layer infrastructure entity framework executetransactionasync savechangesasync igenericrepository domain driven design productservice iactionresult notification productscontroller,"# Enhancement & Tracking Plan | Enhancement & Tracking Plan This document tracks identified improvements, code s"
+| `Program.cs` | Massive file | Use **Extension Methods** (e.g., `builder.Services.AddInfrastructure()`) to keep it clean. |",51,db3d185b0867f7ed09ff20cde818a5a2,doc\ENHANCEMENT_PLAN.md,0,258,"logic, services, code, productservices, product, result, alert, move",1775215686.263774,1,price drop stock threshold iproductrepository httpput dbset inventory sku appdbcontext asnotracking httpget iunitofwork iproductservice dbcontext application service item domain entity efcore httppost loss data access business logic application layer infrastructure entity framework executetransactionasync savechangesasync igenericrepository domain driven design productservice iactionresult notification productscontroller,"# Enhancement & Tracking Plan | Enhancement & Tracking Plan This document tracks identified improvements, code s"
 doc,"# 🏗️ Event-Driven Architecture Plan
 ## Hangfire + SNS/SQS + Redis + Multi-Project System
 
@@ -8280,25 +8209,31 @@ When raw telemetry events outgrow Postgres and Redis connections bottleneck:
 
 ```yaml
 services:
-  api:          # REST API + Event Publisher
-  worker:       # Hangfire + SQS Consumer (new)
-  db:           # PostgreSQL
-  redis:        # Cache + Hangfire storage
-  moto:         # Mock SNS/SQS
+  api:       # REST API + Event Publisher
+  worker:    # Hangfire + SQS Consumer
+  db:        # PostgreSQL 17-alpine    — healthcheck: pg_isready
+  redis:     # Redis 7.2-alpine        — healthcheck: redis-cli ping
+  moto:      # motoserver/moto:5.1.22  — Mock SNS/SQS, healthcheck: curl :5000
+  moto-init: # amazon/aws-cli:2.3.4    — one-shot init: creates SNS + SQS on boot
 ```
 
+> **Startup order enforced by `depends_on`:**
+> `db` + `redis` + `moto` (healthchecks) → `moto-init` (completed) → `api` + `worker`
+
 ### Worker Dockerfile
-The `InventoryAlert.Worker` project will have its own build stage in `docker-compose.yml`, sharing the same base image and Postgres/Redis connection strings via environment variables.
+
+Located at `InventoryAlert.Worker/Dockerfile`. Uses `dotnet/runtime:10.0`
+(not `aspnet`) since the Worker has no HTTP listener.
 
 ---
 
 ## ✅ Implementation Checklist
 
 ### Phase A — Contracts & Infrastructure
-- [ ] Create `InventoryAlert.Contracts` project
+- [x] Create `InventoryAlert.Contracts` project
 - [ ] Define `EventEnvelope` record
 - [ ] Define all Payload records (Price, Earnings, Insider, News)
-- [ ] Add Contracts reference to Api and Worker projects
+- [x] Add Contracts reference to Api, Worker, and Sample projects
 
 ### Phase B — API (Publisher Side)
 - [ ] Create `IEventPublisher` interface
@@ -8308,8 +8243,10 @@ The `InventoryAlert.Worker` project will have its own build stage in `docker-com
 - [ ] Register `IEventPublisher` in DI
 
 ### Phase C — Worker Project
-- [ ] Create `InventoryAlert.Worker` as a Worker Service
-- [ ] Install Hangfire + `Hangfire.PostgreSql`
+- [x] Create `InventoryAlert.Worker` as a Worker Service
+- [x] Install Hangfire + `Hangfire.PostgreSql`
+- [x] Add Worker to `docker-compose.yml` (with Dockerfile + appsettings.Docker.json)
+- [x] Moto init script: `SolutionFolder/moto-init/init-sqs.sh` creates SNS + SQS
 - [ ] Create `PollSqsJob` — SQS dequeue + event routing
 - [ ] Create `SyncPricesJob` — replaces current `FinnhubSyncWorker`
 - [ ] Create `EarningsCheckJob` — calls `/stock/earnings`
@@ -8340,7 +8277,193 @@ The `InventoryAlert.Worker` project will have its own build stage in `docker-com
 
 > **Priority Order:** A → B → C → D → E → F
 >
-> The existing `FinnhubSyncWorker` in the API should be **removed** once `SyncPricesJob` in the Worker is live. The Worker owns all background logic.",423,16543fb5bcd947ea5730eed81b81cb4f,doc\EVENT_DRIVEN_PLAN.md,1,260,"worker, event, events, news, create, project, inventoryalert, stock",1775286652.42283,1,application service mock setup quote backgroundservice price drop httppost postgresql iactionresult threshold times once returns async efcore dbcontext periodictimer asnotracking schema change loss efcore migration compose iproductservice arrange act assert productservice entity framework httpget external api fluentassertions appdbcontext dockerfile stock postgres business logic commit sku item add-migration xunit container httpput unit test stock price database update unitofwork market data atomicity productscontroller hosted service moq finnhubpricesyncworker savechanges rollback inventory verify notification,# 🏗️ Event-Driven Architecture Plan | 🏗️ Event-Driven Architecture Plan  Hangfire + SNS/SQS + Redis + Multi-Project Sy
+> The existing `FinnhubSyncWorker` in the API should be **removed** once `SyncPricesJob` in the Worker is live. The Worker owns all background logic.",431,e669ebc6164dd6613fb2466d7dcce42f,doc\EVENT_DRIVEN_PLAN.md,1,259,"worker, event, events, news, create, project, inventoryalert, stock",1775288435.33892,1,unitofwork fluentassertions backgroundservice arrange act assert stock price dockerfile quote iactionresult application service efcore migration notification productscontroller atomicity compose business logic add-migration item price drop stock unit test postgres finnhubpricesyncworker mock setup efcore market data moq schema change database update httppost postgresql httpget entity framework productservice hosted service container inventory verify times once httpput returns async rollback loss appdbcontext sku periodictimer commit threshold savechanges asnotracking xunit dbcontext iproductservice external api,# 🏗️ Event-Driven Architecture Plan | 🏗️ Event-Driven Architecture Plan  Hangfire + SNS/SQS + Redis + Multi-Project Sy
+doc,"# 🛠️ Project Setup — Names & Commands
+
+> Run all commands from inside `InventoryManagementSystem/`
+> unless stated otherwise.
+
+---
+
+## 📁 Final Project Names
+
+| Project                    | Type            | Purpose                                     |
+| :------------------------- | :-------------- | :------------------------------------------ |
+| `InventoryAlert.Api`       | ASP.NET Web API | ✅ Existing — extended with event endpoints |
+| `InventoryAlert.Contracts` | Class Library   | NEW — shared event schemas                  |
+| `InventoryAlert.Worker`    | Worker Service  | NEW — Hangfire + SQS consumer               |
+| `InventoryAlert.Sample`    | Console App     | NEW — sample event publisher                |
+| `InventoryAlert.Tests`     | xUnit Test      | ✅ Existing                                 |
+
+---
+
+## ⚡ Step 1 — Create New Projects
+
+```powershell
+cd InventoryManagementSystem",24,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,260,"inventoryalert, project, event, names, commands, inventorymanagementsystem, existing, worker",1775287218.5956979,1,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# 🛠️ Project Setup — Names & Commands | 🛠️ Project Setup — Names & Commands > Run all commands from inside InventoryMana
+doc,"# 1. Shared contracts (event schemas)
+dotnet new classlib -n InventoryAlert.Contracts -o InventoryAlert.Contracts",27,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,261,"contracts, inventoryalert, shared, event, schemas, dotnet, classlib",1775287218.5956979,25,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# 1. Shared contracts (event schemas) | 1
+doc,"# 2. Background worker (Hangfire + SQS)
+dotnet new worker -n InventoryAlert.Worker -o InventoryAlert.Worker",30,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,262,"worker, inventoryalert, background, hangfire, dotnet",1775287218.5956979,28,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# 2. Background worker (Hangfire + SQS) | 2
+doc,"# 3. Sample publisher CLI
+dotnet new console -n InventoryAlert.Sample -o InventoryAlert.Sample
+```
+
+---
+
+## ⚡ Step 2 — Add to Solution
+
+```powershell
+dotnet sln add InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
+dotnet sln add InventoryAlert.Worker/InventoryAlert.Worker.csproj
+dotnet sln add InventoryAlert.Sample/InventoryAlert.Sample.csproj
+```
+
+---
+
+## ⚡ Step 3 — Add Project References
+
+### `InventoryAlert.Api` references `Contracts`
+
+```powershell
+dotnet add InventoryAlert.Api/InventoryAlert.Api.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
+```
+
+### `InventoryAlert.Worker` references `Contracts`
+
+```powershell
+dotnet add InventoryAlert.Worker/InventoryAlert.Worker.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
+```
+
+### `InventoryAlert.Sample` references `Contracts`
+
+```powershell
+dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
+```
+
+---
+
+## ⚡ Step 4 — Install NuGet Packages
+
+### `InventoryAlert.Api` — Event publishing
+
+```powershell",73,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,263,"inventoryalert, csproj, contracts, sample, dotnet, powershell, worker, reference",1775287218.5956979,31,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# 3. Sample publisher CLI | 3
+doc,"# AWS SNS publisher (talks to Moto at localhost:5000)
+dotnet add InventoryAlert.Api package AWSSDK.SimpleNotificationService
+dotnet add InventoryAlert.Api package AWSSDK.SQS
+```
+
+### `InventoryAlert.Worker` — Hangfire + SQS consumer + Redis + DB
+
+```powershell",81,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,264,"dotnet, inventoryalert, package, awssdk, publisher, talks, moto, localhost",1775287218.5956979,74,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# AWS SNS publisher (talks to Moto at localhost:5000) | AWS SNS publisher (talks to Moto at localhost:5000) dotnet add InventoryAlert.Ap
+doc,"# Hangfire core
+dotnet add InventoryAlert.Worker package Hangfire.AspNetCore
+dotnet add InventoryAlert.Worker package Hangfire.PostgreSql",85,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,265,"hangfire, dotnet, inventoryalert, worker, package, core, aspnetcore, postgresql",1775287218.5956979,82,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# Hangfire core | Hangfire core dotnet add InventoryAlert.Worker package Hangfire.AspNetCore dotne
+doc,"# SQS consumer
+dotnet add InventoryAlert.Worker package AWSSDK.SQS",88,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,266,"consumer, dotnet, inventoryalert, worker, package, awssdk",1775287218.5956979,86,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# SQS consumer | SQS consumer dotnet add InventoryAlert.Worker package AWSSDK.SQS
+doc,"# Redis caching
+dotnet add InventoryAlert.Worker package Microsoft.Extensions.Caching.StackExchangeRedis",91,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,267,"caching, redis, dotnet, inventoryalert, worker, package, microsoft, extensions",1775287218.5956979,89,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# Redis caching | Redis caching dotnet add InventoryAlert.Worker package Microsoft.Extensions.Cach
+doc,"# EF Core (share same DB)
+dotnet add InventoryAlert.Worker package Npgsql.EntityFrameworkCore.PostgreSQL
+dotnet add InventoryAlert.Worker package Microsoft.EntityFrameworkCore.Design",95,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,268,"dotnet, inventoryalert, worker, package, entityframeworkcore, core, share, same",1775287218.5956979,92,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# EF Core (share same DB) | EF Core (share same DB) dotnet add InventoryAlert.Worker package Npgsql.EntityFr
+doc,"# HTTP client (for Finnhub calls)
+dotnet add InventoryAlert.Worker package RestSharp
+```
+
+### `InventoryAlert.Worker` — DynamoDB (Future Enterprise Extension)
+
+> **⚠️ Optional:** Only install when migrating from Postgres `EventLog` and Redis dedup
+> to the polyglot DynamoDB strategy described in `EVENT_DRIVEN_PLAN.md`.
+
+```powershell",105,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,269,"http, client, finnhub, calls, dotnet, inventoryalert, worker, package",1775287218.5956979,96,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# HTTP client (for Finnhub calls) | HTTP client (for Finnhub calls) dotnet add InventoryAlert.Worker package RestSha
+doc,"# DynamoDB client + object persistence model
+dotnet add InventoryAlert.Worker package AWSSDK.DynamoDBv2
+```
+
+### `InventoryAlert.Sample` — HTTP client to call the API
+
+```powershell
+dotnet add InventoryAlert.Sample package Microsoft.Extensions.Http
+```
+
+---
+
+## ⚡ Step 5 — Verify Solution Builds
+
+```powershell
+dotnet build InventoryManagementSystem.sln
+```
+
+---
+
+## ⚙️ Step 6 — Environment Variables Needed
+
+Add these to your `.env` file (and `.env.example`):
+
+```env",130,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,270,"dotnet, inventoryalert, package, powershell, dynamodb, client, object, persistence",1775287218.5956979,106,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# DynamoDB client + object persistence model | DynamoDB client + object persistence model dotnet add InventoryAlert.Worker pack
+doc,"# Existing
+DB_PASSWORD=password
+FINNHUB_API_KEY=your_key_here",134,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,271,"existing, password",1775287218.5956979,131,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# Existing | Existing DB_PASSWORD=password FINNHUB_API_KEY=your_key_here
+doc,"# New — AWS / Moto
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+AWS_DEFAULT_REGION=us-east-1
+AWS_ENDPOINT_URL=http://moto:5000        # inside Docker",139,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,272,"moto, test, east, http, inside, docker",1775287218.5956979,135,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# New — AWS / Moto | New — AWS / Moto AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_R
+doc,# AWS_ENDPOINT_URL=http://localhost:5000 # from host machine,141,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,273,"http, localhost, from, host, machine",1775287218.5956979,140,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# AWS_ENDPOINT_URL=http://localhost:5000 # from host machine | AWS_ENDPOINT_URL=http://localhost:5000  from host machine
+doc,"# New — SNS/SQS resource names (Moto will create these on startup)
+SNS_TOPIC_ARN=arn:aws:sns:us-east-1:123456789012:inventory-events
+SQS_QUEUE_URL=http://moto:5000/123456789012/event-queue",145,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,274,"moto, resource, names, will, create, these, startup, east",1775287218.5956979,142,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# New — SNS/SQS resource names (Moto will create these on startup) | New — SNS/SQS resource names (Moto will create these on startup) SNS_TOPIC_ARN=a
+doc,"# New — Redis
+REDIS_CONNECTION=redis:6379              # inside Docker",147,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,275,"redis, inside, docker",1775287218.5956979,146,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# New — Redis | New — Redis REDIS_CONNECTION=redis:6379               inside Docker
+doc,# REDIS_CONNECTION=localhost:6379        # from host machine,149,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,276,"localhost, from, host, machine",1775287218.5956979,148,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# REDIS_CONNECTION=localhost:6379        # from host machine | REDIS_CONNECTION=localhost:6379         from host machine
+doc,"# Future — Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+```
+
+> **Note:** Moto accepts any value for `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+> Use `test` / `test` locally — it works without real credentials.
+
+---
+
+## 🐳 Step 7 — Add Worker to `docker-compose.yml`
+
+```yaml
+worker:
+  build:
+    context: .
+    dockerfile: InventoryAlert.Worker/Dockerfile
+  container_name: inventory_worker
+  environment:
+    - ASPNETCORE_ENVIRONMENT=Docker
+    - Database__DefaultConnection=host=db;port=5432;Database=InventoryAlertDb;Username=postgres;Password=password
+    - Redis__Connection=redis:6379
+    - Aws__EndpointUrl=http://moto:5000
+    - Aws__SnsTopicArn=arn:aws:sns:us-east-1:123456789012:inventory-events
+    - Aws__SqsQueueUrl=http://moto:5000/123456789012/event-queue
+  depends_on:
+    db:
+      condition: service_healthy
+  networks:
+    - app-network
+  restart: unless-stopped
+```
+
+---
+
+## ✅ Quick Checklist
+
+```
+[ ] dotnet new classlib  → InventoryAlert.Contracts
+[ ] dotnet new worker    → InventoryAlert.Worker
+[ ] dotnet new console   → InventoryAlert.Sample
+[ ] dotnet sln add       → 3 projects added to .sln
+[ ] dotnet add reference → Contracts referenced in Api + Worker + Sample
+[ ] dotnet add package   → All NuGet packages installed
+[ ] .env                 → AWS + Redis keys added
+[ ] docker-compose.yml   → Worker service added
+[ ] dotnet build         → Full solution compiles ✅
+```",197,3a4a823f7bece64d796cc9a893bcc877,doc\EVENT_SETUP_COMMANDS.md,0,277,"dotnet, worker, inventoryalert, added, build, dockerfile, docker, password",1775287218.5956979,150,threshold efcore stock price container unit test external api quote finnhubpricesyncworker dockerfile hosted service backgroundservice application service loss appdbcontext business logic iproductservice market data postgres periodictimer asnotracking notification entity framework arrange act assert dbcontext price drop postgresql productservice fluentassertions compose xunit,# Future — Telegram | Future — Telegram TELEGRAM_BOT_TOKEN=your_bot_token_here TELEGRAM_CHAT_ID=your_c
 doc,"# InventoryAlert.Api — Documentation Index
 ---
 description: Master index of all documentation files for the InventoryAlert.Api project
@@ -8425,7 +8548,7 @@ last_updated: YYYY-MM-DD
 After updating any doc, re-index BM25:
 ```bash
 python .agents/scripts/core/bm25_indexer.py
-```",85,b838b650207afed9d3b1924c2b950bdb,doc\README.md,0,261,"index, inventoryalert, status, commands, documentation, active, implemented, docs",1775251311.607817,1,price drop domain driven design threshold infrastructure external api asnotracking stock price quote entity framework domain entity unit test loss container market data notification efcore arrange act assert dbcontext application layer compose appdbcontext dockerfile postgresql fluentassertions postgres xunit,# InventoryAlert.Api — Documentation Index | InventoryAlert.Api — Documentation Index --- description: Master index of all do
+```",85,b838b650207afed9d3b1924c2b950bdb,doc\README.md,0,278,"index, inventoryalert, status, commands, documentation, active, implemented, docs",1775251311.607817,1,price drop domain driven design threshold infrastructure external api asnotracking stock price quote entity framework domain entity unit test loss container market data notification efcore arrange act assert dbcontext application layer compose appdbcontext dockerfile postgresql fluentassertions postgres xunit,# InventoryAlert.Api — Documentation Index | InventoryAlert.Api — Documentation Index --- description: Master index of all do
 doc,"# 🗺️ Development Roadmap
 
 > Consolidated from all `TODO` comments across the codebase.
@@ -8435,15 +8558,16 @@ doc,"# 🗺️ Development Roadmap
 
 ## 🔴 P0 — Critical / Blocking (Do First)
 
-### 1. Docker & Containerization
+### 1. Docker & Containerization ✅
 
 > **Source:** `ProductController.cs:L96` — *important high priority*
 
-Setup docker and containerization for the application. Create a `Dockerfile` to define the container image, and use Docker Compose to manage the multi-container setup (App + PostgreSQL). Review the configuration to ensure it can be easily configured using environment variables when running in a containerized environment.
+~~Setup docker and containerization for the application.~~ **✅ Complete.** See `SETUP_COMMANDS.md` and `EVENT_DRIVEN_PLAN.md` for full implementation details.
 
-- [ ] Create `Dockerfile` (multi-stage build)
-- [ ] Create `docker-compose.yml` (api + postgres)
-- [ ] Externalize config via environment variables
+- [x] Create `Dockerfile` (multi-stage build)
+- [x] Create `docker-compose.yml` (api + postgres + redis + moto + moto-init + worker)
+- [x] Externalize config via `appsettings.Docker.json` (not inline env vars)
+- [x] Moto init script (`SolutionFolder/moto-init/init-sqs.sh`) auto-creates SNS/SQS on boot
 
 ### 2. Global Exception Handling & Error Responses
 
@@ -8461,9 +8585,11 @@ Implement a global exception handling mechanism (middleware or filters) to catch
 
 Implement comprehensive logging using Serilog or NLog. Log important events (product creation, updates, deletions) and errors with appropriate log levels (Information, Warning, Error). Include contextual information (product ID, user ID). Configure multiple sinks (console, file, database).
 
+> **Note:** `FinnhubSyncWorker` logging should be addressed here but the worker itself is planned for **retirement** once `SyncPricesJob` in `InventoryAlert.Worker` is live (see `EVENT_DRIVEN_PLAN.md` — Phase C).
+
 - [ ] Install and configure Serilog
 - [ ] Add structured logging to `ProductServices`
-- [ ] Add logging to `FinnhubSyncWorker`
+- [ ] Add logging to `FinnhubSyncWorker` (temporary — will be removed with worker migration)
 
 ---
 
@@ -8685,12 +8811,14 @@ Review DI usage. Ensure constructor injection is used consistently. Review servi
 
 > **Source:** `ProductController.cs:L97` — *important high priority*
 
-Setup AWS SNS and SQS for messaging/notifications, and Hangfire for background job processing. Implement message producers/consumers for async communication.
+See `EVENT_DRIVEN_PLAN.md` for full architecture. Infrastructure scaffolding is complete:
 
-- [ ] Evaluate Hangfire vs current `BackgroundService`
-- [ ] Design message schema for price alerts
-- [ ] Implement SNS topic for alert notifications
-- [ ] Implement SQS consumer for processing alerts
+- [x] Evaluate Hangfire vs current `BackgroundService` → **Hangfire chosen**
+- [x] Design message schema for price alerts → `EventEnvelope` + payload records in `Contracts`
+- [x] `InventoryAlert.Worker` project created + NuGet packages installed
+- [x] Docker moto-init: SNS topic + SQS queues auto-created on boot
+- [ ] Implement `IEventPublisher` + `SnsEventPublisher` in Api (Phase B)
+- [ ] Implement `PollSqsJob`, `SyncPricesJob`, and event handlers in Worker (Phase C–D)
 
 ### 21. CI/CD Pipeline
 
@@ -8727,7 +8855,7 @@ Implement AutoMapper to centralize mapping between domain models and DTOs. Reduc
 
 > **Last Updated:** 2026-04-04
 >
-> **Legend:** 🔴 P0 = Do now | 🟠 P1 = Next sprint | 🟡 P2 = Soon | 🟢 P3 = When needed | 🔵 P4 = Important but not urgent | 🟣 P5 = Quality | ⚫ P6 = Future",302,09fc4cd16b9140366edf296993869221,doc\ROADMAP.md,0,262,"source, productcontroller, review, create, return, implement, service, ensure",1775239425.1641264,1,market data executetransactionasync unit test data access container sku application service efcore notification dbset hosted service commit iunitofwork moq fluentassertions asnotracking postgresql loss iproductservice rollback productservice verify unitofwork stock price httpput productscontroller iactionresult periodictimer stock returns async appdbcontext postgres times once dbcontext external api threshold atomicity dockerfile httpget iproductrepository entity framework savechangesasync inventory price drop mock setup savechanges igenericrepository finnhubpricesyncworker xunit arrange act assert business logic item httppost backgroundservice compose quote,# 🗺️ Development Roadmap | 🗺️ Development Roadmap > Consolidated from all TODO comments across the codebase
+> **Legend:** 🔴 P0 = Do now | 🟠 P1 = Next sprint | 🟡 P2 = Soon | 🟢 P3 = When needed | 🔵 P4 = Important but not urgent | 🟣 P5 = Quality | ⚫ P6 = Future",307,6abf149e6ef60f88df859cdab0455996,doc\ROADMAP.md,0,279,"source, productcontroller, review, create, return, service, implement, should",1775288469.3112564,1,threshold dbcontext compose hosted service fluentassertions httpput savechangesasync notification business logic times once external api rollback productservice entity framework loss iproductservice iunitofwork verify postgresql igenericrepository efcore asnotracking add-migration application service appdbcontext atomicity xunit arrange act assert database update sku dbset httppost market data stock price schema change stock container savechanges iproductrepository postgres iactionresult item unitofwork data access unit test dockerfile returns async executetransactionasync productscontroller inventory price drop mock setup backgroundservice quote httpget finnhubpricesyncworker periodictimer commit efcore migration moq,# 🗺️ Development Roadmap | 🗺️ Development Roadmap > Consolidated from all TODO comments across the codebase
 doc,"# 🛠️ Project Setup — Names & Commands
 
 > Run all commands from inside `InventoryManagementSystem/`
@@ -8740,9 +8868,9 @@ doc,"# 🛠️ Project Setup — Names & Commands
 | Project | Type | Purpose |
 | :--- | :--- | :--- |
 | `InventoryAlert.Api` | ASP.NET Web API | ✅ Existing — extended with event endpoints |
-| `InventoryAlert.Contracts` | Class Library | NEW — shared event schemas |
-| `InventoryAlert.Worker` | Worker Service | NEW — Hangfire + SQS consumer |
-| `InventoryAlert.Sample` | Console App | NEW — sample event publisher |
+| `InventoryAlert.Contracts` | Class Library | ✅ Done — shared event schemas |
+| `InventoryAlert.Worker` | Worker Service | ✅ Done — Hangfire + SQS consumer |
+| `InventoryAlert.Sample` | Console App | ✅ Done — sample event publisher |
 | `InventoryAlert.Tests` | xUnit Test | ✅ Existing |
 
 ---
@@ -8750,11 +8878,11 @@ doc,"# 🛠️ Project Setup — Names & Commands
 ## ⚡ Step 1 — Create New Projects
 
 ```powershell
-cd InventoryManagementSystem",24,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,263,"inventoryalert, project, event, names, commands, inventorymanagementsystem, existing, worker",1775243675.7281291,1,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# 🛠️ Project Setup — Names & Commands | 🛠️ Project Setup — Names & Commands > Run all commands from inside InventoryMana
+cd InventoryManagementSystem",24,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,280,"inventoryalert, project, event, done, names, commands, inventorymanagementsystem, existing",1775288412.4976573,1,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# 🛠️ Project Setup — Names & Commands | 🛠️ Project Setup — Names & Commands > Run all commands from inside InventoryMana
 doc,"# 1. Shared contracts (event schemas)
-dotnet new classlib -n InventoryAlert.Contracts -o InventoryAlert.Contracts",27,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,264,"contracts, inventoryalert, shared, event, schemas, dotnet, classlib",1775243675.7281291,25,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# 1. Shared contracts (event schemas) | 1
+dotnet new classlib -n InventoryAlert.Contracts -o InventoryAlert.Contracts",27,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,281,"contracts, inventoryalert, shared, event, schemas, dotnet, classlib",1775288412.4976573,25,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# 1. Shared contracts (event schemas) | 1
 doc,"# 2. Background worker (Hangfire + SQS)
-dotnet new worker -n InventoryAlert.Worker -o InventoryAlert.Worker",30,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,265,"worker, inventoryalert, background, hangfire, dotnet",1775243675.7281291,28,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# 2. Background worker (Hangfire + SQS) | 2
+dotnet new worker -n InventoryAlert.Worker -o InventoryAlert.Worker",30,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,282,"worker, inventoryalert, background, hangfire, dotnet",1775288412.4976573,28,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# 2. Background worker (Hangfire + SQS) | 2
 doc,"# 3. Sample publisher CLI
 dotnet new console -n InventoryAlert.Sample -o InventoryAlert.Sample
 ```
@@ -8793,26 +8921,36 @@ dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference Inventor
 ## ⚡ Step 4 — Install NuGet Packages
 
 ### `InventoryAlert.Api` — Event publishing
-```powershell",69,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,266,"inventoryalert, csproj, contracts, sample, dotnet, powershell, worker, reference",1775243675.7281291,31,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# 3. Sample publisher CLI | 3
+```powershell",69,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,283,"inventoryalert, csproj, contracts, sample, dotnet, powershell, worker, reference",1775288412.4976573,31,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# 3. Sample publisher CLI | 3
 doc,"# AWS SNS publisher (talks to Moto at localhost:5000)
 dotnet add InventoryAlert.Api package AWSSDK.SimpleNotificationService
 dotnet add InventoryAlert.Api package AWSSDK.SQS
 ```
 
 ### `InventoryAlert.Worker` — Hangfire + SQS consumer + Redis + DB
-```powershell",76,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,267,"dotnet, inventoryalert, package, awssdk, publisher, talks, moto, localhost",1775243675.7281291,70,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# AWS SNS publisher (talks to Moto at localhost:5000) | AWS SNS publisher (talks to Moto at localhost:5000) dotnet add InventoryAlert.Ap
+```powershell",76,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,284,"dotnet, inventoryalert, package, awssdk, publisher, talks, moto, localhost",1775288412.4976573,70,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# AWS SNS publisher (talks to Moto at localhost:5000) | AWS SNS publisher (talks to Moto at localhost:5000) dotnet add InventoryAlert.Ap
 doc,"# Hangfire core
 dotnet add InventoryAlert.Worker package Hangfire.AspNetCore
-dotnet add InventoryAlert.Worker package Hangfire.PostgreSql",80,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,268,"hangfire, dotnet, inventoryalert, worker, package, core, aspnetcore, postgresql",1775243675.7281291,77,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# Hangfire core | Hangfire core dotnet add InventoryAlert.Worker package Hangfire.AspNetCore dotne
+dotnet add InventoryAlert.Worker package Hangfire.PostgreSql",80,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,285,"hangfire, dotnet, inventoryalert, worker, package, core, aspnetcore, postgresql",1775288412.4976573,77,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# Hangfire core | Hangfire core dotnet add InventoryAlert.Worker package Hangfire.AspNetCore dotne
 doc,"# SQS consumer
-dotnet add InventoryAlert.Worker package AWSSDK.SQS",83,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,269,"consumer, dotnet, inventoryalert, worker, package, awssdk",1775243675.7281291,81,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# SQS consumer | SQS consumer dotnet add InventoryAlert.Worker package AWSSDK.SQS
+dotnet add InventoryAlert.Worker package AWSSDK.SQS",83,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,286,"consumer, dotnet, inventoryalert, worker, package, awssdk",1775288412.4976573,81,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# SQS consumer | SQS consumer dotnet add InventoryAlert.Worker package AWSSDK.SQS
 doc,"# Redis caching
-dotnet add InventoryAlert.Worker package Microsoft.Extensions.Caching.StackExchangeRedis",86,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,270,"caching, redis, dotnet, inventoryalert, worker, package, microsoft, extensions",1775243675.7281291,84,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# Redis caching | Redis caching dotnet add InventoryAlert.Worker package Microsoft.Extensions.Cach
+dotnet add InventoryAlert.Worker package Microsoft.Extensions.Caching.StackExchangeRedis",86,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,287,"caching, redis, dotnet, inventoryalert, worker, package, microsoft, extensions",1775288412.4976573,84,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# Redis caching | Redis caching dotnet add InventoryAlert.Worker package Microsoft.Extensions.Cach
 doc,"# EF Core (share same DB)
 dotnet add InventoryAlert.Worker package Npgsql.EntityFrameworkCore.PostgreSQL
-dotnet add InventoryAlert.Worker package Microsoft.EntityFrameworkCore.Design",90,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,271,"dotnet, inventoryalert, worker, package, entityframeworkcore, core, share, same",1775243675.7281291,87,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# EF Core (share same DB) | EF Core (share same DB) dotnet add InventoryAlert.Worker package Npgsql.EntityFr
+dotnet add InventoryAlert.Worker package Microsoft.EntityFrameworkCore.Design",90,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,288,"dotnet, inventoryalert, worker, package, entityframeworkcore, core, share, same",1775288412.4976573,87,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# EF Core (share same DB) | EF Core (share same DB) dotnet add InventoryAlert.Worker package Npgsql.EntityFr
 doc,"# HTTP client (for Finnhub calls)
 dotnet add InventoryAlert.Worker package RestSharp
+```
+
+### `InventoryAlert.Worker` — DynamoDB (Future Enterprise Extension)
+
+> **⚠️ Optional:** Only install when migrating from Postgres `EventLog` and Redis dedup
+> to the polyglot DynamoDB strategy described in `EVENT_DRIVEN_PLAN.md`.
+
+```powershell",100,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,289,"http, client, finnhub, calls, dotnet, inventoryalert, worker, package",1775288412.4976573,91,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# HTTP client (for Finnhub calls) | HTTP client (for Finnhub calls) dotnet add InventoryAlert.Worker package RestSha
+doc,"# DynamoDB client + object persistence model
+dotnet add InventoryAlert.Worker package AWSSDK.DynamoDBv2
 ```
 
 ### `InventoryAlert.Sample` — HTTP client to call the API
@@ -8830,74 +8968,98 @@ dotnet build InventoryManagementSystem.sln
 
 ---
 
-## ⚙️ Step 6 — Environment Variables Needed
+## ⚙️ Step 6 — Environment Variables
 
-Add these to your `.env` file (and `.env.example`):
+The Worker's `.NET` config keys live in `InventoryAlert.Worker/appsettings.Docker.json`:
 
-```env",114,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,272,"dotnet, http, inventoryalert, package, powershell, client, finnhub, calls",1775243675.7281291,91,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# HTTP client (for Finnhub calls) | HTTP client (for Finnhub calls) dotnet add InventoryAlert.Worker package RestSha
-doc,"# Existing
-DB_PASSWORD=password
-FINNHUB_API_KEY=your_key_here",118,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,273,"existing, password",1775243675.7281291,115,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# Existing | Existing DB_PASSWORD=password FINNHUB_API_KEY=your_key_here
-doc,"# New — AWS / Moto
+```json
+{
+  ""Database"": { ""DefaultConnection"": ""host=db;port=5432;..."" },
+  ""Redis"":    { ""Connection"": ""redis:6379"" },
+  ""Aws"": {
+    ""EndpointUrl"":  ""http://moto:5000"",
+    ""SnsTopicArn"":  ""arn:aws:sns:us-east-1:123456789012:inventory-events"",
+    ""SqsQueueUrl"":  ""http://moto:5000/123456789012/event-queue""
+  }
+}
+```
+
+AWS SDK credential vars must stay in `docker-compose.yml` (SDK reads OS env directly):
+
+```env
 AWS_ACCESS_KEY_ID=test
 AWS_SECRET_ACCESS_KEY=test
 AWS_DEFAULT_REGION=us-east-1
-AWS_ENDPOINT_URL=http://moto:5000        # inside Docker",123,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,274,"moto, test, east, http, inside, docker",1775243675.7281291,119,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# New — AWS / Moto | New — AWS / Moto AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_R
-doc,# AWS_ENDPOINT_URL=http://localhost:5000 # from host machine,125,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,275,"http, localhost, from, host, machine",1775243675.7281291,124,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# AWS_ENDPOINT_URL=http://localhost:5000 # from host machine | AWS_ENDPOINT_URL=http://localhost:5000  from host machine
-doc,"# New — SNS/SQS resource names (Moto will create these on startup)
-SNS_TOPIC_ARN=arn:aws:sns:us-east-1:123456789012:inventory-events
-SQS_QUEUE_URL=http://moto:5000/123456789012/event-queue",129,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,276,"moto, resource, names, will, create, these, startup, east",1775243675.7281291,126,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# New — SNS/SQS resource names (Moto will create these on startup) | New — SNS/SQS resource names (Moto will create these on startup) SNS_TOPIC_ARN=a
-doc,"# New — Redis
-REDIS_CONNECTION=redis:6379              # inside Docker",131,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,277,"redis, inside, docker",1775243675.7281291,130,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# New — Redis | New — Redis REDIS_CONNECTION=redis:6379               inside Docker
-doc,# REDIS_CONNECTION=localhost:6379        # from host machine,133,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,278,"localhost, from, host, machine",1775243675.7281291,132,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# REDIS_CONNECTION=localhost:6379        # from host machine | REDIS_CONNECTION=localhost:6379         from host machine
-doc,"# Future — Telegram
+```
+
+> **Note:** Moto accepts any value for credentials. Use `test` / `test` locally.
+
+Future Telegram vars (add only when implementing Phase F):
+
+```env
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 ```
 
-> **Note:** Moto accepts any value for `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-> Use `test` / `test` locally — it works without real credentials.
+---
+
+## 🐳 Step 7 — Docker Compose (Final State)
+
+`docker-compose.yml` is fully configured. Services and startup order:
+
+```yaml
+services:
+  api:       # REST API   — depends on: db (healthy), moto-init (completed)
+  worker:    # Hangfire   — depends on: db (healthy), redis, moto-init (completed)
+  db:        # PostgreSQL 17-alpine  — healthcheck: pg_isready
+  redis:     # Redis 7.2-alpine      — healthcheck: redis-cli ping
+  moto:      # motoserver/moto:5.1.22 — Mock SNS/SQS, healthcheck: curl :5000
+  moto-init: # amazon/aws-cli:2.3.4  — runs init-sqs.sh ONCE on startup
+```
+
+> **Enforced startup order:**
+> `db` + `redis` + `moto` (healthchecks pass) → `moto-init` (exits 0) → `api` + `worker`
+
+### Worker Dockerfile
+
+Located at `InventoryAlert.Worker/Dockerfile`. Multi-stage build using
+`dotnet/runtime:10.0` (not `aspnet`) — the worker has no HTTP listener.
 
 ---
 
-## 🐳 Step 7 — Add Worker to `docker-compose.yml`
+## 🛠️ Step 8 — Moto Init Script
 
-```yaml
-  worker:
-    build:
-      context: .
-      dockerfile: InventoryAlert.Worker/Dockerfile
-    container_name: inventory_worker
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Docker
-      - Database__DefaultConnection=host=db;port=5432;Database=InventoryAlertDb;Username=postgres;Password=password
-      - Redis__Connection=redis:6379
-      - Aws__EndpointUrl=http://moto:5000
-      - Aws__SnsTopicArn=arn:aws:sns:us-east-1:123456789012:inventory-events
-      - Aws__SqsQueueUrl=http://moto:5000/123456789012/event-queue
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - app-network
-    restart: unless-stopped
-```
+Automatically creates SNS/SQS resources on first Docker boot:
+
+- **Script:** `SolutionFolder/moto-init/init-sqs.sh`
+- **Runs via:** `moto-init` service in docker-compose (one-shot, exits when done)
+
+| Resource | Type | Notes |
+| :--- | :--- | :--- |
+| `inventory-event-dlq` | SQS Standard | Dead Letter Queue (max 3 receives) |
+| `event-queue` | SQS Standard | Main queue — DLQ redrive wired |
+| `inventory-events` | SNS Topic | Auto-subscribed to `event-queue` |
+
+> Script is **idempotent** — checks before creating, safe to re-run.
 
 ---
 
 ## ✅ Quick Checklist
 
 ```
-[ ] dotnet new classlib  → InventoryAlert.Contracts
-[ ] dotnet new worker    → InventoryAlert.Worker
-[ ] dotnet new console   → InventoryAlert.Sample
-[ ] dotnet sln add       → 3 projects added to .sln
-[ ] dotnet add reference → Contracts referenced in Api + Worker + Sample
-[ ] dotnet add package   → All NuGet packages installed
-[ ] .env                 → AWS + Redis keys added
-[ ] docker-compose.yml   → Worker service added
-[ ] dotnet build         → Full solution compiles ✅
-```",181,eae032be48b8e9ec7125f0b26d8dab5e,doc\SETUP_COMMANDS.md,0,279,"dotnet, worker, inventoryalert, added, build, dockerfile, docker, password",1775243675.7281291,134,notification business logic postgres hosted service dbcontext postgresql stock price fluentassertions external api finnhubpricesyncworker backgroundservice arrange act assert periodictimer market data iproductservice efcore appdbcontext dockerfile quote threshold container asnotracking productservice unit test xunit loss application service price drop entity framework compose,# Future — Telegram | Future — Telegram TELEGRAM_BOT_TOKEN=your_bot_token_here TELEGRAM_CHAT_ID=your_c
+[x] dotnet new classlib    → InventoryAlert.Contracts          ✅ Done
+[x] dotnet new worker      → InventoryAlert.Worker             ✅ Done
+[x] dotnet new console     → InventoryAlert.Sample             ✅ Done
+[x] dotnet sln add         → 3 projects added to .sln          ✅ Done
+[x] dotnet add reference   → Contracts in Api + Worker + Sample ✅ Done
+[x] dotnet add package     → All NuGet packages installed      ✅ Done
+[x] Worker Dockerfile      → InventoryAlert.Worker/Dockerfile  ✅ Done
+[x] appsettings.Docker     → Worker Docker config              ✅ Done
+[x] init-sqs.sh            → SNS/SQS resources defined         ✅ Done
+[x] docker-compose.yml     → All services + moto-init          ✅ Done
+[x] dotnet build           → Full solution compiles            ✅ Done
+[ ] TELEGRAM vars          → Add when implementing Phase F
+```",211,1608a217d9b2b3f2ef2ba3f598f5b8db,doc\SETUP_COMMANDS.md,0,290,"done, dotnet, worker, moto, inventoryalert, redis, init, package",1775288412.4976573,101,stock price application service postgres hosted service xunit compose price drop backgroundservice periodictimer fluentassertions notification threshold unit test productservice dockerfile verify finnhubpricesyncworker iproductservice external api business logic market data arrange act assert postgresql returns async dbcontext appdbcontext times once entity framework loss asnotracking moq quote container efcore mock setup,# DynamoDB client + object persistence model | DynamoDB client + object persistence model dotnet add InventoryAlert.Worker pack
 doc,"# Build Guide: Temporal Action Queue
 
 This guide provides a detailed, step-by-step walkthrough to build the **Temporal Action Queue** project from scratch using .NET 9.
@@ -9070,7 +9232,78 @@ Your dashboard will be available at `http://localhost:5000`.
 ## Advanced Practice Goals
 - **Status Enum**: Change `IsProcessed` to `Pending`, `Running`, `Completed`.
 - **Error Handling**: What if the database connection fails in the worker? Wrap the scope in a `try-catch`.
-- **Cancellation**: Add a `DELETE` endpoint to cancel scheduled tasks.",173,4063c6038c0c53ba5e2f0ff98fbb6cff,doc\WALKTHROUGH.md,0,280,"create, phase, project, database, using, core, dashboard, build",1775162140.3832028,1,asnotracking httppost schema change finnhubpricesyncworker efcore httpget backgroundservice productservice iactionresult add-migration appdbcontext business logic efcore migration domain entity iproductservice productscontroller periodictimer database update application layer entity framework infrastructure domain driven design httpput dbcontext hosted service application service,"# Build Guide: Temporal Action Queue | Build Guide: Temporal Action Queue This guide provides a detailed, step-by-step "
+- **Cancellation**: Add a `DELETE` endpoint to cancel scheduled tasks.",173,4063c6038c0c53ba5e2f0ff98fbb6cff,doc\archive\BACKGROUND_JOB_REFER.md,0,291,"create, phase, project, database, using, core, dashboard, build",1775162140.3832028,1,domain entity application layer efcore migration efcore appdbcontext productscontroller dbcontext business logic add-migration database update entity framework iactionresult infrastructure productservice schema change finnhubpricesyncworker application service hosted service asnotracking periodictimer iproductservice httpput httppost domain driven design backgroundservice httpget,"# Build Guide: Temporal Action Queue | Build Guide: Temporal Action Queue This guide provides a detailed, step-by-step "
+doc,"# Coding Challenge: Automated Inventory Alert System
+
+## 🎯 Objective
+
+Build a C# Web API that monitors product stock levels and generates alerts when they fall below a certain threshold.
+
+## 🏗️ Requirements
+
+### 1. The Entity: `Product`
+
+| Property          | Type        | Description                           |
+| :---------------- | :---------- | :------------------------------------ |
+| `Id`              | `int`       | Primary Key                           |
+| `Name`            | `string`    | Unique name of the product            |
+| `StockCount`      | `int`       | Current units available               |
+| `AlertThreshold`  | `int`       | Trigger level for an alert            |
+| `LastAlertSentAt` | `DateTime?` | Timestamp of the last processed alert |
+
+### 2. Business Logic (API)
+
+Implement a RESTful API to manage your inventory:
+
+- `POST /api/products`: Add a new product.
+- `PUT /api/products/{id}/stock`: Update the stock count.
+- `GET /api/products/low-stock`: View all products currently below threshold.
+
+### 3. The Engine (Background Job)
+
+Implement a `BackgroundService` that:
+
+- Runs every **5 minutes**.
+- Scans the database for products where `StockCount <= AlertThreshold`.
+- **Constraint**: To prevent log spam, only log the alert if `LastAlertSentAt` is null OR more than **1 hour ago**.
+- Update the `LastAlertSentAt` once the alert is triggered/logged.
+
+### 4. Persistence
+
+- Use **PostgreSQL** with **Entity Framework Core**.
+
+- Ensure migrations are applied successfully.
+
+### 5. External Price Fetching (Finnhub)
+
+Integrate with the **Finnhub Stock API** to:
+
+- Add a property `TickerSymbol` to the `Product` entity.
+- Implement a background process to fetch the current market price for each symbol.
+- **Challenge**: If the market price is SIGNIFICANTLY higher than the original cost (e.g., > 20% increase), create a ""High Value"" alert even if stock is plentiful.
+
+---
+
+## 🛠️ Tech Stack & Standards
+
+- **Framework**: .NET 8 or 9
+- **DB**: Npgsql.EntityFrameworkCore.PostgreSQL
+
+- **DI**: Remember to handle the **Scoped-in-Singleton** context issue correctly!
+- **Clean Code**: Use Primary Constructors where possible.
+- **Messaging**: Motor (for SNS/SQS abstraction) and Hangfire (for distributed job management).
+
+---
+
+## 🧠 Practice Tasks
+
+1. **Project Initialization**: Build the standard Web API structure yourself.
+2. **Concurrency**: What happens if the background job is running while an API request updates the stock? Consider how EF Core handles tracking.
+3. **Resilience**: Add a `try-catch` inside your worker. If the service fails to connect to the database, it should back off and try again in 30 seconds.
+4. **Distributed Messaging**: Implement **Motor** to push ""Low Stock"" events to **AWS SNS/SQS** topics.
+5. **Robust Scheduling**: Move the inventory check job from `BackgroundService` to **Hangfire** to support persistence, retries, and a dashboard monitor.
+
+_Note: Your previous work has been moved to the `/refer` folder for reference._",71,c6a59e8068f90a661d0d2b8a5f0e97d2,doc\archive\challenge.md,0,292,"stock, alert, product, products, implement, inventory, entity, lastalertsentat",1775162124.1332552,1,msft stock ticker productservice stock price schema change threshold loss aapl price drop backgroundservice business logic quote add-migration hosted service external api entity framework dbcontext appdbcontext iproductservice finnhubpricesyncworker symbol inventory stock database update efcore efcore migration market data asnotracking application service sku googl item periodictimer notification,# Coding Challenge: Automated Inventory Alert System | Coding Challenge: Automated Inventory Alert System  🎯 Objective Build a C Web AP
 doc,"# 🔬 DDD Refactoring Audit — Progress Tracker
 ## Naming Conventions, File Locations & Structure
 
@@ -9208,7 +9441,7 @@ InventoryAlert.Api/
     ├── ServiceExtensions/    ✅ ApplicationServiceExtensions, InfrastructureServiceExtensions
     ├── Middleware/           ⬜ Phase 2
     └── Program.cs            ✅ Clean bootstrap — 64 lines
-```",138,d8697c9f1c300bc86f01bc2b63b6bf5a,doc\archive\DDD_REFACTOR_PLAN.md,0,281,"done, infrastructure, interfaces, persistence, domain, status, controllers, step",1775248260.3204296,1,asnotracking aapl iunitofwork price drop productservice efcore domain entity infrastructure productscontroller iactionresult entity framework domain driven design dbset notification appdbcontext googl application service httppost business logic data access msft threshold external api igenericrepository iproductservice backgroundservice sku item httpput quote dbcontext executetransactionasync application layer iproductrepository hosted service finnhubpricesyncworker stock symbol stock price httpget inventory stock ticker loss savechangesasync periodictimer market data,"# 🔬 DDD Refactoring Audit — Progress Tracker | 🔬 DDD Refactoring Audit — Progress Tracker  Naming Conventions, File Locations &"
+```",138,d8697c9f1c300bc86f01bc2b63b6bf5a,doc\archive\DDD_REFACTOR_PLAN.md,0,293,"done, infrastructure, interfaces, persistence, domain, status, controllers, step",1775248260.3204296,1,asnotracking aapl iunitofwork price drop productservice efcore domain entity infrastructure productscontroller iactionresult entity framework domain driven design dbset notification appdbcontext googl application service httppost business logic data access msft threshold external api igenericrepository iproductservice backgroundservice sku item httpput quote dbcontext executetransactionasync application layer iproductrepository hosted service finnhubpricesyncworker stock symbol stock price httpget inventory stock ticker loss savechangesasync periodictimer market data,"# 🔬 DDD Refactoring Audit — Progress Tracker | 🔬 DDD Refactoring Audit — Progress Tracker  Naming Conventions, File Locations &"
 doc,"# Pragmatic DDD: File Structure Guide
 
 This document outlines the **Domain-Driven Design (DDD)** structure for the **Automated Inventory Alert System**. Our goal is to apply DDD principles while keeping the project ""Small & Pragmatic"" by consolidating layers into logical namespaces within a single API project, rather than over-engineering with multiple assembly projects.
@@ -9275,7 +9508,7 @@ InventoryAlertSystem/
 
 1.  **Big Problem Solved (Architecture):** Prevents the ""Fat Controller"" and ""Transaction Script"" anti-patterns. By moving logic into the **Domain**, we ensure the system is testable without a database.
 2.  **YAGNI (You Ain't Gonna Need It):** Traditional DDD suggests 4+ separate C# projects (`Company.Project.Domain`, `Company.Project.Infra`, etc.). For a small project, this adds build time and complexity. Folder-based DDD provides the **organizational benefits** without the **overhead**.
-3.  **Modular Growth:** If the ""Pricing Module"" grows too large, it is already logically separated in the `Application/Features` and `Infrastructure/External` folders, making it easy to extract into a Microservice later if needed.",67,f9aea3f7d60df29993dbf2f79717628f,doc\archive\DDD_STRUCTURE.md,0,282,"project, domain, what, solves, content, into, logic, rules",1775192013.1882813,1,atomicity xunit market data loss igenericrepository domain driven design unitofwork productscontroller business logic notification iproductrepository infrastructure appdbcontext httpput arrange act assert efcore migration iactionresult add-migration dbcontext unit test httppost iproductservice stock application layer asnotracking dbset inventory external api efcore database update application service schema change price drop entity framework item rollback productservice sku threshold savechanges httpget commit data access fluentassertions domain entity stock price quote,# Pragmatic DDD: File Structure Guide | Pragmatic DDD: File Structure Guide This document outlines the Domain-Driven Des
+3.  **Modular Growth:** If the ""Pricing Module"" grows too large, it is already logically separated in the `Application/Features` and `Infrastructure/External` folders, making it easy to extract into a Microservice later if needed.",67,f9aea3f7d60df29993dbf2f79717628f,doc\archive\DDD_STRUCTURE.md,0,294,"project, domain, what, solves, content, into, logic, rules",1775192013.1882813,1,atomicity xunit market data loss igenericrepository domain driven design unitofwork productscontroller business logic notification iproductrepository infrastructure appdbcontext httpput arrange act assert efcore migration iactionresult add-migration dbcontext unit test httppost iproductservice stock application layer asnotracking dbset inventory external api efcore database update application service schema change price drop entity framework item rollback productservice sku threshold savechanges httpget commit data access fluentassertions domain entity stock price quote,# Pragmatic DDD: File Structure Guide | Pragmatic DDD: File Structure Guide This document outlines the Domain-Driven Des
 doc,"# Unit Test Plan — InventoryAlert.Api
 
 > **Stack**: xUnit · Moq · FluentAssertions (add) · Microsoft.AspNetCore.Mvc.Testing (already present)
@@ -9557,7 +9790,7 @@ public static class ProductFixtures
 | Application/Services | ≥ 90% |
 | Web/Controllers | ≥ 85% |
 | Infrastructure/Repositories | ≥ 80% |
-| Infrastructure/Workers | Integration test scope — out of this plan |",282,19959d884b710b6efd06088fab465255,doc\archive\unit_test_plan.md,0,283,"test, assert, entity, name, product, returns, null, repo",1775249055.741709,1,item arrange act assert executetransactionasync symbol iactionresult iproductrepository iunitofwork dbcontext hosted service commit returns async fluentassertions productscontroller quote stock price msft loss notification times once efcore asnotracking aapl iproductservice atomicity market data productservice xunit finnhubpricesyncworker mock setup entity framework httpget periodictimer appdbcontext googl unit test verify httppost dbset savechanges savechangesasync threshold unitofwork external api igenericrepository sku stock ticker rollback inventory stock moq price drop data access httpput backgroundservice application service business logic,# Unit Test Plan — InventoryAlert.Api | Unit Test Plan — InventoryAlert.Api > Stack: xUnit · Moq · FluentAssertions (add
+| Infrastructure/Workers | Integration test scope — out of this plan |",282,19959d884b710b6efd06088fab465255,doc\archive\unit_test_plan.md,0,295,"test, assert, entity, name, product, returns, null, repo",1775249055.741709,1,item arrange act assert executetransactionasync symbol iactionresult iproductrepository iunitofwork dbcontext hosted service commit returns async fluentassertions productscontroller quote stock price msft loss notification times once efcore asnotracking aapl iproductservice atomicity market data productservice xunit finnhubpricesyncworker mock setup entity framework httpget periodictimer appdbcontext googl unit test verify httppost dbset savechanges savechangesasync threshold unitofwork external api igenericrepository sku stock ticker rollback inventory stock moq price drop data access httpput backgroundservice application service business logic,# Unit Test Plan — InventoryAlert.Api | Unit Test Plan — InventoryAlert.Api > Stack: xUnit · Moq · FluentAssertions (add
 doc,"# .NET CLI Quick Reference
 
 This guide provides the essential commands to build, manage, and run the **Automated Inventory Alert System** project, including solution and test project setup.
@@ -9565,11 +9798,11 @@ This guide provides the essential commands to build, manage, and run the **Autom
 ## 🏗️ 1. Project Initialization (Solution & API)
 
 Create the solution and a new Web API project with Controllers:
-```bash",8,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,284,"project, solution, quick, reference, guide, provides, essential, commands",1775194354.2013211,1,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,"# .NET CLI Quick Reference | .NET CLI Quick Reference This guide provides the essential commands to build, ma"
+```bash",8,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,296,"project, solution, quick, reference, guide, provides, essential, commands",1775194354.2013211,1,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,"# .NET CLI Quick Reference | .NET CLI Quick Reference This guide provides the essential commands to build, ma"
 doc,"# Create the Solution
-dotnet new sln -n InventoryManagementSystem",11,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,285,"create, solution, dotnet, inventorymanagementsystem",1775194354.2013211,9,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the Solution | Create the Solution dotnet new sln -n InventoryManagementSystem
+dotnet new sln -n InventoryManagementSystem",11,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,297,"create, solution, dotnet, inventorymanagementsystem",1775194354.2013211,9,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the Solution | Create the Solution dotnet new sln -n InventoryManagementSystem
 doc,"# Create the API Project
-dotnet new webapi -n InventoryAlert.Api -o InventoryAlert.Api --use-controllers --no-https",14,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,286,"inventoryalert, create, project, dotnet, webapi, controllers, https",1775194354.2013211,12,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the API Project | Create the API Project dotnet new webapi -n InventoryAlert.Api -o InventoryAlert
+dotnet new webapi -n InventoryAlert.Api -o InventoryAlert.Api --use-controllers --no-https",14,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,298,"inventoryalert, create, project, dotnet, webapi, controllers, https",1775194354.2013211,12,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the API Project | Create the API Project dotnet new webapi -n InventoryAlert.Api -o InventoryAlert
 doc,"# Add API Project to Solution
 dotnet sln add InventoryAlert.Api/InventoryAlert.Api.csproj
 ```
@@ -9577,13 +9810,13 @@ dotnet sln add InventoryAlert.Api/InventoryAlert.Api.csproj
 ## 🧪 2. Unit Testing Setup
 
 Add a separate test project and link it to the API:
-```bash",22,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,287,"inventoryalert, project, solution, dotnet, csproj, bash",1775194354.2013211,15,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Add API Project to Solution | Add API Project to Solution dotnet sln add InventoryAlert.Api/InventoryAlert.Api
+```bash",22,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,299,"inventoryalert, project, solution, dotnet, csproj, bash",1775194354.2013211,15,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Add API Project to Solution | Add API Project to Solution dotnet sln add InventoryAlert.Api/InventoryAlert.Api
 doc,"# Create the xUnit Test Project
-dotnet new xunit -n InventoryAlert.Tests -o InventoryAlert.Tests",25,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,288,"xunit, inventoryalert, tests, create, test, project, dotnet",1775194354.2013211,23,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the xUnit Test Project | Create the xUnit Test Project dotnet new xunit -n InventoryAlert.Tests -o Invent
+dotnet new xunit -n InventoryAlert.Tests -o InventoryAlert.Tests",25,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,300,"xunit, inventoryalert, tests, create, test, project, dotnet",1775194354.2013211,23,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create the xUnit Test Project | Create the xUnit Test Project dotnet new xunit -n InventoryAlert.Tests -o Invent
 doc,"# Add Test Project to Solution
-dotnet sln add InventoryAlert.Tests/InventoryAlert.Tests.csproj",28,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,289,"inventoryalert, tests, test, project, solution, dotnet, csproj",1775194354.2013211,26,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Add Test Project to Solution | Add Test Project to Solution dotnet sln add InventoryAlert.Tests/InventoryAlert.
+dotnet sln add InventoryAlert.Tests/InventoryAlert.Tests.csproj",28,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,301,"inventoryalert, tests, test, project, solution, dotnet, csproj",1775194354.2013211,26,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Add Test Project to Solution | Add Test Project to Solution dotnet sln add InventoryAlert.Tests/InventoryAlert.
 doc,"# Reference the API project from the Test Project
-dotnet add InventoryAlert.Tests/InventoryAlert.Tests.csproj reference InventoryAlert.Api/InventoryAlert.Api.csproj",31,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,290,"inventoryalert, reference, project, tests, csproj, from, test, dotnet",1775194354.2013211,29,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Reference the API project from the Test Project | Reference the API project from the Test Project dotnet add InventoryAlert.Tests/
+dotnet add InventoryAlert.Tests/InventoryAlert.Tests.csproj reference InventoryAlert.Api/InventoryAlert.Api.csproj",31,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,302,"inventoryalert, reference, project, tests, csproj, from, test, dotnet",1775194354.2013211,29,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Reference the API project from the Test Project | Reference the API project from the Test Project dotnet add InventoryAlert.Tests/
 doc,"# Add Testing Packages (Moq, Mvc.Testing)
 dotnet add InventoryAlert.Tests/InventoryAlert.Tests.csproj package Moq
 dotnet add InventoryAlert.Tests/InventoryAlert.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing
@@ -9592,15 +9825,15 @@ dotnet add InventoryAlert.Tests/InventoryAlert.Tests.csproj package Microsoft.As
 ## 📦 3. Dependency Management (Core Packages)
 
 Add the required NuGet packages to the API project:
-```bash",40,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,291,"inventoryalert, tests, testing, dotnet, csproj, package, packages, microsoft",1775194354.2013211,32,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,"# Add Testing Packages (Moq, Mvc.Testing) | Add Testing Packages (Moq, Mvc.Testing) dotnet add InventoryAlert.Tests/Inventor"
+```bash",40,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,303,"inventoryalert, tests, testing, dotnet, csproj, package, packages, microsoft",1775194354.2013211,32,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,"# Add Testing Packages (Moq, Mvc.Testing) | Add Testing Packages (Moq, Mvc.Testing) dotnet add InventoryAlert.Tests/Inventor"
 doc,"# Navigate to the API project directory
-cd InventoryAlert.Api",43,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,292,"navigate, project, directory, inventoryalert",1775194354.2013211,41,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Navigate to the API project directory | Navigate to the API project directory cd InventoryAlert.Api
+cd InventoryAlert.Api",43,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,304,"navigate, project, directory, inventoryalert",1775194354.2013211,41,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Navigate to the API project directory | Navigate to the API project directory cd InventoryAlert.Api
 doc,"# Core PostgreSQL & EF Core Design
 dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
-dotnet add package Microsoft.EntityFrameworkCore.Design",47,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,293,"core, postgresql, design, dotnet, package, entityframeworkcore, npgsql, microsoft",1775194354.2013211,44,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Core PostgreSQL & EF Core Design | Core PostgreSQL & EF Core Design dotnet add package Npgsql.EntityFrameworkCore.P
+dotnet add package Microsoft.EntityFrameworkCore.Design",47,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,305,"core, postgresql, design, dotnet, package, entityframeworkcore, npgsql, microsoft",1775194354.2013211,44,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Core PostgreSQL & EF Core Design | Core PostgreSQL & EF Core Design dotnet add package Npgsql.EntityFrameworkCore.P
 doc,"# Hangfire for Job Management
 dotnet add package Hangfire.AspNetCore
-dotnet add package Hangfire.PostgreSql",51,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,294,"hangfire, dotnet, package, management, aspnetcore, postgresql",1775194354.2013211,48,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Hangfire for Job Management | Hangfire for Job Management dotnet add package Hangfire.AspNetCore dotnet add pa
+dotnet add package Hangfire.PostgreSql",51,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,306,"hangfire, dotnet, package, management, aspnetcore, postgresql",1775194354.2013211,48,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Hangfire for Job Management | Hangfire for Job Management dotnet add package Hangfire.AspNetCore dotnet add pa
 doc,"# Motor for SNS/SQS (If applicable)
 dotnet add package Motor.Extensions.Hosting.CloudEvents //TODO: LATER
 ```
@@ -9608,9 +9841,9 @@ dotnet add package Motor.Extensions.Hosting.CloudEvents //TODO: LATER
 ## 🗄️ 4. Database Migrations (EF Core)
 
 Note: Run these from the project root using `--project`:
-```bash",59,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,295,"motor, applicable, dotnet, package, extensions, hosting, cloudevents, todo",1775194354.2013211,52,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Motor for SNS/SQS (If applicable) | Motor for SNS/SQS (If applicable) dotnet add package Motor.Extensions.Hosting.Cl
+```bash",59,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,307,"motor, applicable, dotnet, package, extensions, hosting, cloudevents, todo",1775194354.2013211,52,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Motor for SNS/SQS (If applicable) | Motor for SNS/SQS (If applicable) dotnet add package Motor.Extensions.Hosting.Cl
 doc,"# Create a migration
-dotnet ef migrations add InitialCreate --project InventoryAlert.Api --output-dir Infrastructure/Persistence/Migrations",62,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,296,"migrations, create, migration, dotnet, initialcreate, project, inventoryalert, output",1775194354.2013211,60,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create a migration | Create a migration dotnet ef migrations add InitialCreate --project InventoryAle
+dotnet ef migrations add InitialCreate --project InventoryAlert.Api --output-dir Infrastructure/Persistence/Migrations",62,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,308,"migrations, create, migration, dotnet, initialcreate, project, inventoryalert, output",1775194354.2013211,60,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Create a migration | Create a migration dotnet ef migrations add InitialCreate --project InventoryAle
 doc,"# Apply migrations
 dotnet ef database update --project InventoryAlert.Api
 ```
@@ -9618,11 +9851,11 @@ dotnet ef database update --project InventoryAlert.Api
 ## 🛠️ 5. Build, Run, and Test
 
 Core development commands:
-```bash",70,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,297,"apply, migrations, dotnet, database, update, project, inventoryalert, bash",1775194354.2013211,63,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Apply migrations | Apply migrations dotnet ef database update --project InventoryAlert.Api  🛠️ 5
+```bash",70,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,309,"apply, migrations, dotnet, database, update, project, inventoryalert, bash",1775194354.2013211,63,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Apply migrations | Apply migrations dotnet ef database update --project InventoryAlert.Api  🛠️ 5
 doc,"# Build the entire solution
-dotnet build",73,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,298,"build, entire, solution, dotnet",1775194354.2013211,71,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Build the entire solution | Build the entire solution dotnet build
+dotnet build",73,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,310,"build, entire, solution, dotnet",1775194354.2013211,71,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Build the entire solution | Build the entire solution dotnet build
 doc,"# Run all tests
-dotnet test",76,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,299,"tests, dotnet, test",1775194354.2013211,74,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Run all tests | Run all tests dotnet test
+dotnet test",76,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,311,"tests, dotnet, test",1775194354.2013211,74,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Run all tests | Run all tests dotnet test
 doc,"# Run with Hot Reload (API only)
 dotnet watch run --project InventoryAlert.Api/InventoryAlert.Api.csproj
 ```
@@ -9640,7 +9873,7 @@ dotnet list package
 Build for production:
 ```bash
 dotnet publish InventoryAlert.Api/InventoryAlert.Api.csproj -c Release -o ./publish
-```",94,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,300,"dotnet, inventoryalert, csproj, bash, publish, reload, only, watch",1775194354.2013211,77,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Run with Hot Reload (API only) | Run with Hot Reload (API only) dotnet watch run --project InventoryAlert.Api/Inv
+```",94,29b9d1f2037d8a8d57688d8fc7c1ce59,doc\archive\commands\dotnet-commands.md,0,312,"dotnet, inventoryalert, csproj, bash, publish, reload, only, watch",1775194354.2013211,77,inventory fluentassertions sku appdbcontext entity framework productscontroller efcore migration httpget iactionresult httppost loss arrange act assert price drop stock efcore item dbcontext httpput threshold notification add-migration xunit unit test asnotracking database update schema change,# Run with Hot Reload (API only) | Run with Hot Reload (API only) dotnet watch run --project InventoryAlert.Api/Inv
 doc,"# 🐳 Docker + Messaging Implementation Plan
 
 > Combined from `DOCKER_PLAN.md` and ROADMAP tasks P0-1 and P6-20.
@@ -9670,14 +9903,14 @@ Create at `InventoryManagementSystem/.dockerignore`:
 
 Create at `InventoryManagementSystem/Dockerfile`:
 
-```dockerfile",30,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,301,"step, docker, dockerfile, from, dockerignore, create, inventorymanagementsystem, build",1775242673.9424279,1,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# 🐳 Docker + Messaging Implementation Plan | 🐳 Docker + Messaging Implementation Plan > Combined from DOCKER_PLAN.md and ROAD
+```dockerfile",30,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,313,"step, docker, dockerfile, from, dockerignore, create, inventorymanagementsystem, build",1775242673.9424279,1,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# 🐳 Docker + Messaging Implementation Plan | 🐳 Docker + Messaging Implementation Plan > Combined from DOCKER_PLAN.md and ROAD
 doc,"# Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore ""InventoryAlert.Api/InventoryAlert.Api.csproj""
 RUN dotnet publish ""InventoryAlert.Api/InventoryAlert.Api.csproj"" \
-    -c Release -o /app/publish",38,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,302,"inventoryalert, dotnet, build, csproj, publish, stage, from, microsoft",1775242673.9424279,31,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# Stage 1: Build | Stage 1: Build FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build WORKDIR /src COPY
+    -c Release -o /app/publish",38,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,314,"inventoryalert, dotnet, build, csproj, publish, stage, from, microsoft",1775242673.9424279,31,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# Stage 1: Build | Stage 1: Build FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build WORKDIR /src COPY
 doc,"# Stage 2: Runtime (minimal image)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
@@ -9958,7 +10191,7 @@ For local development, use **Moto Server** to emulate AWS SNS/SQS:
 
 ---
 
-> **Start with Docker first** — it will make all future testing (including messaging) consistent across machines.",319,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,303,"product, ialertnotifier, csharp, scope, cancellationtoken, public, notifyasync, dotnet",1775242673.9424279,39,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# Stage 2: Runtime (minimal image) | Stage 2: Runtime (minimal image) FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS fi
+> **Start with Docker first** — it will make all future testing (including messaging) consistent across machines.",319,8bf657a65582e9f1f8e2d1c17c2f11ab,doc\archive\docker\DOCKER_MESSAGING_PLAN.md,0,315,"product, ialertnotifier, csharp, scope, cancellationtoken, public, notifyasync, dotnet",1775242673.9424279,39,unit test asnotracking aapl price drop productservice add-migration efcore container entity framework xunit arrange act assert notification appdbcontext compose googl application service business logic msft threshold external api iproductservice backgroundservice sku dockerfile item postgres quote dbcontext database update efcore migration hosted service schema change finnhubpricesyncworker stock symbol stock price postgresql inventory fluentassertions stock ticker loss periodictimer market data,# Stage 2: Runtime (minimal image) | Stage 2: Runtime (minimal image) FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS fi
 doc,"# Dockerization & Desktop Environment Plan
 
 This document outlines the strategy for containerizing the **Automated Inventory Alert System** to ensure consistent environments across Development, Test, and Production.
@@ -10009,7 +10242,7 @@ A single command (`docker-compose up`) should spin up the entire ecosystem.
 
 1.  **Non-Root User:** Run the API as a low-privileged user inside the container.
 2.  **Secret Management:** Do NOT hardcode passwords in `docker-compose.yml`. Use environment variables or `.env` files (ignored by git).
-3.  **Healtchecks:** Add health checks to the database to ensure the API only starts after the DB is ready.",51,a49f5cc94874392348e5ce0e0aa6fb54,doc\archive\docker\DOCKER_PLAN.md,0,304,"step, docker, container, build, compose, done, environment, dockerfile",1775242668.7241416,1,inventory fluentassertions sku compose application service postgres postgresql loss container arrange act assert price drop dockerfile stock iproductservice item productservice threshold notification xunit business logic unit test,# Dockerization & Desktop Environment Plan | Dockerization & Desktop Environment Plan This document outlines the strategy for
+3.  **Healtchecks:** Add health checks to the database to ensure the API only starts after the DB is ready.",51,a49f5cc94874392348e5ce0e0aa6fb54,doc\archive\docker\DOCKER_PLAN.md,0,316,"step, docker, container, build, compose, done, environment, dockerfile",1775242668.7241416,1,inventory fluentassertions sku compose application service postgres postgresql loss container arrange act assert price drop dockerfile stock iproductservice item productservice threshold notification xunit business logic unit test,# Dockerization & Desktop Environment Plan | Dockerization & Desktop Environment Plan This document outlines the strategy for
 doc,"# 🆓 Finnhub Free-Tier Endpoints
 
 This document lists all the endpoints available on the Finnhub Free/Personal tier (excluding ""Premium"" and ""Enterprise"" labels).
@@ -10061,7 +10294,7 @@ This document lists all the endpoints available on the Finnhub Free/Personal tie
 ### ⚠️ Free Tier Limits
 - **Rate Limit:** 60 API calls per minute.
 - **Global Limit:** 30 API calls per second (system-wide).
-- **History:** Generally limited (e.g., 1 year for news, 4 quarters for earnings).",52,af680e391d2987b681181bba8a515ac6,doc\archive\finnhub\FINNHUB_FREE_ENDPOINTS.md,0,305,"stock, market, news, forex, crypto, symbols, list, earnings",1775225293.4103222,1,arrange act assert unit test unitofwork rollback savechanges atomicity commit market data xunit external api fluentassertions quote stock price,# 🆓 Finnhub Free-Tier Endpoints | 🆓 Finnhub Free-Tier Endpoints This document lists all the endpoints available on
+- **History:** Generally limited (e.g., 1 year for news, 4 quarters for earnings).",52,af680e391d2987b681181bba8a515ac6,doc\archive\finnhub\FINNHUB_FREE_ENDPOINTS.md,0,317,"stock, market, news, forex, crypto, symbols, list, earnings",1775225293.4103222,1,arrange act assert unit test unitofwork rollback savechanges atomicity commit market data xunit external api fluentassertions quote stock price,# 🆓 Finnhub Free-Tier Endpoints | 🆓 Finnhub Free-Tier Endpoints This document lists all the endpoints available on
 doc,"# 🛠️ Finnhub Integration Implementation Checklist
 
 Follow these steps to complete the automated pricing and alert system.
@@ -10115,45 +10348,64 @@ Follow these steps to complete the automated pricing and alert system.
 
 ## 🧪 Testing Tips
 1. **Mock Tickers:** Seed a product with `TickerSymbol = ""AAPL""` and a low `OriginalCost` to trigger the ""High Value"" logic.
-2. **Rate Limits:** Finnhub free tier is 60 calls/minute. If you have many products, add a small `Task.Delay` between API calls.",54,e254cc095bf205c57e848f397aaae9ad,doc\archive\finnhub\FINNHUB_IMPLEMENTATION_TASKS.md,0,306,"phase, tickersymbol, logic, finnhub, alert, product, update, create",1775231218.9920201,1,asnotracking entity framework inventory backgroundservice appdbcontext quote efcore migration notification finnhubpricesyncworker unit test dbcontext price drop xunit savechangesasync executetransactionasync loss fluentassertions external api stock price times once item aapl business logic googl productservice returns async hosted service schema change add-migration msft periodictimer stock iproductservice efcore mock setup market data verify symbol moq database update threshold stock ticker iunitofwork arrange act assert sku application service,# 🛠️ Finnhub Integration Implementation Checklist | 🛠️ Finnhub Integration Implementation Checklist Follow these steps to complete t
-code,,37,ae9cfcaf5a13981eb8a028fe03668db5,InventoryManagementSystem\.vs\InventoryManagementSystem\v17\DocumentLayout.backup.json,0,307,v17/DocumentLayout.backup.json,1775192535.7046554,1,stock threshold item price drop inventory notification loss sku,[MOD] v17/DocumentLayout.backup.json
-code,,54,b914e93ed736e568add78f6d5b76baa9,InventoryManagementSystem\.vs\InventoryManagementSystem\v17\DocumentLayout.json,0,308,v17/DocumentLayout.json,1775192647.9730933,1,inventory item sku price drop stock notification loss threshold,[MOD] v17/DocumentLayout.json
-code,,87,1fad7235b1e698313b3ac25ade750783,InventoryManagementSystem\.vs\InventoryManagementSystem\v18\DocumentLayout.backup.json,0,309,v18/DocumentLayout.backup.json,1775249921.6394699,1,price drop item threshold iproductrepository dbset sku data access unit test loss httppost httpget notification httpput iactionresult arrange act assert stock igenericrepository fluentassertions inventory productscontroller xunit,[MOD] v18/DocumentLayout.backup.json
-code,,87,1fad7235b1e698313b3ac25ade750783,InventoryManagementSystem\.vs\InventoryManagementSystem\v18\DocumentLayout.json,0,310,v18/DocumentLayout.json,1775249936.2294872,1,sku dbset unit test notification xunit arrange act assert fluentassertions productscontroller loss httpget data access httppost inventory iproductrepository threshold igenericrepository stock price drop iactionresult httpput item,[MOD] v18/DocumentLayout.json
-code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Api\appsettings.Development.json,0,311,InventoryAlert.Api/appsettings.Development.json,1775242083.4916158,1,external api market data threshold loss stock price entity framework efcore notification appdbcontext dbcontext price drop asnotracking quote,[MOD] InventoryAlert.Api/appsettings.Development.json
-code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Api\appsettings.Docker.json,0,312,InventoryAlert.Api/appsettings.Docker.json,1775240822.8697228,1,notification quote market data efcore entity framework threshold price drop appdbcontext dbcontext asnotracking stock price external api loss,[MOD] InventoryAlert.Api/appsettings.Docker.json
-code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Api\appsettings.Example.json,0,313,InventoryAlert.Api/appsettings.Example.json,1775240321.0895963,1,efcore appdbcontext price drop stock price entity framework quote external api asnotracking notification loss market data dbcontext threshold,[MOD] InventoryAlert.Api/appsettings.Example.json
-code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Api\appsettings.json,0,314,InventoryAlert.Api/appsettings.json,1775240157.117674,1,external api appdbcontext quote asnotracking stock price market data dbcontext efcore entity framework,[MOD] InventoryAlert.Api/appsettings.json
-code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Development.json,0,315,net10.0/appsettings.Development.json,1775242083.4916158,1,asnotracking notification stock price threshold price drop market data loss quote efcore dbcontext appdbcontext external api entity framework,[MOD] net10.0/appsettings.Development.json
-code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Docker.json,0,316,net10.0/appsettings.Docker.json,1775240822.8697228,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Docker.json
-code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Example.json,0,317,net10.0/appsettings.Example.json,1775240321.0895963,1,market data stock price asnotracking notification appdbcontext quote entity framework threshold price drop loss efcore dbcontext external api,[MOD] net10.0/appsettings.Example.json
-code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.json,0,318,net10.0/appsettings.json,1775240157.117674,1,efcore stock price market data quote appdbcontext external api dbcontext asnotracking entity framework,[MOD] net10.0/appsettings.json
-code,,944,09de8ce421190874fe8a2917462f400d,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.deps.json,0,319,net10.0/InventoryAlert.Api.deps.json,1775249899.468896,1,efcore productservice appdbcontext price drop entity framework iproductservice dbcontext threshold loss asnotracking application service business logic notification,[MOD] net10.0/InventoryAlert.Api.deps.json
-code,,20,37595336dae30b037bd95e5047b95825,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.runtimeconfig.json,0,320,net10.0/InventoryAlert.Api.runtimeconfig.json,1775249899.493956,1,entity framework efcore appdbcontext asnotracking dbcontext,[MOD] net10.0/InventoryAlert.Api.runtimeconfig.json
-code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.staticwebassets.endpoints.json,0,321,net10.0/InventoryAlert.Api.staticwebassets.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/InventoryAlert.Api.staticwebassets.endpoints.json
-code,,171,6a002d69baf7b85bfe11c404487f1905,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\BuildHost-netcore\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json,0,322,BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json,1763421306.0,1,productservice efcore entity framework appdbcontext application service dbcontext business logic asnotracking iproductservice,[MOD] BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
-code,,14,4a59cbd5a00293f28ad2649fdda570f9,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\BuildHost-netcore\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json,0,323,BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json,1763421306.0,1,asnotracking efcore appdbcontext dbcontext entity framework,[MOD] BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json
-code,,530,d35dbb299235dceaf0a0882b6ae39945,InventoryManagementSystem\InventoryAlert.Api\obj\InventoryAlert.Api.csproj.nuget.dgspec.json,0,324,obj/InventoryAlert.Api.csproj.nuget.dgspec.json,1775249898.0462427,1,productservice price drop application service dbcontext threshold asnotracking appdbcontext notification entity framework efcore business logic iproductservice loss,[MOD] obj/InventoryAlert.Api.csproj.nuget.dgspec.json
-code,,3570,59fbeb41766d7a85dc9d19a9a8a38dc8,InventoryManagementSystem\InventoryAlert.Api\obj\project.assets.json,0,325,obj/project.assets.json,1775249853.6748605,1,business logic threshold productservice dbcontext notification price drop loss entity framework efcore iproductservice application service appdbcontext asnotracking,[MOD] obj/project.assets.json
-code,,133,9db1f78cc1e450f8f9cf97b602f3b47b,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\ApiEndpoints.json,0,326,net10.0/ApiEndpoints.json,1775240758.9216373,1,item price drop httpget iactionresult httpput inventory notification httppost sku productscontroller loss threshold stock,[MOD] net10.0/ApiEndpoints.json
-code,,1,37e1aab3ece01c55b9fe02222379ef5d,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json,0,327,net10.0/rjsmcshtml.dswa.cache.json,1775249899.2041254,1,,[MOD] net10.0/rjsmcshtml.dswa.cache.json
-code,,1,707580636492c62dcc0b880e13fc1bdf,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rjsmrazor.dswa.cache.json,0,328,net10.0/rjsmrazor.dswa.cache.json,1775249899.201934,1,,[MOD] net10.0/rjsmrazor.dswa.cache.json
-code,,1,3e5c18ae615f45a53f22b10f479a9d07,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rpswa.dswa.cache.json,0,329,net10.0/rpswa.dswa.cache.json,1775249634.7418213,1,,[MOD] net10.0/rpswa.dswa.cache.json
-code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\staticwebassets.build.endpoints.json,0,330,net10.0/staticwebassets.build.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/staticwebassets.build.endpoints.json
-code,,1,33100d0122c790e23e46d17c325991ce,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\staticwebassets.build.json,0,331,net10.0/staticwebassets.build.json,1775249635.4926064,1,efcore appdbcontext price drop entity framework asnotracking notification loss dbcontext threshold,[MOD] net10.0/staticwebassets.build.json
-code,,301,8a070664ebbcd80bc433219916f7f82a,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\EndpointInfo\InventoryAlert.Api.json,0,332,EndpointInfo/InventoryAlert.Api.json,1775240759.0202284,1,threshold stock ticker loss googl aapl symbol sku entity framework stock efcore notification appdbcontext inventory item price drop dbcontext asnotracking msft,[MOD] EndpointInfo/InventoryAlert.Api.json
-code,,14,251c880b08d1d0344b8a79bdc2d8f6b6,InventoryManagementSystem\InventoryAlert.Api\Properties\launchSettings.json,0,333,Properties/launchSettings.json,1775162587.1512287,1,,[MOD] Properties/launchSettings.json
-code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Development.json,0,334,net10.0/appsettings.Development.json,1775242083.4916158,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Development.json
-code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Docker.json,0,335,net10.0/appsettings.Docker.json,1775240822.8697228,1,efcore appdbcontext price drop entity framework external api market data dbcontext quote threshold loss stock price asnotracking notification,[MOD] net10.0/appsettings.Docker.json
-code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Example.json,0,336,net10.0/appsettings.Example.json,1775240321.0895963,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Example.json
-code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.json,0,337,net10.0/appsettings.json,1775240157.117674,1,entity framework market data external api asnotracking stock price quote dbcontext appdbcontext efcore,[MOD] net10.0/appsettings.json
-code,,943,d80bc4821b7b0b204d1304e22007b9eb,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.deps.json,0,338,net10.0/InventoryAlert.Api.deps.json,1775249635.6067002,1,efcore productservice appdbcontext price drop entity framework iproductservice dbcontext threshold loss asnotracking application service business logic notification,[MOD] net10.0/InventoryAlert.Api.deps.json
-code,,20,37595336dae30b037bd95e5047b95825,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.runtimeconfig.json,0,339,net10.0/InventoryAlert.Api.runtimeconfig.json,1775249635.610758,1,asnotracking appdbcontext entity framework efcore dbcontext,[MOD] net10.0/InventoryAlert.Api.runtimeconfig.json
-code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.staticwebassets.endpoints.json,0,340,net10.0/InventoryAlert.Api.staticwebassets.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/InventoryAlert.Api.staticwebassets.endpoints.json
-code,,5329,d7d57662eadf0b523ebf03098b5e4fdb,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Tests.deps.json,0,341,net10.0/InventoryAlert.Tests.deps.json,1775249636.5832863,1,entity framework dbcontext fluentassertions productservice price drop business logic application service notification asnotracking savechanges iproductservice xunit loss unit test appdbcontext atomicity efcore arrange act assert rollback unitofwork commit threshold,[MOD] net10.0/InventoryAlert.Tests.deps.json
-code,,20,5f3a2d98fc24aa854c5b9344a7a4d157,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Tests.runtimeconfig.json,0,342,net10.0/InventoryAlert.Tests.runtimeconfig.json,1775249636.586535,1,asnotracking fluentassertions arrange act assert appdbcontext entity framework unit test efcore dbcontext xunit,[MOD] net10.0/InventoryAlert.Tests.runtimeconfig.json
-code,,3,32f4bc8029d47c1522bee03a65d64200,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\MvcTestingAppManifest.json,0,343,net10.0/MvcTestingAppManifest.json,1775249635.8437188,1,threshold notification loss price drop,[MOD] net10.0/MvcTestingAppManifest.json
-code,,907,b2e7a7d3d59e662d162c99c4bd6f4008,InventoryManagementSystem\InventoryAlert.Tests\obj\InventoryAlert.Tests.csproj.nuget.dgspec.json,0,344,obj/InventoryAlert.Tests.csproj.nuget.dgspec.json,1775249853.6960108,1,efcore iproductservice arrange act assert price drop business logic appdbcontext entity framework asnotracking notification xunit loss unit test productservice dbcontext application service fluentassertions threshold,[MOD] obj/InventoryAlert.Tests.csproj.nuget.dgspec.json
-code,,4384,b7c4dc01d89d162c843bb926d28c45b2,InventoryManagementSystem\InventoryAlert.Tests\obj\project.assets.json,0,345,obj/project.assets.json,1775249853.6880825,1,business logic threshold productservice unit test dbcontext notification xunit arrange act assert price drop fluentassertions loss entity framework efcore iproductservice application service appdbcontext asnotracking,[MOD] obj/project.assets.json
-code,,3,32f4bc8029d47c1522bee03a65d64200,InventoryManagementSystem\InventoryAlert.Tests\obj\Debug\net10.0\MvcTestingAppManifest.json,0,346,net10.0/MvcTestingAppManifest.json,1775249635.8437188,1,price drop threshold notification loss,[MOD] net10.0/MvcTestingAppManifest.json
-code,,30,d846e3d2e9fa39e539bfd9b68c5a549d,skills-lock.json,0,347,skills-lock.json,1775284654.147763,1,asnotracking entity framework appdbcontext efcore dbcontext,[MOD] skills-lock.json
+2. **Rate Limits:** Finnhub free tier is 60 calls/minute. If you have many products, add a small `Task.Delay` between API calls.",54,e254cc095bf205c57e848f397aaae9ad,doc\archive\finnhub\FINNHUB_IMPLEMENTATION_TASKS.md,0,318,"phase, tickersymbol, logic, finnhub, alert, product, update, create",1775231218.9920201,1,asnotracking entity framework inventory backgroundservice appdbcontext quote efcore migration notification finnhubpricesyncworker unit test dbcontext price drop xunit savechangesasync executetransactionasync loss fluentassertions external api stock price times once item aapl business logic googl productservice returns async hosted service schema change add-migration msft periodictimer stock iproductservice efcore mock setup market data verify symbol moq database update threshold stock ticker iunitofwork arrange act assert sku application service,# 🛠️ Finnhub Integration Implementation Checklist | 🛠️ Finnhub Integration Implementation Checklist Follow these steps to complete t
+code,,37,ae9cfcaf5a13981eb8a028fe03668db5,InventoryManagementSystem\.vs\InventoryManagementSystem\v17\DocumentLayout.backup.json,0,319,v17/DocumentLayout.backup.json,1775192535.7046554,1,stock threshold item price drop inventory notification loss sku,[MOD] v17/DocumentLayout.backup.json
+code,,54,b914e93ed736e568add78f6d5b76baa9,InventoryManagementSystem\.vs\InventoryManagementSystem\v17\DocumentLayout.json,0,320,v17/DocumentLayout.json,1775192647.9730933,1,inventory item sku price drop stock notification loss threshold,[MOD] v17/DocumentLayout.json
+code,,12,9b7791b1639e6664089ab15c675f32e9,InventoryManagementSystem\.vs\InventoryManagementSystem\v18\DocumentLayout.backup.json,0,321,v18/DocumentLayout.backup.json,1775287816.4087818,1,,[MOD] v18/DocumentLayout.backup.json
+code,,12,9b7791b1639e6664089ab15c675f32e9,InventoryManagementSystem\.vs\InventoryManagementSystem\v18\DocumentLayout.json,0,322,v18/DocumentLayout.json,1775287821.101408,1,,[MOD] v18/DocumentLayout.json
+code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Api\appsettings.Development.json,0,323,InventoryAlert.Api/appsettings.Development.json,1775242083.4916158,1,external api market data threshold loss stock price entity framework efcore notification appdbcontext dbcontext price drop asnotracking quote,[MOD] InventoryAlert.Api/appsettings.Development.json
+code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Api\appsettings.Docker.json,0,324,InventoryAlert.Api/appsettings.Docker.json,1775240822.8697228,1,notification quote market data efcore entity framework threshold price drop appdbcontext dbcontext asnotracking stock price external api loss,[MOD] InventoryAlert.Api/appsettings.Docker.json
+code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Api\appsettings.Example.json,0,325,InventoryAlert.Api/appsettings.Example.json,1775240321.0895963,1,efcore appdbcontext price drop stock price entity framework quote external api asnotracking notification loss market data dbcontext threshold,[MOD] InventoryAlert.Api/appsettings.Example.json
+code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Api\appsettings.json,0,326,InventoryAlert.Api/appsettings.json,1775240157.117674,1,external api appdbcontext quote asnotracking stock price market data dbcontext efcore entity framework,[MOD] InventoryAlert.Api/appsettings.json
+code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Development.json,0,327,net10.0/appsettings.Development.json,1775242083.4916158,1,asnotracking notification stock price threshold price drop market data loss quote efcore dbcontext appdbcontext external api entity framework,[MOD] net10.0/appsettings.Development.json
+code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Docker.json,0,328,net10.0/appsettings.Docker.json,1775240822.8697228,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Docker.json
+code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.Example.json,0,329,net10.0/appsettings.Example.json,1775240321.0895963,1,market data stock price asnotracking notification appdbcontext quote entity framework threshold price drop loss efcore dbcontext external api,[MOD] net10.0/appsettings.Example.json
+code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\appsettings.json,0,330,net10.0/appsettings.json,1775240157.117674,1,efcore stock price market data quote appdbcontext external api dbcontext asnotracking entity framework,[MOD] net10.0/appsettings.json
+code,,1011,a6d72315cd6632ac0c5c6fb5cc9caa25,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.deps.json,0,331,net10.0/InventoryAlert.Api.deps.json,1775287298.6747615,1,business logic appdbcontext efcore notification entity framework iproductservice productservice dbcontext asnotracking price drop threshold loss application service,[MOD] net10.0/InventoryAlert.Api.deps.json
+code,,20,37595336dae30b037bd95e5047b95825,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.runtimeconfig.json,0,332,net10.0/InventoryAlert.Api.runtimeconfig.json,1775249899.493956,1,entity framework efcore appdbcontext asnotracking dbcontext,[MOD] net10.0/InventoryAlert.Api.runtimeconfig.json
+code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\InventoryAlert.Api.staticwebassets.endpoints.json,0,333,net10.0/InventoryAlert.Api.staticwebassets.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/InventoryAlert.Api.staticwebassets.endpoints.json
+code,,171,6a002d69baf7b85bfe11c404487f1905,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\BuildHost-netcore\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json,0,334,BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json,1763421306.0,1,productservice efcore entity framework appdbcontext application service dbcontext business logic asnotracking iproductservice,[MOD] BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
+code,,14,4a59cbd5a00293f28ad2649fdda570f9,InventoryManagementSystem\InventoryAlert.Api\bin\Debug\net10.0\BuildHost-netcore\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json,0,335,BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json,1763421306.0,1,asnotracking efcore appdbcontext dbcontext entity framework,[MOD] BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json
+code,,881,f91a5353cd0ae18c69e3f375178b8a3c,InventoryManagementSystem\InventoryAlert.Api\obj\InventoryAlert.Api.csproj.nuget.dgspec.json,0,336,obj/InventoryAlert.Api.csproj.nuget.dgspec.json,1775287819.0715733,1,application service productservice business logic entity framework dbcontext efcore threshold iproductservice loss appdbcontext notification asnotracking price drop,[MOD] obj/InventoryAlert.Api.csproj.nuget.dgspec.json
+code,,3717,2aa3f8d8d4784c5077209984b80b1db4,InventoryManagementSystem\InventoryAlert.Api\obj\project.assets.json,0,337,obj/project.assets.json,1775287206.505168,1,appdbcontext iproductservice threshold productservice entity framework application service business logic loss asnotracking price drop efcore notification dbcontext,[MOD] obj/project.assets.json
+code,,133,9db1f78cc1e450f8f9cf97b602f3b47b,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\ApiEndpoints.json,0,338,net10.0/ApiEndpoints.json,1775240758.9216373,1,item price drop httpget iactionresult httpput inventory notification httppost sku productscontroller loss threshold stock,[MOD] net10.0/ApiEndpoints.json
+code,,1,efb5160049d2634fa8aaafada563c25f,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json,0,339,net10.0/rjsmcshtml.dswa.cache.json,1775287823.7214017,1,,[MOD] net10.0/rjsmcshtml.dswa.cache.json
+code,,1,1d82fbe16ec0fc9879bb79df15c8c1fb,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rjsmrazor.dswa.cache.json,0,340,net10.0/rjsmrazor.dswa.cache.json,1775287823.7193973,1,,[MOD] net10.0/rjsmrazor.dswa.cache.json
+code,,1,3e5c18ae615f45a53f22b10f479a9d07,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\rpswa.dswa.cache.json,0,341,net10.0/rpswa.dswa.cache.json,1775249634.7418213,1,,[MOD] net10.0/rpswa.dswa.cache.json
+code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\staticwebassets.build.endpoints.json,0,342,net10.0/staticwebassets.build.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/staticwebassets.build.endpoints.json
+code,,1,33100d0122c790e23e46d17c325991ce,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\staticwebassets.build.json,0,343,net10.0/staticwebassets.build.json,1775249635.4926064,1,efcore appdbcontext price drop entity framework asnotracking notification loss dbcontext threshold,[MOD] net10.0/staticwebassets.build.json
+code,,301,8a070664ebbcd80bc433219916f7f82a,InventoryManagementSystem\InventoryAlert.Api\obj\Debug\net10.0\EndpointInfo\InventoryAlert.Api.json,0,344,EndpointInfo/InventoryAlert.Api.json,1775240759.0202284,1,threshold stock ticker loss googl aapl symbol sku entity framework stock efcore notification appdbcontext inventory item price drop dbcontext asnotracking msft,[MOD] EndpointInfo/InventoryAlert.Api.json
+code,,14,251c880b08d1d0344b8a79bdc2d8f6b6,InventoryManagementSystem\InventoryAlert.Api\Properties\launchSettings.json,0,345,Properties/launchSettings.json,1775162587.1512287,1,,[MOD] Properties/launchSettings.json
+code,,23,8eb539dcddae4957566a2c0fb79d7efc,InventoryManagementSystem\InventoryAlert.Contracts\bin\Debug\net10.0\InventoryAlert.Contracts.deps.json,0,346,net10.0/InventoryAlert.Contracts.deps.json,1775287294.4629726,1,notification iproductservice business logic productservice loss application service threshold price drop,[MOD] net10.0/InventoryAlert.Contracts.deps.json
+code,,347,15e962ce39ff3feb0a45e291eac8e7f8,InventoryManagementSystem\InventoryAlert.Contracts\obj\InventoryAlert.Contracts.csproj.nuget.dgspec.json,0,347,obj/InventoryAlert.Contracts.csproj.nuget.dgspec.json,1775287819.0242765,1,productservice entity framework asnotracking application service business logic efcore dbcontext threshold loss notification iproductservice appdbcontext price drop,[MOD] obj/InventoryAlert.Contracts.csproj.nuget.dgspec.json
+code,,353,b2b23f77f99bcd0b9161534cb9fa07eb,InventoryManagementSystem\InventoryAlert.Contracts\obj\project.assets.json,0,348,obj/project.assets.json,1775287095.9877,1,business logic appdbcontext efcore notification entity framework iproductservice productservice dbcontext asnotracking price drop threshold loss application service,[MOD] obj/project.assets.json
+code,,285,f9e792053d9eeedff21adf8444f09d4a,InventoryManagementSystem\InventoryAlert.Sample\bin\Debug\net10.0\InventoryAlert.Sample.deps.json,0,349,net10.0/InventoryAlert.Sample.deps.json,1775287295.1995406,1,loss price drop notification threshold iproductservice business logic productservice application service,[MOD] net10.0/InventoryAlert.Sample.deps.json
+code,,12,fac892e9b5d89d2db8c87684820b33b8,InventoryManagementSystem\InventoryAlert.Sample\bin\Debug\net10.0\InventoryAlert.Sample.runtimeconfig.json,0,350,net10.0/InventoryAlert.Sample.runtimeconfig.json,1775287295.2370946,1,,[MOD] net10.0/InventoryAlert.Sample.runtimeconfig.json
+code,,696,01ee21ae232775636c7633b8222d067c,InventoryManagementSystem\InventoryAlert.Sample\obj\InventoryAlert.Sample.csproj.nuget.dgspec.json,0,351,obj/InventoryAlert.Sample.csproj.nuget.dgspec.json,1775287819.0564044,1,threshold asnotracking price drop notification loss entity framework appdbcontext dbcontext iproductservice productservice business logic efcore application service,[MOD] obj/InventoryAlert.Sample.csproj.nuget.dgspec.json
+code,,1093,d2d2b34f726f09850ba1cee6a787ff26,InventoryManagementSystem\InventoryAlert.Sample\obj\project.assets.json,0,352,obj/project.assets.json,1775287277.735502,1,application service price drop productservice iproductservice threshold asnotracking notification business logic dbcontext efcore appdbcontext loss entity framework,[MOD] obj/project.assets.json
+code,,10,c5b1595bca40a5750f003b232ba32031,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Development.json,0,353,net10.0/appsettings.Development.json,1775242083.4916158,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Development.json
+code,,17,4aa3be6c234062105cc99e94319c7102,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Docker.json,0,354,net10.0/appsettings.Docker.json,1775240822.8697228,1,efcore appdbcontext price drop entity framework external api market data dbcontext quote threshold loss stock price asnotracking notification,[MOD] net10.0/appsettings.Docker.json
+code,,18,820524935c7d33a000dc7f276a0994b6,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.Example.json,0,355,net10.0/appsettings.Example.json,1775240321.0895963,1,entity framework market data loss price drop notification external api asnotracking stock price quote dbcontext appdbcontext threshold efcore,[MOD] net10.0/appsettings.Example.json
+code,,17,9dd95b081f432436a346b5d612ebc9c7,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\appsettings.json,0,356,net10.0/appsettings.json,1775240157.117674,1,entity framework market data external api asnotracking stock price quote dbcontext appdbcontext efcore,[MOD] net10.0/appsettings.json
+code,,1011,a6d72315cd6632ac0c5c6fb5cc9caa25,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.deps.json,0,357,net10.0/InventoryAlert.Api.deps.json,1775287298.6747615,1,appdbcontext loss price drop entity framework productservice threshold application service asnotracking notification dbcontext efcore iproductservice business logic,[MOD] net10.0/InventoryAlert.Api.deps.json
+code,,20,37595336dae30b037bd95e5047b95825,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.runtimeconfig.json,0,358,net10.0/InventoryAlert.Api.runtimeconfig.json,1775249635.610758,1,asnotracking appdbcontext entity framework efcore dbcontext,[MOD] net10.0/InventoryAlert.Api.runtimeconfig.json
+code,,1,f44ca44dd881261586b84442f2201257,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Api.staticwebassets.endpoints.json,0,359,net10.0/InventoryAlert.Api.staticwebassets.endpoints.json,1775249635.4957392,1,,[MOD] net10.0/InventoryAlert.Api.staticwebassets.endpoints.json
+code,,23,8eb539dcddae4957566a2c0fb79d7efc,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Contracts.deps.json,0,360,net10.0/InventoryAlert.Contracts.deps.json,1775287294.4629726,1,iproductservice threshold productservice application service business logic loss price drop notification,[MOD] net10.0/InventoryAlert.Contracts.deps.json
+code,,5409,6992aab79fa438bd6a0fe7ea8e8f440a,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Tests.deps.json,0,361,net10.0/InventoryAlert.Tests.deps.json,1775287301.3477657,1,arrange act assert asnotracking fluentassertions unitofwork savechanges productservice loss notification entity framework business logic application service appdbcontext xunit unit test price drop commit atomicity iproductservice dbcontext threshold efcore rollback,[MOD] net10.0/InventoryAlert.Tests.deps.json
+code,,20,5f3a2d98fc24aa854c5b9344a7a4d157,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\InventoryAlert.Tests.runtimeconfig.json,0,362,net10.0/InventoryAlert.Tests.runtimeconfig.json,1775249636.586535,1,asnotracking fluentassertions arrange act assert appdbcontext entity framework unit test efcore dbcontext xunit,[MOD] net10.0/InventoryAlert.Tests.runtimeconfig.json
+code,,4,012b7363793e018f11857ab726f5bd84,InventoryManagementSystem\InventoryAlert.Tests\bin\Debug\net10.0\MvcTestingAppManifest.json,0,363,net10.0/MvcTestingAppManifest.json,1775287824.014335,1,threshold price drop notification loss,[MOD] net10.0/MvcTestingAppManifest.json
+code,,1258,fcfbfe34b87ce1cd2f1c1a7b4d9a46c7,InventoryManagementSystem\InventoryAlert.Tests\obj\InventoryAlert.Tests.csproj.nuget.dgspec.json,0,364,obj/InventoryAlert.Tests.csproj.nuget.dgspec.json,1775287819.0715733,1,threshold efcore business logic productservice unit test fluentassertions xunit asnotracking application service notification iproductservice entity framework loss arrange act assert appdbcontext dbcontext price drop,[MOD] obj/InventoryAlert.Tests.csproj.nuget.dgspec.json
+code,,4519,679dcfbf5d1a7931243d042a6daac34c,InventoryManagementSystem\InventoryAlert.Tests\obj\project.assets.json,0,365,obj/project.assets.json,1775287207.9906976,1,notification iproductservice entity framework asnotracking fluentassertions business logic productservice unit test xunit efcore appdbcontext arrange act assert loss application service threshold dbcontext price drop,[MOD] obj/project.assets.json
+code,,4,012b7363793e018f11857ab726f5bd84,InventoryManagementSystem\InventoryAlert.Tests\obj\Debug\net10.0\MvcTestingAppManifest.json,0,366,net10.0/MvcTestingAppManifest.json,1775287824.014335,1,notification price drop threshold loss,[MOD] net10.0/MvcTestingAppManifest.json
+code,,8,efb942c8788e089b2e52cbbff0b04b7e,InventoryManagementSystem\InventoryAlert.Worker\appsettings.Development.json,0,367,InventoryAlert.Worker/appsettings.Development.json,1775287096.729816,1,appdbcontext dbcontext entity framework efcore asnotracking,[MOD] InventoryAlert.Worker/appsettings.Development.json
+code,,19,b169aa0593bc0a8400a422090c7596ab,InventoryManagementSystem\InventoryAlert.Worker\appsettings.Docker.json,0,368,InventoryAlert.Worker/appsettings.Docker.json,1775287574.8053293,1,dbcontext threshold entity framework notification appdbcontext price drop loss asnotracking efcore,[MOD] InventoryAlert.Worker/appsettings.Docker.json
+code,,8,efb942c8788e089b2e52cbbff0b04b7e,InventoryManagementSystem\InventoryAlert.Worker\appsettings.json,0,369,InventoryAlert.Worker/appsettings.json,1775287096.7439167,1,appdbcontext efcore entity framework dbcontext asnotracking,[MOD] InventoryAlert.Worker/appsettings.json
+code,,8,efb942c8788e089b2e52cbbff0b04b7e,InventoryManagementSystem\InventoryAlert.Worker\bin\Debug\net10.0\appsettings.Development.json,0,370,net10.0/appsettings.Development.json,1775287096.729816,1,appdbcontext asnotracking entity framework dbcontext efcore,[MOD] net10.0/appsettings.Development.json
+code,,19,b169aa0593bc0a8400a422090c7596ab,InventoryManagementSystem\InventoryAlert.Worker\bin\Debug\net10.0\appsettings.Docker.json,0,371,net10.0/appsettings.Docker.json,1775287574.8053293,1,entity framework appdbcontext efcore asnotracking loss notification price drop dbcontext threshold,[MOD] net10.0/appsettings.Docker.json
+code,,8,efb942c8788e089b2e52cbbff0b04b7e,InventoryManagementSystem\InventoryAlert.Worker\bin\Debug\net10.0\appsettings.json,0,372,net10.0/appsettings.json,1775287096.7439167,1,appdbcontext dbcontext entity framework efcore asnotracking,[MOD] net10.0/appsettings.json
+code,,942,4209c6e36e3e6d0ddc66fdd9376643f7,InventoryManagementSystem\InventoryAlert.Worker\bin\Debug\net10.0\InventoryAlert.Worker.deps.json,0,373,net10.0/InventoryAlert.Worker.deps.json,1775287297.8906143,1,hosted service business logic application service dbcontext periodictimer iproductservice threshold productservice entity framework backgroundservice notification finnhubpricesyncworker appdbcontext price drop loss asnotracking efcore,[MOD] net10.0/InventoryAlert.Worker.deps.json
+code,,19,7b716426e1deaae021de466b00b9f803,InventoryManagementSystem\InventoryAlert.Worker\bin\Debug\net10.0\InventoryAlert.Worker.runtimeconfig.json,0,374,net10.0/InventoryAlert.Worker.runtimeconfig.json,1775287297.945302,1,appdbcontext efcore entity framework dbcontext asnotracking,[MOD] net10.0/InventoryAlert.Worker.runtimeconfig.json
+code,,730,64eea97bc45ebaf96fd91f8e4da8a7d5,InventoryManagementSystem\InventoryAlert.Worker\obj\InventoryAlert.Worker.csproj.nuget.dgspec.json,0,375,obj/InventoryAlert.Worker.csproj.nuget.dgspec.json,1775287819.0715733,1,hosted service business logic appdbcontext backgroundservice periodictimer efcore notification entity framework finnhubpricesyncworker iproductservice productservice dbcontext asnotracking price drop threshold loss application service,[MOD] obj/InventoryAlert.Worker.csproj.nuget.dgspec.json
+code,,4775,b38d0771d47ed34dc907f1649bece401,InventoryManagementSystem\InventoryAlert.Worker\obj\project.assets.json,0,376,obj/project.assets.json,1775287274.2401268,1,loss appdbcontext periodictimer price drop notification entity framework threshold efcore dbcontext asnotracking finnhubpricesyncworker iproductservice business logic hosted service backgroundservice productservice application service,[MOD] obj/project.assets.json
+code,,12,f5fda86557b5826bd2813eb658c10141,InventoryManagementSystem\InventoryAlert.Worker\Properties\launchSettings.json,0,377,Properties/launchSettings.json,1775287096.7608154,1,periodictimer notification hosted service finnhubpricesyncworker loss threshold backgroundservice price drop,[MOD] Properties/launchSettings.json
+code,,30,d846e3d2e9fa39e539bfd9b68c5a549d,skills-lock.json,0,378,skills-lock.json,1775284654.147763,1,asnotracking entity framework appdbcontext efcore dbcontext,[MOD] skills-lock.json

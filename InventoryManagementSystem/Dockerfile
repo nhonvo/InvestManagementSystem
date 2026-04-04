@@ -2,8 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy solution and restore (layer cache-friendly)
+# Copy ALL referenced .csproj files first for layer-cached restore
+# InventoryAlert.Api references InventoryAlert.Contracts — both must be present
 COPY InventoryManagementSystem.sln ./
+COPY InventoryAlert.Contracts/InventoryAlert.Contracts.csproj ./InventoryAlert.Contracts/
 COPY InventoryAlert.Api/InventoryAlert.Api.csproj ./InventoryAlert.Api/
 RUN dotnet restore "InventoryAlert.Api/InventoryAlert.Api.csproj"
 

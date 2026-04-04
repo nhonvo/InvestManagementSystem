@@ -7,13 +7,13 @@
 
 ## 📁 Final Project Names
 
-| Project                    | Type            | Purpose                                     |
-| :------------------------- | :-------------- | :------------------------------------------ |
-| `InventoryAlert.Api`       | ASP.NET Web API | ✅ Existing — extended with event endpoints |
-| `InventoryAlert.Contracts` | Class Library   | NEW — shared event schemas                  |
-| `InventoryAlert.Worker`    | Worker Service  | NEW — Hangfire + SQS consumer               |
-| `InventoryAlert.Sample`    | Console App     | NEW — sample event publisher                |
-| `InventoryAlert.Tests`     | xUnit Test      | ✅ Existing                                 |
+| Project | Type | Purpose |
+| :--- | :--- | :--- |
+| `InventoryAlert.Api` | ASP.NET Web API | ✅ Existing — extended with event endpoints |
+| `InventoryAlert.Contracts` | Class Library | ✅ Done — shared event schemas |
+| `InventoryAlert.Worker` | Worker Service | ✅ Done — Hangfire + SQS consumer |
+| `InventoryAlert.Sample` | Console App | ✅ Done — sample event publisher |
+| `InventoryAlert.Tests` | xUnit Test | ✅ Existing |
 
 ---
 
@@ -47,19 +47,16 @@ dotnet sln add InventoryAlert.Sample/InventoryAlert.Sample.csproj
 ## ⚡ Step 3 — Add Project References
 
 ### `InventoryAlert.Api` references `Contracts`
-
 ```powershell
 dotnet add InventoryAlert.Api/InventoryAlert.Api.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
 
 ### `InventoryAlert.Worker` references `Contracts`
-
 ```powershell
 dotnet add InventoryAlert.Worker/InventoryAlert.Worker.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
 
 ### `InventoryAlert.Sample` references `Contracts`
-
 ```powershell
 dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference InventoryAlert.Contracts/InventoryAlert.Contracts.csproj
 ```
@@ -69,7 +66,6 @@ dotnet add InventoryAlert.Sample/InventoryAlert.Sample.csproj reference Inventor
 ## ⚡ Step 4 — Install NuGet Packages
 
 ### `InventoryAlert.Api` — Event publishing
-
 ```powershell
 # AWS SNS publisher (talks to Moto at localhost:5000)
 dotnet add InventoryAlert.Api package AWSSDK.SimpleNotificationService
@@ -77,7 +73,6 @@ dotnet add InventoryAlert.Api package AWSSDK.SQS
 ```
 
 ### `InventoryAlert.Worker` — Hangfire + SQS consumer + Redis + DB
-
 ```powershell
 # Hangfire core
 dotnet add InventoryAlert.Worker package Hangfire.AspNetCore
@@ -108,7 +103,6 @@ dotnet add InventoryAlert.Worker package AWSSDK.DynamoDBv2
 ```
 
 ### `InventoryAlert.Sample` — HTTP client to call the API
-
 ```powershell
 dotnet add InventoryAlert.Sample package Microsoft.Extensions.Http
 ```
@@ -123,75 +117,95 @@ dotnet build InventoryManagementSystem.sln
 
 ---
 
-## ⚙️ Step 6 — Environment Variables Needed
+## ⚙️ Step 6 — Environment Variables
 
-Add these to your `.env` file (and `.env.example`):
+The Worker's `.NET` config keys live in `InventoryAlert.Worker/appsettings.Docker.json`:
+
+```json
+{
+  "Database": { "DefaultConnection": "host=db;port=5432;..." },
+  "Redis":    { "Connection": "redis:6379" },
+  "Aws": {
+    "EndpointUrl":  "http://moto:5000",
+    "SnsTopicArn":  "arn:aws:sns:us-east-1:123456789012:inventory-events",
+    "SqsQueueUrl":  "http://moto:5000/123456789012/event-queue"
+  }
+}
+```
+
+AWS SDK credential vars must stay in `docker-compose.yml` (SDK reads OS env directly):
 
 ```env
-# Existing
-DB_PASSWORD=password
-FINNHUB_API_KEY=your_key_here
-
-# New — AWS / Moto
 AWS_ACCESS_KEY_ID=test
 AWS_SECRET_ACCESS_KEY=test
 AWS_DEFAULT_REGION=us-east-1
-AWS_ENDPOINT_URL=http://moto:5000        # inside Docker
-# AWS_ENDPOINT_URL=http://localhost:5000 # from host machine
+```
 
-# New — SNS/SQS resource names (Moto will create these on startup)
-SNS_TOPIC_ARN=arn:aws:sns:us-east-1:123456789012:inventory-events
-SQS_QUEUE_URL=http://moto:5000/123456789012/event-queue
+> **Note:** Moto accepts any value for credentials. Use `test` / `test` locally.
 
-# New — Redis
-REDIS_CONNECTION=redis:6379              # inside Docker
-# REDIS_CONNECTION=localhost:6379        # from host machine
+Future Telegram vars (add only when implementing Phase F):
 
-# Future — Telegram
+```env
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 ```
 
-> **Note:** Moto accepts any value for `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-> Use `test` / `test` locally — it works without real credentials.
+---
+
+## 🐳 Step 7 — Docker Compose (Final State)
+
+`docker-compose.yml` is fully configured. Services and startup order:
+
+```yaml
+services:
+  api:       # REST API   — depends on: db (healthy), moto-init (completed)
+  worker:    # Hangfire   — depends on: db (healthy), redis, moto-init (completed)
+  db:        # PostgreSQL 17-alpine  — healthcheck: pg_isready
+  redis:     # Redis 7.2-alpine      — healthcheck: redis-cli ping
+  moto:      # motoserver/moto:5.1.22 — Mock SNS/SQS, healthcheck: curl :5000
+  moto-init: # amazon/aws-cli:2.3.4  — runs init-sqs.sh ONCE on startup
+```
+
+> **Enforced startup order:**
+> `db` + `redis` + `moto` (healthchecks pass) → `moto-init` (exits 0) → `api` + `worker`
+
+### Worker Dockerfile
+
+Located at `InventoryAlert.Worker/Dockerfile`. Multi-stage build using
+`dotnet/runtime:10.0` (not `aspnet`) — the worker has no HTTP listener.
 
 ---
 
-## 🐳 Step 7 — Add Worker to `docker-compose.yml`
+## 🛠️ Step 8 — Moto Init Script
 
-```yaml
-worker:
-  build:
-    context: .
-    dockerfile: InventoryAlert.Worker/Dockerfile
-  container_name: inventory_worker
-  environment:
-    - ASPNETCORE_ENVIRONMENT=Docker
-    - Database__DefaultConnection=host=db;port=5432;Database=InventoryAlertDb;Username=postgres;Password=password
-    - Redis__Connection=redis:6379
-    - Aws__EndpointUrl=http://moto:5000
-    - Aws__SnsTopicArn=arn:aws:sns:us-east-1:123456789012:inventory-events
-    - Aws__SqsQueueUrl=http://moto:5000/123456789012/event-queue
-  depends_on:
-    db:
-      condition: service_healthy
-  networks:
-    - app-network
-  restart: unless-stopped
-```
+Automatically creates SNS/SQS resources on first Docker boot:
+
+- **Script:** `SolutionFolder/moto-init/init-sqs.sh`
+- **Runs via:** `moto-init` service in docker-compose (one-shot, exits when done)
+
+| Resource | Type | Notes |
+| :--- | :--- | :--- |
+| `inventory-event-dlq` | SQS Standard | Dead Letter Queue (max 3 receives) |
+| `event-queue` | SQS Standard | Main queue — DLQ redrive wired |
+| `inventory-events` | SNS Topic | Auto-subscribed to `event-queue` |
+
+> Script is **idempotent** — checks before creating, safe to re-run.
 
 ---
 
 ## ✅ Quick Checklist
 
 ```
-[ ] dotnet new classlib  → InventoryAlert.Contracts
-[ ] dotnet new worker    → InventoryAlert.Worker
-[ ] dotnet new console   → InventoryAlert.Sample
-[ ] dotnet sln add       → 3 projects added to .sln
-[ ] dotnet add reference → Contracts referenced in Api + Worker + Sample
-[ ] dotnet add package   → All NuGet packages installed
-[ ] .env                 → AWS + Redis keys added
-[ ] docker-compose.yml   → Worker service added
-[ ] dotnet build         → Full solution compiles ✅
+[x] dotnet new classlib    → InventoryAlert.Contracts          ✅ Done
+[x] dotnet new worker      → InventoryAlert.Worker             ✅ Done
+[x] dotnet new console     → InventoryAlert.Sample             ✅ Done
+[x] dotnet sln add         → 3 projects added to .sln          ✅ Done
+[x] dotnet add reference   → Contracts in Api + Worker + Sample ✅ Done
+[x] dotnet add package     → All NuGet packages installed      ✅ Done
+[x] Worker Dockerfile      → InventoryAlert.Worker/Dockerfile  ✅ Done
+[x] appsettings.Docker     → Worker Docker config              ✅ Done
+[x] init-sqs.sh            → SNS/SQS resources defined         ✅ Done
+[x] docker-compose.yml     → All services + moto-init          ✅ Done
+[x] dotnet build           → Full solution compiles            ✅ Done
+[ ] TELEGRAM vars          → Add when implementing Phase F
 ```

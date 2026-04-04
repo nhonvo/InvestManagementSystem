@@ -360,25 +360,31 @@ When raw telemetry events outgrow Postgres and Redis connections bottleneck:
 
 ```yaml
 services:
-  api:          # REST API + Event Publisher
-  worker:       # Hangfire + SQS Consumer (new)
-  db:           # PostgreSQL
-  redis:        # Cache + Hangfire storage
-  moto:         # Mock SNS/SQS
+  api:       # REST API + Event Publisher
+  worker:    # Hangfire + SQS Consumer
+  db:        # PostgreSQL 17-alpine    — healthcheck: pg_isready
+  redis:     # Redis 7.2-alpine        — healthcheck: redis-cli ping
+  moto:      # motoserver/moto:5.1.22  — Mock SNS/SQS, healthcheck: curl :5000
+  moto-init: # amazon/aws-cli:2.3.4    — one-shot init: creates SNS + SQS on boot
 ```
 
+> **Startup order enforced by `depends_on`:**
+> `db` + `redis` + `moto` (healthchecks) → `moto-init` (completed) → `api` + `worker`
+
 ### Worker Dockerfile
-The `InventoryAlert.Worker` project will have its own build stage in `docker-compose.yml`, sharing the same base image and Postgres/Redis connection strings via environment variables.
+
+Located at `InventoryAlert.Worker/Dockerfile`. Uses `dotnet/runtime:10.0`
+(not `aspnet`) since the Worker has no HTTP listener.
 
 ---
 
 ## ✅ Implementation Checklist
 
 ### Phase A — Contracts & Infrastructure
-- [ ] Create `InventoryAlert.Contracts` project
+- [x] Create `InventoryAlert.Contracts` project
 - [ ] Define `EventEnvelope` record
 - [ ] Define all Payload records (Price, Earnings, Insider, News)
-- [ ] Add Contracts reference to Api and Worker projects
+- [x] Add Contracts reference to Api, Worker, and Sample projects
 
 ### Phase B — API (Publisher Side)
 - [ ] Create `IEventPublisher` interface
@@ -388,8 +394,10 @@ The `InventoryAlert.Worker` project will have its own build stage in `docker-com
 - [ ] Register `IEventPublisher` in DI
 
 ### Phase C — Worker Project
-- [ ] Create `InventoryAlert.Worker` as a Worker Service
-- [ ] Install Hangfire + `Hangfire.PostgreSql`
+- [x] Create `InventoryAlert.Worker` as a Worker Service
+- [x] Install Hangfire + `Hangfire.PostgreSql`
+- [x] Add Worker to `docker-compose.yml` (with Dockerfile + appsettings.Docker.json)
+- [x] Moto init script: `SolutionFolder/moto-init/init-sqs.sh` creates SNS + SQS
 - [ ] Create `PollSqsJob` — SQS dequeue + event routing
 - [ ] Create `SyncPricesJob` — replaces current `FinnhubSyncWorker`
 - [ ] Create `EarningsCheckJob` — calls `/stock/earnings`
