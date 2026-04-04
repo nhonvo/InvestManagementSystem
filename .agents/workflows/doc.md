@@ -43,11 +43,9 @@ Create or update the relevant `doc/` file based on what changed:
 |-------------|--------------|
 | New entity or feature | `doc/<feature-id>_spec.md` (create) |
 | New API endpoint | `doc/WALKTHROUGH.md` (add endpoint) |
-| Architecture change | `doc/DDD_STRUCTURE.md` |
 | New enhancement | `doc/ENHANCEMENT_PLAN.md` |
-| Tech debt tracked | `GEMINI.md` → Known Tech Debt table |
+| Tech debt tracked | `.agents/GEMINI.md` → Known Tech Debt table |
 | Roadmap item | `doc/ROADMAP.md` |
-| Unit test plan update | `doc/unit_test_plan.md` |
 
 **Doc file format** — every `.md` in `doc/` must have this header:
 

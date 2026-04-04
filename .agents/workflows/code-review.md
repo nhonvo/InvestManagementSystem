@@ -18,14 +18,14 @@ tags: [workflow, code-review, quality, checklist, inventoryalert]
 
 // turbo
 
-1. **Pull coding rules**:
+1. **Pull clean architecture and framework rules**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "coding rules conventions C# async transaction" -n 3 -f ".agents/rules"
+   python .agents/scripts/core/bm25_search.py "ddd-architecture clean-architecture csharp-async" -n 3 -f ".agents/skills"
    ```
 
-2. **Pull architecture rules**:
+2. **Pull Postgres design & optimization standards**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "ddd layer domain application infrastructure web rules" -n 3 -f ".agents/skills"
+   python .agents/scripts/core/bm25_search.py "inventoryalert-efcore postgresql-optimization postgresql-table-design" -n 3 -f ".agents/skills"
    ```
 
 ---

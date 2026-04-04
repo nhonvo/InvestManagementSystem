@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 InventoryManagementSystem/InventoryAlert.Api/appsettings.Development.json
 InventoryManagementSystem/InventoryAlert.Api/appsettings.Docker.json
 InventoryManagementSystem/InventoryAlert.Api/appsettings.json
+skills-lock.json

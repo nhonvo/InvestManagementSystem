@@ -1,3 +1,9 @@
+---
+trigger: always_on
+glob:
+description:
+---
+
 # Project Rules — InventoryAlert.Api
 ---
 description: Project-level coding standards for InventoryAlert.Api

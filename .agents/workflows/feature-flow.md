@@ -22,19 +22,19 @@ Requirement → Domain → Application → Infrastructure → Web → Tests → 
 
 // turbo
 
-1. **Find related existing code**:
+1. **Pull DDD architecture rules**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "<feature keyword> service repository" -n 5
+   python .agents/scripts/core/bm25_search.py "ddd-architecture clean-architecture boundaries" -n 2 -f ".agents/skills"
    ```
 
-2. **Check architecture rules**:
+2. **Pull async execution & background worker rules**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "ddd layer rules" -n 2 -f ".agents/skills"
+   python .agents/scripts/core/bm25_search.py "inventoryalert-async-patterns csharp-async" -n 2 -f ".agents/skills"
    ```
 
-3. **Check tech debt** — avoid repeating known bugs:
+3. **Find tech debt + related service logic**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "tech debt blank entity CS1998 SRP" -n 3
+   python .agents/scripts/core/bm25_search.py "<feature keyword> service tech debt bug" -n 3
    ```
 
 ---
@@ -150,10 +150,20 @@ Run `/code-review` checklist. Key items:
 
 ## Phase 8: Doc & Brain Freeze
 
-```bash
-# Update doc
-# doc/<feature-id>_spec.md — create or update
+Every single feature MUST be paired with a documentation file mapping its state. Check `/doc.md` for full format.
+Write the structural markdown specification to `doc/<feature-id>_spec.md` starting with:
 
+```markdown
+---
+description: <One-line summary>
+type: spec
+status: active
+version: 1.0
+tags: [spec, <feature_tags>]
+---
+```
+
+```bash
 # Re-index
 python .agents/scripts/core/bm25_indexer.py
 ```

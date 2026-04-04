@@ -7,8 +7,8 @@ import time
 from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor
 from bm25_core import save_index_binary, load_index_csv, save_index_csv
-
-import io
+from bm25_core import save_index_binary, load_index_csv, save_index_csv
+import json
 
 # Force UTF-8 for Windows compatibility with special characters
 if sys.platform == "win32":
@@ -17,36 +17,14 @@ if sys.platform == "win32":
 # --- Configuration ---
 csv.field_size_limit(2147483647)
 
-SYNONYMS = {
-    # InventoryAlert domain
-    'product': ['inventory', 'item', 'stock', 'sku'],
-    'finnhub': ['external api', 'quote', 'stock price', 'market data'],
-    'transaction': ['unitofwork', 'atomicity', 'rollback', 'commit', 'savechanges'],
-    'alert': ['threshold', 'notification', 'price drop', 'loss'],
-    'ticker': ['symbol', 'aapl', 'googl', 'msft', 'stock ticker'],
-    'migration': ['efcore migration', 'schema change', 'database update', 'add-migration'],
-    'repository': ['igenericrepository', 'iproductrepository', 'data access', 'dbset'],
-    'unitofwork': ['iunitofwork', 'executetransactionasync', 'savechangesasync'],
-    'ddd': ['domain driven design', 'domain entity', 'application layer', 'infrastructure'],
-    'service': ['iproductservice', 'productservice', 'application service', 'business logic'],
-    'mock': ['moq', 'mock setup', 'times once', 'returns async', 'verify'],
-    'test': ['xunit', 'fluentassertions', 'arrange act assert', 'unit test'],
-    'docker': ['compose', 'dockerfile', 'container', 'postgres', 'postgresql'],
-    'ef': ['entity framework', 'efcore', 'dbcontext', 'appdbcontext', 'asnotracking'],
-    'controller': ['productscontroller', 'iactionresult', 'httpget', 'httppost', 'httpput'],
-    'worker': ['backgroundservice', 'periodictimer', 'finnhubpricesyncworker', 'hosted service'],
-}
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'bm25_config.json'), 'r', encoding='utf-8') as f:
+        config = json.load(f)
+except Exception:
+    config = {}
 
-SCAN_FOLDERS = [
-    # Agent knowledge (highest priority)
-    '.agents/rules',
-    '.agents/workflows',
-    '.agents/skills',
-    # Project documentation
-    'doc',
-    # C# source code
-    'InventoryManagementSystem',
-]
+SYNONYMS = config.get('synonyms', {})
+SCAN_FOLDERS = config.get('scan_folders', [])
 
 def get_file_metadata(file_path):
     """Get MD5 hash and last modification time of file."""

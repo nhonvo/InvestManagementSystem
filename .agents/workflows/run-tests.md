@@ -18,14 +18,14 @@ tags: [workflow, tests, xunit, coverage, inventoryalert]
 
 // turbo
 
-1. **Find relevant test files**:
+1. **Pull explicit testing architecture skills**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "xunit moq fluent assertion test service controller" -n 5
+   python .agents/scripts/core/bm25_search.py "testing-patterns csharp-xunit" -n 2 -f ".agents/skills"
    ```
 
-2. **Find testing patterns**:
+2. **Find relevant test files**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "ExecuteTransactionAsync mock Moq setup times once" -n 3 -f ".agents/skills"
+   python .agents/scripts/core/bm25_search.py "xunit moq fluent assertion test service controller" -n 5
    ```
 
 ---
@@ -104,6 +104,6 @@ Passed: 43  Failed: 0  Skipped: 0
 
 ---
 
-**Parent Context**: `GEMINI.md` · `.agents/skills/testing-patterns/SKILL.md` · `doc/unit_test_plan.md`
+**Parent Context**: `.agents/GEMINI.md` · `.agents/skills/testing-patterns/SKILL.md`
 **Next Action**: If all pass → `/code-review`; if failures → `/fix-build`
 **Keywords**: `tests`, `xunit`, `moq`, `fluentassertions`, `coverage`, `inventoryalert`

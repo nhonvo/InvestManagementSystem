@@ -98,6 +98,6 @@ docker-compose down -v
 
 ---
 
-**Parent Context**: `GEMINI.md` · `doc/docker/DOCKER_PLAN.md`
+**Parent Context**: `.agents/GEMINI.md`
 **Next Action**: Test via Swagger → run `/run-tests`
 **Keywords**: `docker`, `compose`, `postgresql`, `api`, `local`, `inventoryalert`

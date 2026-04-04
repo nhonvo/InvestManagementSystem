@@ -1,4 +1,5 @@
 import os
+import json
 import math
 import re
 import csv
@@ -14,6 +15,13 @@ class BM25Plus:
     - Field Weighting: Headers/Function names boost results.
     - Metadata-aware ranking (recency, popularity, filename match).
     """
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'bm25_config.json')
+        with open(config_path, 'r', encoding='utf-8') as _f:
+            CONFIG = json.load(_f)
+    except Exception:
+        CONFIG = {}
+
     def __init__(self, k1=1.5, b=0.75, delta=1.0):
         self.k1 = k1
         self.b = b
@@ -66,17 +74,8 @@ class BM25Plus:
         scores = []
         now = time.time()
         
-        # Folder Priority Weighting (As defined in search_architecture.md)
-        FOLDER_BOOSTS = {
-            '.agent/rules': 4.0,      # Absolute Truth
-            '.agent/workflows': 3.5,  # Operational Logic
-            'docs/02_standards': 3.5, # Mandatory Standards (Interception, Style, etc.)
-            'docs/00_context': 3.0,   # Deep System Context
-            '.agent/skills': 2.5,     # Capabilities
-            'docs/06_patterns': 2.5,  # Agent Mandates
-            'docs/01_specs': 2.0,     # Feature Blueprints
-            'docs/99_archive': 0.1    # Deep Penalty (Avoid legacy)
-        }
+        # Folder Priority Weighting (from config)
+        FOLDER_BOOSTS = self.CONFIG.get('folder_boosts', {})
         
         # Pre-calculate query matches in filename for efficiency
         query_parts = set(query_tokens)

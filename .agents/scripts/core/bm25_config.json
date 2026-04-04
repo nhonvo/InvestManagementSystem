@@ -1,0 +1,56 @@
+{
+  "scan_folders": [
+    ".agents",
+    "doc",
+    "InventoryManagementSystem"
+  ],
+  "folder_boosts": {
+    ".agents/rules": 4.0,
+    ".agents/workflows": 3.5,
+    ".agents/skills": 3.0,
+    ".agents": 2.5,
+    "doc/archive": 0.1,
+    "doc": 2.0
+  },
+  "synonyms": {
+    "product": ["inventory", "item", "stock", "sku"],
+    "finnhub": ["external api", "quote", "stock price", "market data"],
+    "transaction": ["unitofwork", "atomicity", "rollback", "commit", "savechanges"],
+    "alert": ["threshold", "notification", "price drop", "loss"],
+    "ticker": ["symbol", "aapl", "googl", "msft", "stock ticker"],
+    "migration": ["efcore migration", "schema change", "database update", "add-migration"],
+    "repository": ["igenericrepository", "iproductrepository", "data access", "dbset"],
+    "unitofwork": ["iunitofwork", "executetransactionasync", "savechangesasync"],
+    "ddd": ["domain driven design", "domain entity", "application layer", "infrastructure"],
+    "service": ["iproductservice", "productservice", "application service", "business logic"],
+    "mock": ["moq", "mock setup", "times once", "returns async", "verify"],
+    "test": ["xunit", "fluentassertions", "arrange act assert", "unit test"],
+    "docker": ["compose", "dockerfile", "container", "postgres", "postgresql"],
+    "ef": ["entity framework", "efcore", "dbcontext", "appdbcontext", "asnotracking"],
+    "controller": ["productscontroller", "iactionresult", "httpget", "httppost", "httpput"],
+    "worker": ["backgroundservice", "periodictimer", "finnhubpricesyncworker", "hosted service"]
+  },
+  "skill_map": {
+    "csharp": ["csharp-async"],
+    "dotnet": ["csharp-async", "clean-architecture"],
+    "efcore": ["inventoryalert-efcore", "postgresql-table-design"],
+    "postgres": ["postgresql-optimization", "postgresql-table-design"],
+    "test": ["testing-patterns", "csharp-xunit"],
+    "finnhub": ["finnhub-integration", "inventoryalert-async-patterns"],
+    "doc": ["doc-generator"],
+    "workflow": ["find-skills"],
+    "skill": ["skill-creator"]
+  },
+  "path_heuristics": {
+    ".cs": ["csharp-async"],
+    "domain": ["ddd-architecture", "clean-architecture"],
+    "application": ["ddd-architecture", "clean-architecture"],
+    "tests": ["testing-patterns", "csharp-xunit"],
+    "finnhub": ["finnhub-integration", "inventoryalert-async-patterns"],
+    "infrastructure/persistence": ["inventoryalert-efcore", "postgresql-table-design"],
+    "migration": ["inventoryalert-efcore", "postgresql-table-design"],
+    "doc/": ["doc-generator"],
+    ".agents/workflows": ["find-skills"],
+    ".agents/skills": ["skill-creator"]
+  }
+}

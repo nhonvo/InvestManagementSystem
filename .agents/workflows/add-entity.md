@@ -20,19 +20,19 @@ tags: [workflow, entity, ddd, domain, application, infrastructure, web, inventor
 
 // turbo
 
-1. **Find how existing entities are structured**:
+1. **Find layout and architecture rules from skills**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "domain entity IGenericRepository IProductRepository" -n 3
+   python .agents/scripts/core/bm25_search.py "ddd-architecture clean-architecture domain entity" -n 3 -f ".agents/skills"
    ```
 
-2. **Find DI registration patterns**:
+2. **Find Postgres and EF Core definitions from skills**:
+   ```bash
+   python .agents/scripts/core/bm25_search.py "inventoryalert-efcore postgresql-table-design postgresql-optimization" -n 3 -f ".agents/skills"
+   ```
+
+3. **Find DI registration patterns**:
    ```bash
    python .agents/scripts/core/bm25_search.py "ServiceExtensions AddScoped repository service" -n 3
-   ```
-
-3. **Find EF configuration examples**:
-   ```bash
-   python .agents/scripts/core/bm25_search.py "IEntityTypeConfiguration HasKey HasMaxLength" -n 3
    ```
 
 ---
@@ -203,8 +203,32 @@ Add in `InventoryAlert.Tests/`:
 
 ---
 
-## Phase 12: Verify, Doc & Freeze
+## Phase 12: Documentation & Verify
 
+Generate an explicit documentation file in `doc/<EntityName>_spec.md` with the required schema:
+
+```markdown
+---
+description: Specification for <Entity> including DDD and architecture implementations
+type: spec
+status: active
+version: 1.0
+tags: [spec, ddd, <entity>]
+---
+
+# <Entity> Specification
+
+## Overview
+(1-2 sentence purpose)
+
+## Database Schema
+(List columns and index strategies)
+
+## Endpoints
+(Route map of active endpoints)
+```
+
+Verify build and re-index:
 ```bash
 dotnet build InventoryManagementSystem
 dotnet test InventoryManagementSystem --no-build

@@ -1,3 +1,9 @@
+---
+trigger: always_on
+glob:
+description:
+---
+
 # InventoryAlert.Api — Project Context
 ---
 description: AI cold-start briefing for InventoryAlert.Api. Read before every session.
@@ -60,18 +66,13 @@ ojt-training/
 │   ├── workflows/                     ← slash-command workflows
 │   ├── skills/                        ← deep knowledge documents
 │   └── scripts/core/                  ← BM25 indexer + search engine
-└── doc/                               ← planning docs, specs, test plan
+└── doc/                               ← active feature specs and guides
     ├── README.md                      ← doc index
-    ├── unit_test_plan.md
     ├── ROADMAP.md
-    ├── DDD_REFACTOR_PLAN.md
-    ├── DDD_STRUCTURE.md
     ├── ENHANCEMENT_PLAN.md
     ├── EVENT_DRIVEN_PLAN.md
     ├── WALKTHROUGH.md
-    ├── commands/                      ← dotnet + setup command references
-    ├── docker/                        ← Docker planning docs
-    └── finnhub/                       ← Finnhub API reference docs
+    └── archive/                       ← completed legacy documentation
 ```
 
 ---
@@ -223,11 +224,9 @@ python .agents/scripts/core/bm25_search.py "your question about the code" -n 5
 
 | Resource | Path |
 |---------|------|
+| AI System Core | `.agents/GEMINI.md` |
 | DDD Architecture Rules | `.agents/skills/ddd-architecture/SKILL.md` |
 | Testing Patterns | `.agents/skills/testing-patterns/SKILL.md` |
 | Finnhub Integration | `.agents/skills/finnhub-integration/SKILL.md` |
 | Project Rules | `.agents/rules/project-rules.md` |
-| Unit Test Plan | `doc/unit_test_plan.md` |
 | Roadmap | `doc/ROADMAP.md` |
-| Docker Docs | `doc/docker/` |
-| Finnhub Docs | `doc/finnhub/` |

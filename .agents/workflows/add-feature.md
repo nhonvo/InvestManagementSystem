@@ -20,14 +20,14 @@ tags: [workflow, feature, application, service, controller, inventoryalert]
 
 // turbo
 
-1. **Find existing service methods** for the target entity:
+1. **Pull async execution & testing skills**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "<entity> service method async" -n 5
+   python .agents/scripts/core/bm25_search.py "testing-patterns csharp-xunit inventoryalert-async-patterns csharp-async" -n 3 -f ".agents/skills"
    ```
 
-2. **Find existing tests** to understand test patterns:
+2. **Find existing service methods** for the target entity:
    ```bash
-   python .agents/scripts/core/bm25_search.py "<entity> test mock arrange assert" -n 3
+   python .agents/scripts/core/bm25_search.py "<entity> service method async" -n 5
    ```
 
 3. **Check tech debt** — avoid blank-entity capture bug:
@@ -170,7 +170,27 @@ HTTP verb guide:
 
 ---
 
-## Phase 9: Verify & Freeze
+## Phase 9: Document & Verify
+
+Create or update a specification in `doc/<FeatureName>_spec.md` appending the YAML frontmatter:
+
+```markdown
+---
+description: Specification for <Behavior/Feature> attached to <Entity>
+type: spec
+status: active
+version: 1.0
+tags: [spec, feature, <entity>]
+---
+
+# <Feature> Implementation
+
+## Flow
+(Describe Finnhub integration, service map, and unit of work)
+
+## Endpoints Modified
+(Route map + Output Schema snippet)
+```
 
 ```bash
 # Run tests for this feature

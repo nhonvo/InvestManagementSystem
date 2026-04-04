@@ -18,14 +18,14 @@ tags: [workflow, migration, efcore, database, postgresql, inventoryalert]
 
 // turbo
 
-1. **Find existing migration examples**:
+1. **Pull Postgres optimization & table design rules**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "migration EF Core HasData OnModelCreating" -n 3
+   python .agents/scripts/core/bm25_search.py "inventoryalert-efcore postgresql-optimization postgresql-table-design" -n 3 -f ".agents/skills"
    ```
 
-2. **Find AppDbContext configuration**:
+2. **Find AppDbContext configuration & migration drift**:
    ```bash
-   python .agents/scripts/core/bm25_search.py "AppDbContext DbSet configuration seed" -n 2
+   python .agents/scripts/core/bm25_search.py "AppDbContext DbSet migration" -n 2
    ```
 
 ---

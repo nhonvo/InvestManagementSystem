@@ -5,6 +5,7 @@ import sys
 import time
 from bm25_core import BM25, load_index_binary, save_index_csv, save_index_binary
 import io
+import json
 
 # Force UTF-8 for Windows compatibility with special characters
 if sys.platform == "win32":
@@ -19,49 +20,23 @@ SEARCH_GLOW = "[SEARCH]"
 SKILL_GLOW = "[SKILL]"
 
 # --- SKILL MAPPING ENGINE ---
-SKILL_MAP = {
-    "nextjs": ["nextjs-expert", "typescript-expert", "react-expert"],
-    "react": ["react-expert", "nextjs-expert", "typescript-expert"],
-    "css": ["css-styling-expert", "ui-ux-pro-max"],
-    "tailwind": ["ui-ux-pro-max", "css-styling-expert"],
-    "mongodb": ["mongodb-expert", "database-expert"],
-    "mongoose": ["mongodb-expert", "database-expert"],
-    "schema": ["prisma-expert", "database-expert", "typescript-type-expert"],
-    "test": ["testing-expert", "jest-testing-expert", "playwright-expert"],
-    "api": ["rest-api-expert", "nextjs-expert", "typescript-expert"],
-    "doc": ["documentation-expert"],
-    "workflow": ["research-expert", "triage-expert"],
-    "skill": ["skill-creator"],
-    "ai": ["ai-sdk-expert", "oracle"],
-    "dotnet": ["master-dotnet-skill"],
-    "docker": ["docker-expert", "devops-expert"],
-    "git": ["git-expert"],
-    "performance": ["react-performance", "webpack-expert"],
-    "state": ["state-management-expert"],
-}
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'bm25_config.json'), 'r', encoding='utf-8') as _f:
+        _config = json.load(_f)
+except Exception:
+    _config = {}
+
+SKILL_MAP = _config.get('skill_map', {})
+PATH_HEURISTICS = _config.get('path_heuristics', {})
 
 def recommend_skills(file_path, content, category):
     """Refined Skill Recommendation based on file context and category."""
     recommended = set()
-    
     # Heuristics based on file path/extension
     path_lower = file_path.lower()
-    if any(ext in path_lower for ext in [".ts", ".tsx"]):
-        recommended.update(["typescript-expert"])
-    if "src/features" in path_lower:
-        recommended.update(["nextjs-expert", "react-expert"])
-    if any(ext in path_lower for ext in [".css", ".scss"]) or "tailwind" in content.lower():
-        recommended.update(["css-styling-expert", "ui-ux-pro-max"])
-    if "src/server/models" in path_lower or "mongodb" in content.lower():
-        recommended.update(["mongodb-expert", "database-expert"])
-    if "test" in path_lower or ".spec." in path_lower:
-        recommended.update(["testing-expert", "jest-testing-expert"])
-    if "docs/" in path_lower or category == "doc":
-        recommended.update(["documentation-expert"])
-    if ".agent/workflows" in path_lower:
-        recommended.update(["research-expert", "triage-expert"])
-    if ".agent/skills" in path_lower:
-        recommended.update(["skill-creator"])
+    for key, skills in PATH_HEURISTICS.items():
+        if key.lower() in path_lower:
+            recommended.update(skills)
 
     # keyword check in content
     content_lower = content.lower()
