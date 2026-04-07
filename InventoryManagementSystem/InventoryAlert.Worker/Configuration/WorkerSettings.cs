@@ -22,6 +22,6 @@ public class SqsPollingSettings
     /// True (Default): Use the continuous ProcessQueueJob (Native Worker).
     /// False: Use the Hangfire-scheduled PollSqsJob (Recurring).
     /// </summary>
-    public bool UseNativeWorker { get; set; } = true;
+    public bool UseNativeWorker { get; set; } = false;
     public int QueueCapacity { get; internal set; } = 10;
 }

@@ -10,7 +10,10 @@
 - build a pattern jobs in worker like wrap all logic like access db, call finnhub as jobs return (result, jobsstatus) 
 - JobResult = success, failed, skipped
 - success and skipped deleted message and failed retry 3 times before go to DLQ
-- refactor worker reveiw low handle exception, ...mapping pattern
+- refactor worker review api and worker project log handle exception, ...mapping pattern
+- review and enhance seed data
+- update doc readme and build doc for new developer and how to run or maintain project, draw some chart about system architecture, data flow, sequence diagram, ...
+
 
 ## 1. What This Application Is
 

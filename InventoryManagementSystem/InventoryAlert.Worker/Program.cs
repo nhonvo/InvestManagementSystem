@@ -131,13 +131,15 @@ try
     builder.Services.AddHostedService<JobSchedulerService>();
     builder.Services.AddHostedService<QueuedHostedService>();
 
-    // One-time registration for the native polling logic
-    builder.Services.AddScoped<IProcessQueueJob, ProcessQueueJob>();
+    // ── SQS Polling Strategy (Conditional Registration) ───────────────────────
 
-    if (settings.SqsPolling.UseNativeWorker)
-    {
-        builder.Services.AddHostedService<NativeSqsWorker>();
-    }
+    builder.Services.AddScoped<IProcessQueueJob, ProcessQueueJob>();
+    builder.Services.AddHostedService<NativeSqsWorker>();
+    // PollSqsJob (Path A) is NOT registered in the container
+
+    builder.Services.AddScoped<PollSqsJob>();
+    // NativeSqsWorker (Path B) is NOT registered in the container
+
 
     var app = builder.Build();
 

@@ -42,7 +42,7 @@ while (true)
     switch (choice)
     {
         case "1":
-            await PublishViaApiAsync(httpClient, "MarketPriceAlert",
+            await PublishViaApiAsync(httpClient, EventTypes.MarketPriceAlert,
                 new MarketPriceAlertPayload
                 {
                     ProductId = 1,
@@ -51,7 +51,7 @@ while (true)
             break;
 
         case "2":
-            await PublishViaApiAsync(httpClient, "CompanyNewsAlert",
+            await PublishViaApiAsync(httpClient, EventTypes.CompanyNewsAlert,
                 new CompanyNewsAlertPayload
                 {
                     Symbol = "TSLA"

@@ -20,11 +20,19 @@ public sealed class JobSchedulerService(
 
     public Task StartAsync(CancellationToken ct)
     {
-        // Every 30 seconds — SQS consumer
-        _recurringJobs.AddOrUpdate<PollSqsJob>(
-            "poll-sqs",
-            job => job.ExecuteAsync(CancellationToken.None),
-            "*/30 * * * * *");
+        // Use Native Polling or Hangfire Polling based on configuration
+        if (!_settings.SqsPolling.UseNativeWorker)
+        {
+            _recurringJobs.AddOrUpdate<PollSqsJob>(
+                "poll-sqs",
+                job => job.ExecuteAsync(CancellationToken.None),
+                "*/30 * * * * *");
+        }
+        else
+        {
+            _recurringJobs.RemoveIfExists("poll-sqs");
+            _logger.LogInformation("[JobSchedulerService] Native polling is enabled. Hangfire 'poll-sqs' job disabled/removed.");
+        }
 
         // Configured minutes — price sync
         var syncMinutes = _settings.Finnhub.SyncIntervalMinutes > 0 ? _settings.Finnhub.SyncIntervalMinutes : 10;

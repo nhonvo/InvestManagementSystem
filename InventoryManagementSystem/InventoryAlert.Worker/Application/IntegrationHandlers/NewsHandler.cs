@@ -1,6 +1,7 @@
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
@@ -14,13 +15,13 @@ namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 /// </summary>
 public class NewsHandler(
     InventoryDbContext db, 
-    NewsDynamoRepository newsRepo, 
+    INewsDynamoRepository newsRepo, 
     IFinnhubClient finnhub,
     ILogger<NewsHandler> logger)
     : INewsHandler
 {
     private readonly InventoryDbContext _db = db;
-    private readonly NewsDynamoRepository _newsRepo = newsRepo;
+    private readonly INewsDynamoRepository _newsRepo = newsRepo;
     private readonly IFinnhubClient _finnhub = finnhub;
     private readonly ILogger<NewsHandler> _logger = logger;
 

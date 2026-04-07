@@ -5,7 +5,7 @@ using FluentAssertions;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Worker.Configuration;
-using InventoryAlert.Contracts.Persistence.Repositories;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Infrastructure.MessageConsumers;
 using InventoryAlert.Worker.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
@@ -23,8 +23,8 @@ public class SqsDispatcherTests
     private readonly Mock<IMessageProcessor> _processorMock = new();
     private readonly Mock<IDistributedCache> _cacheMock = new();
     private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
-    private readonly Mock<EventLogDynamoRepository> _dynamoDbMock;
+    private readonly Mock<IDatabase> _redisDbMock = new(); // Back to Loose behavior, but with correct setup
+    private readonly Mock<IEventLogDynamoRepository> _dynamoDbMock = new();
     private readonly Mock<ILogger<SqsDispatcher>> _loggerMock = new();
     private readonly WorkerSettings _settings;
     private readonly SqsDispatcher _sut;
@@ -36,15 +36,14 @@ public class SqsDispatcherTests
             Aws = new SharedAwsSettings { SqsQueueUrl = "http://queue", SqsDlqUrl = "http://dlq" }
         };
 
-        var dynamoClientMock = new Mock<Amazon.DynamoDBv2.IAmazonDynamoDB>();
-        var dynamoLoggerMock = new Mock<ILogger<EventLogDynamoRepository>>();
-        _dynamoDbMock = new Mock<EventLogDynamoRepository>(dynamoClientMock.Object, dynamoLoggerMock.Object);
-
         _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
         
-        // Redis Defaults
+        // Base Redis Defaults - USING THE 4-ARG OVERLOAD that is actually called
         _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
+        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>()))
+            .ReturnsAsync(true);
+
         _redisDbMock.Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
@@ -71,7 +70,7 @@ public class SqsDispatcherTests
         var messageId = "msg-123";
         var envelope = new EventEnvelope 
         { 
-            EventType = EventTypes.MarketPriceAlert, 
+            EventType = EventTypes.CompanyNewsAlert, 
             MessageId = messageId, 
             Payload = "{}" 
         };
@@ -101,7 +100,7 @@ public class SqsDispatcherTests
     {
         // Arrange
         var messageId = "msg-dup";
-        var envelope = new EventEnvelope { EventType = EventTypes.MarketPriceAlert, MessageId = messageId };
+        var envelope = new EventEnvelope { EventType = EventTypes.CompanyNewsAlert, MessageId = messageId };
         var body = JsonSerializer.Serialize(envelope, JsonOptions.Default);
         var message = new Message 
         { 
@@ -110,8 +109,8 @@ public class SqsDispatcherTests
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
         };
 
-        // Mock Redis failure (Already exists)
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), When.NotExists, It.IsAny<CommandFlags>()))
+        // Redefine redis for failure explicitly - 4 arg version
+        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), When.NotExists))
             .ReturnsAsync(false); 
 
         // Act

@@ -1,3 +1,4 @@
+using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Interfaces;
 
 namespace InventoryAlert.Worker.Infrastructure.BackgroundServices;
@@ -6,13 +7,23 @@ namespace InventoryAlert.Worker.Infrastructure.BackgroundServices;
 /// A native .NET BackgroundService that hosts the continuous SQS polling loop.
 /// This matches the pattern of QueuedHostedService.cs.
 /// </summary>
-public class NativeSqsWorker(IProcessQueueJob processQueueJob, ILogger<NativeSqsWorker> logger) : BackgroundService
+public class NativeSqsWorker(
+    IProcessQueueJob processQueueJob, 
+    WorkerSettings settings,
+    ILogger<NativeSqsWorker> logger) : BackgroundService
 {
     private readonly IProcessQueueJob _processQueueJob = processQueueJob;
+    private readonly WorkerSettings _settings = settings;
     private readonly ILogger<NativeSqsWorker> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        if (!_settings.SqsPolling.UseNativeWorker)
+        {
+            _logger.LogInformation("[NativeSqsWorker] Native polling is disabled in configuration. Service idling.");
+            return;
+        }
+
         _logger.LogInformation("[NativeSqsWorker] Starting native SQS polling loop...");
 
         try
@@ -22,8 +33,7 @@ public class NativeSqsWorker(IProcessQueueJob processQueueJob, ILogger<NativeSqs
         }
         catch (OperationCanceledException)
         {
-            // Graceful shutdown
-            throw;
+             _logger.LogInformation("[NativeSqsWorker] Cancellation requested. Shutting down.");
         }
         catch (Exception ex)
         {

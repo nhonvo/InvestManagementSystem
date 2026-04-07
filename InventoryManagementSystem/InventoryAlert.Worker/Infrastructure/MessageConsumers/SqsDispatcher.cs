@@ -88,7 +88,6 @@ public class SqsDispatcher(
         {
             _logger.LogInformation("[Dispatcher] Handing off to MessageProcessor.");
             
-            // We use the robust ProcessAndAcknowledgeAsync if available
             await _processor.ProcessMessageAsync(message, ct);
             bool handledSuccessfully = true; // Interface method assumes success if it doesn't throw
 

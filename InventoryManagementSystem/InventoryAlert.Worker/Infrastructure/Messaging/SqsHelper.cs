@@ -1,4 +1,4 @@
-﻿using Amazon.SQS;
+using Amazon.SQS;
 using Amazon.SQS.Model;
 using InventoryAlert.Worker.Interfaces;
 
@@ -18,7 +18,7 @@ public class SqsHelper(IAmazonSQS sqs, ILogger<SqsHelper> logger) : ISqsHelper
             MessageAttributeNames = ["All"]
         };
         var response = await sqs.ReceiveMessageAsync(request, ct);
-        return response.Messages;
+        return response.Messages ?? [];
     }
     public async Task DeleteMessageAsync(string queueUrl, string receiptHandle, CancellationToken ct = default)
     {
