@@ -1,8 +1,13 @@
-namespace InventoryAlert.Api.Application.DTOs
+namespace InventoryAlert.Api.Application.DTOs;
+
+/// <summary>Used for outgoing API responses. Includes Id.</summary>
+public class ProductResponse
 {
-    /// <summary>Used for outgoing API responses. Includes Id.</summary>
-    public class ProductResponse : ProductRequest
-    {
-        public int Id { get; set; }
-    }
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string TickerSymbol { get; set; } = string.Empty;
+    public int StockCount { get; set; }
+    public decimal OriginPrice { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public double PriceAlertThreshold { get; set; }
 }

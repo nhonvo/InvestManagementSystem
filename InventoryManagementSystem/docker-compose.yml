@@ -32,8 +32,11 @@ services:
       context: .
       dockerfile: InventoryAlert.Worker/Dockerfile
     container_name: inventory_worker
+    ports:
+      - "8081:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - DOTNET_ENVIRONMENT=Docker
       # AWS SDK reads these from OS env — cannot be in appsettings.json
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
@@ -130,7 +133,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ENDPOINT_URL=http://moto:5000
-    entrypoint: ["/bin/bash", "/moto-init/init-sqs.sh"]
+    entrypoint: ["/bin/bash", "-c", "/moto-init/init-all.sh"]
     networks:
       - app-network
 

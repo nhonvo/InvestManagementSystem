@@ -85,21 +85,6 @@ python .agents/scripts/core/bm25_search.py "GenericRepository EF Core CS1998"
 
 ---
 
-## Phase 3: Verification Gate
-
-```bash
-# Build check
-cd InventoryManagementSystem
-dotnet build
-
-# Test check
-dotnet test --no-build --verbosity normal
-```
-
-**Success**: Index updated · Architecture located · Build green.
-
----
-
 **Parent Context**: `GEMINI.md`
 **Next Action**: `/feature-flow` or `/plan`
 **Keywords**: `init`, `bm25`, `index`, `context`, `onboarding`, `inventoryalert`

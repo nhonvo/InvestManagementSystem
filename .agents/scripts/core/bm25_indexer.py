@@ -280,12 +280,17 @@ def index_project(root_dir, existing_index):
     return new_index_data
 
 if __name__ == "__main__":
-    PROJECT_ROOT = os.getcwd()
-    DATA_DIR = os.path.join(PROJECT_ROOT, ".agents/scripts/core/data")
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Assuming script is in .agents/scripts/core/
+    PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../.."))
+    DATA_DIR = os.path.join(SCRIPT_DIR, "data") # Store data in the same directory as script (or wherever it was intended)
+    
+    # Ensure DATA_DIR is consistent regardless of where it's run
     if not os.path.exists(DATA_DIR): os.makedirs(DATA_DIR)
     
     INDEX_CSV = os.path.join(DATA_DIR, "bm25_index.csv")
     INDEX_BIN = os.path.join(DATA_DIR, "bm25_index.bin")
+
     
     print(f"--- BM25 Indexer V4.1 (Hybrid: Doc Full + Code Ref) ---")
     start_time = time.time()

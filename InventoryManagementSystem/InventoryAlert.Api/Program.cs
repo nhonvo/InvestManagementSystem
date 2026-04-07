@@ -1,63 +1,143 @@
-using InventoryAlert.Api.Infrastructure.Persistence;
 using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Api.Web.Extensions;
+using InventoryAlert.Api.Web.Middleware;
 using InventoryAlert.Api.Web.ServiceExtensions;
+using InventoryAlert.Contracts.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
+using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(args);
+// ─── Serilog bootstrap ────────────────────────────────────────────────────────
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/inventoryalert-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
-// ─── Configuration ────────────────────────────────────────────────────────────
-var settings = builder.Configuration.Get<AppSettings>()
-    ?? throw new InvalidOperationException("AppSettings configuration is missing.");
-
-builder.Services.AddSingleton(settings);
-
-// ─── API / Swagger ────────────────────────────────────────────────────────────
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+try
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    var builder = WebApplication.CreateBuilder(args);
+
+    // ─── Serilog ──────────────────────────────────────────────────────────────
+    builder.Host.UseSerilog();
+
+    // ─── Configuration ────────────────────────────────────────────────────────
+    var settings = builder.Configuration.Get<AppSettings>()
+        ?? throw new InvalidOperationException("AppSettings configuration is missing.");
+
+    builder.Services.AddSingleton(settings);
+    builder.Services.AddTransient<GlobalExceptionMiddleware>();
+    builder.Services.AddTransient<PerformanceMiddleware>();
+    builder.Services.AddTransient<CorrelationIdMiddleware>();
+
+    // ─── Security / Auth / CORS ───────────────────────────────────────────────
+    builder.Services.AddCors(options =>
     {
-        Title = "🚀 Pragmatic Inventory Alert API",
-        Version = "v1",
-        Description = "Real-time stock monitoring and significant price loss detection system integrated with Finnhub API.",
-        Contact = new OpenApiContact
+        options.AddPolicy("AllowAll",
+            policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    });
+
+    var jwtKey = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrEmpty(jwtKey))
+    {
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
         {
-            Name = "OJT Training Team",
-            Email = "dev@ojt-training.local"
+            jwtKey = "InventoryAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
+            Log.Warning("Using temporary default JWT key. NOT FOR PRODUCTION.");
         }
-    });
-});
+        else
+        {
+            throw new InvalidOperationException("Jwt:Key is required in configuration.");
+        }
+    }
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+        });
+    builder.Services.AddAuthorization();
 
-builder.Services.AddControllers();
+    // ─── API / Core Services ──────────────────────────────────────────────────
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerOpenAPI(settings);
+    builder.Services.SetupMvc();
+    builder.Services.AddCompressionCustom();
+    builder.Services.SetupHealthCheck(settings);
 
-// ─── Layered DI registration ──────────────────────────────────────────────────
-builder.Services
-    .AddApplicationServices()
-    .AddInfrastructure(settings);
+    builder.Services.AddHealthChecks();
+    builder.Services.AddResponseCaching();
 
-// ─── Build ────────────────────────────────────────────────────────────────────
-var app = builder.Build();
+    builder.Services
+        .AddApplicationServices()
+        .AddInfrastructure(settings);
 
-// ─── Auto-migrate on startup ──────────────────────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
 
-// ─── Middleware Pipeline ──────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    // ─── Build ────────────────────────────────────────────────────────────────
+    var app = builder.Build();
+
+    // ─── Auto-migrate on startup ──────────────────────────────────────────────
+    try
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "V1 Docs");
-        options.RoutePrefix = "swagger";
-        options.DocumentTitle = "Pragmatic Inventory API Docs";
-    });
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        app.Logger.LogInformation("Applying database migrations...");
+        dbContext.Database.Migrate();
+        app.Logger.LogInformation("Database migration complete.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogCritical(ex, "Error occurred during database migration");
+        throw;
+    }
+
+    // ─── Middleware Pipeline ──────────────────────────────────────────────────
+    app.UseMiddleware<CorrelationIdMiddleware>();
+    app.UseMiddleware<GlobalExceptionMiddleware>();
+    app.UseMiddleware<PerformanceMiddleware>();
+
+    app.UseResponseCompression();
+    app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
+
+    app.UseRouting();
+    app.UseCors("AllowAll");
+
+    // Cache must be injected AFTER Routing/Cors to hit variations safely securely.
+    app.UseResponseCaching();
+
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
+    {
+        app.UseSwaggerWithUI();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.ConfigureHealthCheck();
+    app.MapControllers();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "API host terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
 }
 
-app.UseAuthorization();
-app.MapControllers();
-app.Run();
+public partial class Program { }
