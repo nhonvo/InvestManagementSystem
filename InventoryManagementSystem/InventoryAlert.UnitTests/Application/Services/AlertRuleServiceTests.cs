@@ -2,7 +2,7 @@ using FluentAssertions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Api.Domain.Constants;
+using InventoryAlert.Api.Domain.Interfaces;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Persistence;
@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-
-using InventoryAlert.Api.Domain.Interfaces;
 
 namespace InventoryAlert.UnitTests.Application.Services;
 
@@ -55,7 +53,7 @@ public class AlertRuleServiceTests
 
         _uow.Setup(x => x.AlertRules).Returns(mockAlertRepo.Object);
         _uow.Setup(x => x.Watchlists).Returns(mockWatchlistRepo.Object);
-        
+
         _sut = new AlertRuleService(_uow.Object, _eventPublisher.Object, _logger.Object);
     }
 
@@ -72,7 +70,7 @@ public class AlertRuleServiceTests
         var request = new AlertRuleRequest("AAPL", "Price", "Below", 150m, "email");
         _db.Watchlists.Add(new Watchlist { UserId = "user-1", Symbol = "AAPL" });
         await _db.SaveChangesAsync(Ct);
-        
+
         var result = await _sut.CreateAlertAsync("user-1", request, Ct);
 
         result.Symbol.Should().Be("AAPL");

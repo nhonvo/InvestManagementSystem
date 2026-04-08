@@ -1,5 +1,3 @@
-using System;
-
 namespace InventoryAlert.Contracts.Events.Payloads;
 
 public record AlertRulePayload(

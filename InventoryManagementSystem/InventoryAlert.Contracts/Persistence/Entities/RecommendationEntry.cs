@@ -16,6 +16,6 @@ public class RecommendationEntry
     public int Hold { get; set; }
     public int Sell { get; set; }
     public int StrongSell { get; set; }
-    
+
     public long Ttl { get; set; }
 }

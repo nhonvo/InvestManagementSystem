@@ -1,5 +1,3 @@
-using Amazon.DynamoDBv2.DataModel;
-
 namespace InventoryAlert.Contracts.Persistence.Interfaces;
 
 public interface IDynamoDbGenericRepository<T> where T : class

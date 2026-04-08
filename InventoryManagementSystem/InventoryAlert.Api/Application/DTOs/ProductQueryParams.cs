@@ -15,10 +15,10 @@ public class ProductQueryParams
     /// </summary>
     /// <example>1</example>
     [DefaultValue(1)]
-    public int PageNumber 
-    { 
-        get => _pageNumber; 
-        set => _pageNumber = value < 1 ? 1 : value; 
+    public int PageNumber
+    {
+        get => _pageNumber;
+        set => _pageNumber = value < 1 ? 1 : value;
     }
 
     private int _pageSize = 10;

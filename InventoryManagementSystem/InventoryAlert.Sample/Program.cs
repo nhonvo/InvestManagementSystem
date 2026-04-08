@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
+using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Contracts.Configuration;
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 var apiBaseUrl = args.FirstOrDefault() ?? "http://localhost:8080";
@@ -135,13 +135,13 @@ static async Task StressTestAsync(IAmazonSimpleNotificationService sns, string t
 
         string payloadJson = eventType == EventTypes.MarketPriceAlert
             ? JsonSerializer.Serialize(new MarketPriceAlertPayload
-            { 
-                 ProductId = i,
-                 Symbol = symbol 
+            {
+                ProductId = i,
+                Symbol = symbol
             }, JsonOptions.Default)
             : JsonSerializer.Serialize(new CompanyNewsAlertPayload
-            { 
-                 Symbol = symbol 
+            {
+                Symbol = symbol
             }, JsonOptions.Default);
 
         var envelope = new EventEnvelope

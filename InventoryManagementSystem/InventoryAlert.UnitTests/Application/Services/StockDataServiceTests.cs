@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
@@ -8,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
-using System.Text.Json;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Application.Services;
@@ -30,13 +30,13 @@ public class StockDataServiceTests
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _db = new InventoryDbContext(options);
-        
+
         _redis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_cache.Object);
 
         var mockProfileRepo = new Mock<ICompanyProfileRepository>();
         mockProfileRepo.Setup(x => x.GetBySymbolAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns<string, CancellationToken>((sym, ct) => _db.CompanyProfiles.FirstOrDefaultAsync(p => p.Symbol == sym, ct));
-        
+
         _uow.Setup(x => x.CompanyProfiles).Returns(mockProfileRepo.Object);
 
         _sut = new StockDataService(_finnhub.Object, _redis.Object, _uow.Object, _logger.Object);
@@ -48,7 +48,7 @@ public class StockDataServiceTests
         var symbol = "AAPL";
         var cachedResponse = new StockQuoteResponse(symbol, 150m, 1m, 0.5m, 152m, 148m, 149m, 149m, 123456789L);
         var json = JsonSerializer.Serialize(cachedResponse, InventoryAlert.Contracts.Configuration.JsonOptions.Default);
-        
+
         _cache.Setup(c => c.StringGetAsync($"quote:{symbol}", It.IsAny<CommandFlags>()))
             .ReturnsAsync(json);
 

@@ -1,9 +1,9 @@
+using System.Text.Json;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Configuration;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace InventoryAlert.Api.Application.Services;
 

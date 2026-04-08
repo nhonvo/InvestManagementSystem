@@ -1,4 +1,3 @@
-using FluentAssertions;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
@@ -56,9 +55,9 @@ public class NewsHandlerTests : IDisposable
             Symbol = ticker
         };
 
-        var articles = new List<NewsArticle> 
-        { 
-            new NewsArticle { Id = 12345, Headline = "Apple is doing great", Datetime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() } 
+        var articles = new List<NewsArticle>
+        {
+            new NewsArticle { Id = 12345, Headline = "Apple is doing great", Datetime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }
         };
 
         _finnhubMock.Setup(f => f.FetchNewsAsync(ticker, It.IsAny<string>(), It.IsAny<string>(), Ct))
@@ -68,8 +67,8 @@ public class NewsHandlerTests : IDisposable
         await _sut.HandleAsync(payload, Ct);
 
         // Assert
-        _newsRepoMock.Verify(r => r.SaveAsync(It.Is<NewsDynamoEntry>(e => 
-            e.TickerSymbol == ticker && 
+        _newsRepoMock.Verify(r => r.SaveAsync(It.Is<NewsDynamoEntry>(e =>
+            e.TickerSymbol == ticker &&
             e.Headline == "Apple is doing great" &&
             e.FinnhubId == 12345), Ct), Times.Once);
     }

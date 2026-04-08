@@ -4,7 +4,6 @@ using InventoryAlert.Api.Web.Configuration;
 using Polly;
 using Polly.Retry;
 using RestSharp;
-using System.Net.Http;
 
 namespace InventoryAlert.Api.Infrastructure.External;
 
@@ -111,12 +110,12 @@ public class FinnhubClient(
 
             var res = await _client.ExecuteAsync<T>(req, ct);
             var status = (int)res.StatusCode;
-            
+
             if (!res.IsSuccessful && (status >= 500 || res.ResponseStatus == ResponseStatus.Error || res.ResponseStatus == ResponseStatus.TimedOut))
             {
                 throw res.ErrorException ?? new HttpRequestException($"[Finnhub] {path} failure: {status}");
             }
-            
+
             return res;
         });
 
@@ -136,12 +135,12 @@ public class FinnhubClient(
 
             var res = await _client.ExecuteAsync<List<T>>(req, ct);
             var status = (int)res.StatusCode;
-            
+
             if (!res.IsSuccessful && (status >= 500 || res.ResponseStatus == ResponseStatus.Error || res.ResponseStatus == ResponseStatus.TimedOut))
             {
                 throw res.ErrorException ?? new HttpRequestException($"[Finnhub] {path} failure: {status}");
             }
-            
+
             return res;
         });
 

@@ -168,7 +168,7 @@ public class ProductService(
 
         if (errors.Count != 0)
         {
-            throw new UserFriendlyException(ErrorCode.BadRequest, 
+            throw new UserFriendlyException(ErrorCode.BadRequest,
                 "Bulk validation failed: " + string.Join(" | ", errors));
         }
 
@@ -181,7 +181,7 @@ public class ProductService(
 
         if (duplicateTickersInRequest.Count != 0)
         {
-            throw new UserFriendlyException(ErrorCode.Conflict, 
+            throw new UserFriendlyException(ErrorCode.Conflict,
                 "Bulk insert contains duplicate ticker symbols within the request: " + string.Join(", ", duplicateTickersInRequest));
         }
 
@@ -192,7 +192,7 @@ public class ProductService(
 
         if (existingTickers.Count != 0)
         {
-            throw new UserFriendlyException(ErrorCode.Conflict, 
+            throw new UserFriendlyException(ErrorCode.Conflict,
                 "Bulk insert contains tickers that already exist in the database: " + string.Join(", ", existingTickers));
         }
 
@@ -208,7 +208,7 @@ public class ProductService(
         var products = await _productRepository.GetAllAsync(cancellationToken);
         var alerts = new List<PriceLossResponse>();
         var updatedProducts = new List<Product>();
-        var cooldown = TimeSpan.FromHours(1); 
+        var cooldown = TimeSpan.FromHours(1);
 
         foreach (var product in products)
         {

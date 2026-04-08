@@ -1,5 +1,5 @@
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
@@ -9,7 +9,7 @@ public class ProductRepository(InventoryDbContext context) : GenericRepository<P
     private readonly DbSet<Product> _products = context.Products;
 
     public async Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedAsync(
-        string? name, int? minStock, int? maxStock, string? sortBy, 
+        string? name, int? minStock, int? maxStock, string? sortBy,
         int pageNumber, int pageSize, CancellationToken ct)
     {
         IQueryable<Product> query = _products.AsNoTracking();
@@ -22,12 +22,12 @@ public class ProductRepository(InventoryDbContext context) : GenericRepository<P
 
         query = sortBy?.ToLowerInvariant() switch
         {
-            "name_desc"  => query.OrderByDescending(p => p.Name),
-            "price_asc"  => query.OrderBy(p => p.CurrentPrice),
+            "name_desc" => query.OrderByDescending(p => p.Name),
+            "price_asc" => query.OrderBy(p => p.CurrentPrice),
             "price_desc" => query.OrderByDescending(p => p.CurrentPrice),
-            "stock_asc"  => query.OrderBy(p => p.StockCount),
+            "stock_asc" => query.OrderBy(p => p.StockCount),
             "stock_desc" => query.OrderByDescending(p => p.StockCount),
-            _            => query.OrderBy(p => p.Name)   // default
+            _ => query.OrderBy(p => p.Name)   // default
         };
 
         // Sanitization
@@ -37,7 +37,7 @@ public class ProductRepository(InventoryDbContext context) : GenericRepository<P
         var skip = (pageNumber - 1) * pageSize;
         var total = await query.CountAsync(ct);
         var items = await query.Skip(skip).Take(pageSize).ToListAsync(ct);
-        
+
         return (items, total);
     }
 

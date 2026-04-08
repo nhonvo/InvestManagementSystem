@@ -18,6 +18,6 @@ public class PriceHistoryEntry
     public decimal Low { get; set; }
     public decimal Open { get; set; }
     public decimal PrevClose { get; set; }
-    
+
     public long Ttl { get; set; }
 }

@@ -1,11 +1,11 @@
 using System.Text.Json.Serialization;
+using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using InventoryAlert.Api.Web.Filters;
 using InventoryAlert.Api.Web.Utilities;
 using InventoryAlert.Api.Web.Validations;
 using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
 
 namespace InventoryAlert.Api.Web.Extensions;
 

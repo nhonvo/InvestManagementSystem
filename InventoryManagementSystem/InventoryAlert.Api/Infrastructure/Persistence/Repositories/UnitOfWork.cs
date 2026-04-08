@@ -1,15 +1,14 @@
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Domain.Constants;
 using InventoryAlert.Api.Domain.Interfaces;
-using Microsoft.Extensions.Logging;
+using InventoryAlert.Contracts.Persistence;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly InventoryDbContext _dbContext;
-    
+
     public IProductRepository Products { get; }
     public IWatchlistRepository Watchlists { get; }
     public IAlertRuleRepository AlertRules { get; }

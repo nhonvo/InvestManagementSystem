@@ -23,7 +23,7 @@ public static class HttpClientServiceExtensions
         });
 
         // ── Telegram Configuration ───────────────────────────────────────────
-        services.AddHttpClient(ApplicationConstants.HttpClientNames.Telegram, client => 
+        services.AddHttpClient(ApplicationConstants.HttpClientNames.Telegram, client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
         })

@@ -1,4 +1,3 @@
-using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

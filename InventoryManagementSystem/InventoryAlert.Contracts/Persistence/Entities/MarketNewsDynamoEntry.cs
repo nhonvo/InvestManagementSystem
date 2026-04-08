@@ -17,6 +17,6 @@ public class MarketNewsDynamoEntry
     public string Url { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public long FinnhubId { get; set; }
-    
+
     public long Ttl { get; set; }
 }

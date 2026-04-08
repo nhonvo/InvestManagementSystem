@@ -15,7 +15,7 @@ public class EventLogEntry
     public string Source { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string CorrelationId { get; set; } = string.Empty;
-    
+
     public string ProcessedAt { get; set; } = DateTime.UtcNow.ToString("O");
     public long Ttl { get; set; }
 }

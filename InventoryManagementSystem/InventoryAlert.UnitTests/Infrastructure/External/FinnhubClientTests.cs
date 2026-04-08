@@ -1,17 +1,13 @@
+using System.Net;
 using FluentAssertions;
 using InventoryAlert.Api.Infrastructure.External;
-using InventoryAlert.Api.Application.DTOs;
-using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Contracts.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Moq.Protected;
 using RestSharp;
 using Xunit;
-
-using System.Net;
-using Moq.Protected;
-using System.Net.Http;
 
 namespace InventoryAlert.UnitTests.Infrastructure.External;
 

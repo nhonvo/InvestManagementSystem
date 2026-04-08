@@ -37,14 +37,14 @@ public static class ProductFixtures
         double threshold = 0.2,
         int stock = 10,
         int stockThreshold = 10) => new()
-    {
-        Name = name,
-        TickerSymbol = ticker ?? string.Empty,
-        Price = price,
-        PriceAlertThreshold = threshold,
-        StockAlertThreshold = stockThreshold,
-        StockCount = stock
-    };
+        {
+            Name = name,
+            TickerSymbol = ticker ?? string.Empty,
+            Price = price,
+            PriceAlertThreshold = threshold,
+            StockAlertThreshold = stockThreshold,
+            StockCount = stock
+        };
 
     public static ProductResponse BuildResponse(
         int id = 1,

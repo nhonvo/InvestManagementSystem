@@ -15,6 +15,6 @@ public class EarningsEntry
     public decimal Estimate { get; set; }
     public decimal Surprise { get; set; }
     public decimal SurprisePercent { get; set; }
-    
+
     public long Ttl { get; set; }
 }

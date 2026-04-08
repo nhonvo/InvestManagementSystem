@@ -1,4 +1,3 @@
-using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 

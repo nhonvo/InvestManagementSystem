@@ -1,5 +1,4 @@
 using FluentAssertions;
-using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
 using InventoryAlert.Api.Domain.Interfaces;
@@ -9,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
-using System.Collections.Generic;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Application.Services;
@@ -53,7 +51,7 @@ public class WatchlistServiceTests
             .ReturnsAsync((Watchlist w) => w);
 
         _uow.Setup(x => x.Watchlists).Returns(mockWatchlistRepo.Object);
-        
+
         _sut = new WatchlistService(_uow.Object, _finnhub.Object, _redis.Object, _eventPublisher.Object, _logger.Object);
     }
 
@@ -93,7 +91,7 @@ public class WatchlistServiceTests
 
         var exists = await _db.Watchlists.AnyAsync(w => w.UserId == "user-1" && w.Symbol == "AAPL");
         exists.Should().BeTrue();
-        
+
         _eventPublisher.Verify(p => p.PublishAsync(It.Is<InventoryAlert.Contracts.Events.EventEnvelope>(e => e.EventType == InventoryAlert.Contracts.Events.EventTypes.SymbolAdded), Ct), Times.Once);
     }
 

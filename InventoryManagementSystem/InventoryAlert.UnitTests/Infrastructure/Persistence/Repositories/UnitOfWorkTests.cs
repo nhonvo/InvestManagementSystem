@@ -1,8 +1,6 @@
 using FluentAssertions;
 using InventoryAlert.Api.Application.Common.Exceptions;
-using InventoryAlert.Api.Domain.Constants;
 using InventoryAlert.Api.Infrastructure.Persistence.Repositories;
-using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -61,7 +59,7 @@ public class UnitOfWorkTests
 
         await action.Should().ThrowAsync<UserFriendlyException>()
             .Where(e => e.ErrorCode == ErrorCode.Internal);
-        
+
         // In-memory DB doesn't support real transactions, so rollback won't "un-add" to the local list?
         // Wait, EF Core InMemory transaction is a no-op? 
         // Actually, for UnitOfWork testing, we should probably use SQLite InMemory or real DB if possible.

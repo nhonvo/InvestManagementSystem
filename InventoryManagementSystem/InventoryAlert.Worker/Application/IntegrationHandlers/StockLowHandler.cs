@@ -31,12 +31,12 @@ public class StockLowHandler(InventoryDbContext db, ILogger<StockLowHandler> log
 
         if (product.StockCount <= 10) // Fallback fixed threshold for simulation
         {
-            _logger.LogWarning("[StockLowHandler] VERIFIED LOW STOCK for {Symbol} (ID: {ProductId}). Current: {Stock}", 
+            _logger.LogWarning("[StockLowHandler] VERIFIED LOW STOCK for {Symbol} (ID: {ProductId}). Current: {Stock}",
                 product.TickerSymbol, product.Id, product.StockCount);
         }
         else
         {
-            _logger.LogInformation("[StockLowHandler] Stock level for {Symbol} has recovered to {Stock}. No alert needed.", 
+            _logger.LogInformation("[StockLowHandler] Stock level for {Symbol} has recovered to {Stock}. No alert needed.",
                 product.TickerSymbol, product.StockCount);
         }
     }

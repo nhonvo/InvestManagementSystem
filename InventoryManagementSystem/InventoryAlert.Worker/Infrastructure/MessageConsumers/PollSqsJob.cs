@@ -29,7 +29,7 @@ public class PollSqsJob(
         {
             // Fetch one batch and process it
             var messages = await _sqsHelper.ReceiveMessagesAsync(_settings.Aws.SqsQueueUrl, ct: ct);
-            
+
             if (messages == null || messages.Count == 0)
             {
                 _logger.LogInformation("[HangfireSQS] No messages found.");
@@ -37,7 +37,7 @@ public class PollSqsJob(
             }
 
             await _dispatcher.ProcessBatchAsync(messages, ct);
-            
+
             _logger.LogInformation("[HangfireSQS] Finished processing {Count} messages.", messages.Count);
         }
         catch (Exception ex)

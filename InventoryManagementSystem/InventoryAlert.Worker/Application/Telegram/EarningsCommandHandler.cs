@@ -1,7 +1,3 @@
-using Microsoft.Extensions.Logging;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace InventoryAlert.Worker.Application.Telegram;
 
 public class EarningsCommandHandler(ILogger<EarningsCommandHandler> logger)

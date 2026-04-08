@@ -8,7 +8,7 @@ namespace InventoryAlert.Worker.Infrastructure.BackgroundServices;
 /// This matches the pattern of QueuedHostedService.cs.
 /// </summary>
 public class NativeSqsWorker(
-    IProcessQueueJob processQueueJob, 
+    IProcessQueueJob processQueueJob,
     WorkerSettings settings,
     ILogger<NativeSqsWorker> logger) : BackgroundService
 {
@@ -33,7 +33,7 @@ public class NativeSqsWorker(
         }
         catch (OperationCanceledException)
         {
-             _logger.LogInformation("[NativeSqsWorker] Cancellation requested. Shutting down.");
+            _logger.LogInformation("[NativeSqsWorker] Cancellation requested. Shutting down.");
         }
         catch (Exception ex)
         {

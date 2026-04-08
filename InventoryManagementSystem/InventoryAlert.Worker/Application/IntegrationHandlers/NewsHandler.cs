@@ -2,7 +2,6 @@ using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using Microsoft.EntityFrameworkCore;
@@ -14,8 +13,8 @@ namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 /// and persists them to DynamoDB.
 /// </summary>
 public class NewsHandler(
-    InventoryDbContext db, 
-    INewsDynamoRepository newsRepo, 
+    InventoryDbContext db,
+    INewsDynamoRepository newsRepo,
     IFinnhubClient finnhub,
     ILogger<NewsHandler> logger)
     : INewsHandler
@@ -68,7 +67,7 @@ public class NewsHandler(
         Source = article.Source ?? "Unknown",
         Url = article.Url ?? string.Empty,
         ImageUrl = article.Image ?? string.Empty,
-        FinnhubId = article.Id, 
-        Ttl = DateTimeOffset.UtcNow.AddDays(30).ToUnixTimeSeconds() 
+        FinnhubId = article.Id,
+        Ttl = DateTimeOffset.UtcNow.AddDays(30).ToUnixTimeSeconds()
     };
 }

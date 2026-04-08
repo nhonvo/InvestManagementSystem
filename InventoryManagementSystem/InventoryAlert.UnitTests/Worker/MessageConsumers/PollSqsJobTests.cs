@@ -1,6 +1,4 @@
-using Amazon.SQS;
 using Amazon.SQS.Model;
-using FluentAssertions;
 using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Infrastructure.MessageConsumers;

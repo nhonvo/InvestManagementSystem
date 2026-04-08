@@ -27,7 +27,7 @@ public class ProcessQueueJob(
             try
             {
                 var messages = await _sqsHelper.ReceiveMessagesAsync(_settings.Aws.SqsQueueUrl, ct: ct);
-                
+
                 if (messages.Count == 0) continue;
 
                 _logger.LogInformation("[NativeSQS] Received {Count} messages.", messages.Count);
@@ -43,7 +43,7 @@ public class ProcessQueueJob(
                 await Task.Delay(5000, ct);
             }
         }
-        
+
         _logger.LogInformation("[NativeSQS] Continuous poll stopped.");
     }
 }

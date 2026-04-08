@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
@@ -5,7 +6,6 @@ using InventoryAlert.Api.Web.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System.Security.Claims;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Web.Controllers;
@@ -19,7 +19,7 @@ public class WatchlistControllerTests
     public WatchlistControllerTests()
     {
         _sut = new WatchlistController(_service.Object);
-        
+
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] {
             new(ClaimTypes.NameIdentifier, "user-1"),
         }, "mock"));
@@ -33,8 +33,8 @@ public class WatchlistControllerTests
     [Fact]
     public async Task GetWatchlist_Returns200_WithItems()
     {
-        var items = new List<WatchlistItemResponse> { 
-            new("AAPL", "Apple", "NASDAQ", "Stock", 150m, 1m, 0.5m, DateTime.UtcNow) 
+        var items = new List<WatchlistItemResponse> {
+            new("AAPL", "Apple", "NASDAQ", "Stock", 150m, 1m, 0.5m, DateTime.UtcNow)
         };
         _service.Setup(s => s.GetUserWatchlistAsync("user-1", Ct)).ReturnsAsync(items);
 

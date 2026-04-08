@@ -1,17 +1,15 @@
 using System.Text.Json;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
-
-using InventoryAlert.Contracts.Configuration;
 
 namespace InventoryAlert.Worker.Infrastructure.MessageConsumers;
 
@@ -54,7 +52,7 @@ public class SqsDispatcher(
         {
             _logger.LogError("[Dispatcher] Message {Id} exceeded retries ({Count}). Moving manually to DLQ.", message.MessageId, receiveCount);
             await MoveToDlqAsync(message, ct);
-            return true; 
+            return true;
         }
 
         // 2. Deserialize Envelope
@@ -87,7 +85,7 @@ public class SqsDispatcher(
         try
         {
             _logger.LogInformation("[Dispatcher] Handing off to MessageProcessor.");
-            
+
             await _processor.ProcessMessageAsync(message, ct);
             bool handledSuccessfully = true; // Interface method assumes success if it doesn't throw
 
@@ -97,7 +95,7 @@ public class SqsDispatcher(
                 await _redisDb.KeyExpireAsync(dedupKey, TimeSpan.FromHours(48));
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)
@@ -177,6 +175,6 @@ public class SqsDispatcher(
         }
     }
 
-    private static int GetReceiveCount(Message message) => 
+    private static int GetReceiveCount(Message message) =>
         message.Attributes != null && message.Attributes.TryGetValue("ApproximateReceiveCount", out var s) && int.TryParse(s, out var i) ? i : 1;
 }

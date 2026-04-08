@@ -1,9 +1,7 @@
 using System.Net;
 using FluentAssertions;
 using InventoryAlert.Api.Application.Common.Exceptions;
-using InventoryAlert.Api.Domain.Constants;
 using InventoryAlert.Api.Web.Middleware;
-using InventoryAlert.Api.Web.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -65,7 +63,7 @@ public class GlobalExceptionMiddlewareTests
         // Assert
         context.Response.StatusCode.Should().Be((int)expectedStatus);
         context.Response.ContentType.Should().Be("application/json");
-        
+
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(context.Response.Body);
         var responseBody = await reader.ReadToEndAsync();
@@ -86,7 +84,7 @@ public class GlobalExceptionMiddlewareTests
 
         // Assert
         context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
-        
+
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(context.Response.Body);
         var responseBody = await reader.ReadToEndAsync();
@@ -107,7 +105,7 @@ public class GlobalExceptionMiddlewareTests
 
         // Assert
         context.Response.StatusCode.Should().Be((int)HttpStatusCode.InternalServerError);
-        
+
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(context.Response.Body);
         var responseBody = await reader.ReadToEndAsync();

@@ -19,7 +19,7 @@ public class PriceAlertHandler(IFinnhubClient finnhub, ILogger<PriceAlertHandler
         _logger.LogInformation("[PriceAlertHandler] Triggered for {Symbol}. Fetching fresh quote...", payload.Symbol);
 
         var quote = await _finnhub.FetchQuoteAsync(payload.Symbol, ct);
-        
+
         if (quote == null || quote.CurrentPrice == 0)
         {
             _logger.LogWarning("[PriceAlertHandler] Could not fetch valid quote for {Symbol}. Skipping.", payload.Symbol);
@@ -27,7 +27,7 @@ public class PriceAlertHandler(IFinnhubClient finnhub, ILogger<PriceAlertHandler
         }
 
         // Using Structured Logging instead of string interpolation in templates
-        _logger.LogWarning("🚨 PRICE ALERT | Symbol: {Symbol} | Current: ${Price:F2} | Change: {Change:F2}%", 
+        _logger.LogWarning("🚨 PRICE ALERT | Symbol: {Symbol} | Current: ${Price:F2} | Change: {Change:F2}%",
             payload.Symbol, quote.CurrentPrice, quote.PercentChange);
     }
 }

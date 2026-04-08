@@ -1,12 +1,10 @@
-using InventoryAlert.Contracts.Persistence;
-using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using Amazon.DynamoDBv2;
 using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Repositories;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
 
-public class EventLogRepository(IAmazonDynamoDB dynamoClient, ILogger<EventLogRepository> logger) 
+public class EventLogRepository(IAmazonDynamoDB dynamoClient, ILogger<EventLogRepository> logger)
     : DynamoDbGenericRepository<EventLog>(dynamoClient, logger), IEventLogRepository
 {
     public async Task<EventLog> AddAsync(EventLog entry, CancellationToken ct)

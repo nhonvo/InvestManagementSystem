@@ -1,6 +1,5 @@
 using FluentAssertions;
 using InventoryAlert.Contracts.Persistence;
-using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.UnitTests.Helpers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using InventoryAlert.Worker.Infrastructure.Jobs;

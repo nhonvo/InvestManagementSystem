@@ -1,12 +1,10 @@
-using FluentAssertions;
+using System.Net;
+using InventoryAlert.Api.Domain.Constants;
 using InventoryAlert.Api.Infrastructure.Notifications;
 using InventoryAlert.Api.Web.Configuration;
-using InventoryAlert.Api.Domain.Constants;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using System.Net;
-using System.Net.Http.Json;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Infrastructure.Notifications;
@@ -14,9 +12,9 @@ namespace InventoryAlert.UnitTests.Infrastructure.Notifications;
 public class TelegramAlertNotifierTests
 {
     private readonly Mock<IHttpClientFactory> _clientFactoryMock = new();
-    private readonly AppSettings _settings = new() 
-    { 
-        Telegram = new() { BotToken = "valid-token", ChatId = "12345" } 
+    private readonly AppSettings _settings = new()
+    {
+        Telegram = new() { BotToken = "valid-token", ChatId = "12345" }
     };
     private readonly Mock<ILogger<TelegramAlertNotifier>> _loggerMock = new();
     private readonly Mock<HttpMessageHandler> _handlerMock = new();
@@ -65,8 +63,8 @@ public class TelegramAlertNotifierTests
         _handlerMock.Protected().Verify(
             "SendAsync",
             Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(m => 
-                m.Method == HttpMethod.Post && 
+            ItExpr.Is<HttpRequestMessage>(m =>
+                m.Method == HttpMethod.Post &&
                 m.RequestUri!.ToString().Contains("valid-token")),
             ItExpr.IsAny<CancellationToken>());
     }
@@ -80,8 +78,8 @@ public class TelegramAlertNotifierTests
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage 
-            { 
+            .ReturnsAsync(new HttpResponseMessage
+            {
                 StatusCode = HttpStatusCode.BadRequest,
                 Content = new StringContent("some error")
             });

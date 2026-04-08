@@ -21,9 +21,9 @@ public class NewsDynamoRepository(IAmazonDynamoDB dynamoDbClient, ILogger<NewsDy
         }
         catch (Exception ex)
         {
-             _logger.LogError(ex, "[DynamoDB] Failed to query news for ticker {TickerSymbol}",
-                tickerSymbol);
-             return Enumerable.Empty<NewsDynamoEntry>();
+            _logger.LogError(ex, "[DynamoDB] Failed to query news for ticker {TickerSymbol}",
+               tickerSymbol);
+            return Enumerable.Empty<NewsDynamoEntry>();
         }
     }
 }

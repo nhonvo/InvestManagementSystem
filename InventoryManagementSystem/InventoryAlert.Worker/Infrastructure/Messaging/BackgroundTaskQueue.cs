@@ -18,9 +18,9 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
 
     public async ValueTask<Func<CancellationToken, ValueTask>?> DequeueAsync(CancellationToken ct)
     {
-        if(await _queue.Reader.WaitToReadAsync(ct))
+        if (await _queue.Reader.WaitToReadAsync(ct))
         {
-            if(_queue.Reader.TryRead(out var workItem))
+            if (_queue.Reader.TryRead(out var workItem))
             {
                 return workItem;
             }

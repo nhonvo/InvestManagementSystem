@@ -1,11 +1,11 @@
+using InventoryAlert.Api.Domain.Interfaces;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Persistence;
-using InventoryAlert.Api.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
 
-public class WatchlistRepository(InventoryDbContext context) 
+public class WatchlistRepository(InventoryDbContext context)
     : GenericRepository<Watchlist>(context), IWatchlistRepository
 {
     private readonly InventoryDbContext _context = context;

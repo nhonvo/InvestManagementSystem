@@ -1,10 +1,10 @@
+using System.Text.Json;
 using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Domain.Interfaces;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Events;
-using System.Text.Json;
 
 namespace InventoryAlert.Api.Application.Services;
 
@@ -26,10 +26,10 @@ public class AlertRuleService(
     public async Task<AlertRuleResponse> CreateAlertAsync(string userId, AlertRuleRequest request, CancellationToken ct = default)
     {
         var symbol = request.Symbol.ToUpperInvariant();
-        
+
         // 1. Verify if user has subscribed to the symbol
         var subscribed = await _unitOfWork.Watchlists.ExistsAsync(userId, symbol, ct);
-            
+
         if (!subscribed)
         {
             throw new UserFriendlyException(ErrorCode.BadRequest, $"You must add '{symbol}' to your watchlist before creating an alert.");

@@ -1,12 +1,11 @@
+using System.Net;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
-using FluentAssertions;
 using InventoryAlert.Api.Infrastructure.Messaging;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Contracts.Events;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Infrastructure.Messaging;
@@ -36,17 +35,17 @@ public class SnsEventPublisherTests
         };
 
         _snsMock.Setup(x => x.PublishAsync(It.IsAny<PublishRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PublishResponse 
-            { 
-                HttpStatusCode = HttpStatusCode.OK, 
-                MessageId = "msg-id" 
+            .ReturnsAsync(new PublishResponse
+            {
+                HttpStatusCode = HttpStatusCode.OK,
+                MessageId = "msg-id"
             });
 
         // Act
         await _sut.PublishAsync(envelope);
 
         // Assert
-        _snsMock.Verify(x => x.PublishAsync(It.Is<PublishRequest>(r => 
+        _snsMock.Verify(x => x.PublishAsync(It.Is<PublishRequest>(r =>
             r.TopicArn == "arn:aws:sns:topic" &&
             r.Subject == envelope.EventType &&
             r.MessageAttributes["EventType"].StringValue == envelope.EventType &&

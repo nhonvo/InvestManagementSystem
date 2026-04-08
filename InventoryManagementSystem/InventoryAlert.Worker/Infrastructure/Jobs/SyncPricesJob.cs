@@ -1,6 +1,6 @@
 using InventoryAlert.Contracts.Persistence;
-using Microsoft.Extensions.Caching.Distributed;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace InventoryAlert.Worker.Infrastructure.Jobs;
 

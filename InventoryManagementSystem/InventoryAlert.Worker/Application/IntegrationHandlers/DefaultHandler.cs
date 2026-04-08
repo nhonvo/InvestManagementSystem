@@ -1,7 +1,7 @@
 using Amazon.SQS.Model;
+using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Interfaces;
-using InventoryAlert.Worker.Application.Interfaces.Handlers;
 
 namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 

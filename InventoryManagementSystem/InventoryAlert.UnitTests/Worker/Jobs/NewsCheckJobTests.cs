@@ -1,10 +1,8 @@
-using FluentAssertions;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
-using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.UnitTests.Helpers;
-using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
+using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using InventoryAlert.Worker.Infrastructure.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -63,7 +61,7 @@ public class NewsCheckJobTests : IDisposable
 
         // Assert
         _newsHandlerMock.Verify(h => h.HandleAsync(It.Is<CompanyNewsAlertPayload>(p => p.Symbol == ticker), It.IsAny<CancellationToken>()), Times.Once);
-        
+
         _cacheMock.Verify(c => c.SetAsync(It.Is<string>(k => k.Contains(ticker)), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

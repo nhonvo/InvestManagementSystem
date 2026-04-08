@@ -20,7 +20,7 @@ public class ProductServiceTests
     private readonly Mock<IProductRepository> _productRepository = new();
     private readonly Mock<IFinnhubClient> _finnhubClient = new();
     private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
-    private readonly AppSettings _appSettings; 
+    private readonly AppSettings _appSettings;
     private readonly Mock<IValidator<ProductRequest>> _validator = new();
     private readonly Mock<ILogger<ProductService>> _logger = new();
     private readonly ProductService _sut;
@@ -159,7 +159,7 @@ public class ProductServiceTests
     {
         var existing = ProductFixtures.BuildProduct(id: 1, ticker: "AAPL");
         var request = ProductFixtures.BuildRequest(ticker: "MSFT");
-        
+
         _productRepository.Setup(r => r.GetByIdAsync(1, Ct)).ReturnsAsync(existing);
         _productRepository.Setup(r => r.GetByTickerAsync("MSFT", Ct))
             .ReturnsAsync(ProductFixtures.BuildProduct(id: 2, ticker: "MSFT"));
@@ -175,7 +175,7 @@ public class ProductServiceTests
     {
         var existing = ProductFixtures.BuildProduct(id: 1, ticker: "AAPL");
         var request = ProductFixtures.BuildRequest(ticker: "AAPL", name: "Updated Name");
-        
+
         _productRepository.Setup(u => u.GetByIdAsync(1, Ct)).ReturnsAsync(existing);
         _productRepository.Setup(r => r.UpdateAsync(It.IsAny<Product>())).ReturnsAsync(existing);
 
@@ -306,7 +306,7 @@ public class ProductServiceTests
 
         await act.Should().ThrowAsync<UserFriendlyException>()
             .Where(e => e.ErrorCode == ErrorCode.NotFound);
-            
+
         _unitOfWork.Verify(u =>
             u.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), Ct), Times.Never);
     }

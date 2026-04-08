@@ -1,5 +1,4 @@
 using InventoryAlert.Worker.Application.Models;
-using Microsoft.Extensions.Logging;
 
 namespace InventoryAlert.Worker.Infrastructure.Jobs;
 

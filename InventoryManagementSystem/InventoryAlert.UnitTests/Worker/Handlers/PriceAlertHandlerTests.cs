@@ -1,4 +1,3 @@
-using FluentAssertions;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Worker.Application.IntegrationHandlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;

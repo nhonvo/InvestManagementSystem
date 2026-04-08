@@ -6,4 +6,4 @@ public record RegisterRequest(string Username, string Password, string Email);
 
 public record AuthResponse(string Token);
 
-public record RegistrationResponse(string Message); 
+public record RegistrationResponse(string Message);

@@ -41,7 +41,7 @@ public class DynamoDbGenericRepository<T>(IAmazonDynamoDB dynamoDbClient, ILogge
 
     public virtual async Task<T?> GetByIdAsync(object hashKey, object rangeKey, CancellationToken ct = default)
     {
-         try
+        try
         {
             return await _context.LoadAsync<T>(hashKey, rangeKey, ct);
         }

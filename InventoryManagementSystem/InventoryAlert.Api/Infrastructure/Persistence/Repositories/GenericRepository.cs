@@ -1,5 +1,5 @@
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;

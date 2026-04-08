@@ -1,13 +1,11 @@
+using System.Text.Json;
 using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Domain.Interfaces;
-using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Exceptions;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Events;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace InventoryAlert.Api.Application.Services;
 
@@ -32,7 +30,7 @@ public class WatchlistService(
             return JsonSerializer.Deserialize<List<WatchlistItemResponse>>((string)cached!, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
 
         var items = await _unitOfWork.Watchlists.GetByUserIdAsync(userId, ct);
-        
+
         var response = items.Select(w => new WatchlistItemResponse(
                 w.Symbol,
                 w.Product != null ? w.Product.Name : w.Symbol,

@@ -1,9 +1,8 @@
-using FluentAssertions;
 using InventoryAlert.Api.Web.Middleware;
+using InventoryAlert.UnitTests.Infrastructure.External;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using InventoryAlert.UnitTests.Infrastructure.External;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Web.Middleware;

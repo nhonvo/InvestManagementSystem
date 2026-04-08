@@ -1,9 +1,9 @@
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Worker.Application.Interfaces.Handlers;
+using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 
 namespace InventoryAlert.Worker.Infrastructure.Jobs;
 
@@ -63,7 +63,7 @@ public class NewsCheckJob(
                 await _cache.SetStringAsync(cacheKey, latest.Headline ?? string.Empty,
                     new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) }, token);
 
-                _logger.LogInformation("[NewsCheckJob] Triggered NewsHandler for {Symbol} due to new headline: {Headline}", 
+                _logger.LogInformation("[NewsCheckJob] Triggered NewsHandler for {Symbol} due to new headline: {Headline}",
                     product.TickerSymbol, latest.Headline);
             }
             catch (Exception ex)

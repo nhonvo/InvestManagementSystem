@@ -110,7 +110,7 @@ try
     builder.Services.AddScoped<IStockLowHandler, StockLowHandler>();
     builder.Services.AddScoped<IRawDefaultHandler, DefaultHandler>();
     builder.Services.AddScoped<UnknownEventHandler>();
-    
+
     // New Event Handlers
     builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.PriceUpdatePayload>, PriceUpdateHandler>();
     builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.MarketNewsPayload>, MarketNewsHandler>();
@@ -138,7 +138,7 @@ try
     builder.Services.AddScoped<PollSqsJob>();
     builder.Services.AddScoped<SyncPricesJob>();
     builder.Services.AddScoped<NewsCheckJob>();
-    
+
     // New Hangfire Jobs
     builder.Services.AddScoped<MarketNewsJob>();
     builder.Services.AddScoped<RecommendationsJob>();

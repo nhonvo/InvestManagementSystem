@@ -1,12 +1,11 @@
 using System.Text.Json;
 using Amazon.SQS.Model;
 using Hangfire;
+using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Interfaces;
-
-using InventoryAlert.Contracts.Configuration;
 
 namespace InventoryAlert.Worker.Application;
 
@@ -15,7 +14,7 @@ namespace InventoryAlert.Worker.Application;
 /// and the Native Background Task Queue (low priority/in-memory).
 /// </summary>
 public class MessageProcessor(
-    IBackgroundTaskQueue backgroundTaskQueue, 
+    IBackgroundTaskQueue backgroundTaskQueue,
     IRawDefaultHandler rawHandler,
     ILogger<MessageProcessor> logger) : IMessageProcessor
 {
@@ -63,7 +62,7 @@ public class MessageProcessor(
                     if (stockLowPayload != null)
                     {
                         BackgroundJob.Enqueue<IStockLowHandler>(h => h.HandleAsync(stockLowPayload, CancellationToken.None));
-                        return true; 
+                        return true;
                     }
                     break;
 
@@ -79,13 +78,13 @@ public class MessageProcessor(
                 default:
                     // Route to In-Memory Queue for processing by QueuedHostedService
                     _logger.LogInformation("[MessageProcessor] Routing unknown message to In-Memory Queue.");
-                    
+
                     // Since this is in-memory, we technically shouldn't ACK SQS until IT IS PROCESSED.
                     // But to keep it simple and consistent with the user's dual-flow requirement:
-                    await _backgroundTaskQueue.QueueBackgroundWorkItemAsync(async (token) => 
+                    await _backgroundTaskQueue.QueueBackgroundWorkItemAsync(async (token) =>
                         await _rawHandler.HandleAsync(message, token));
-                    
-                    return true; 
+
+                    return true;
             }
         }
         catch (JsonException ex)
@@ -103,6 +102,6 @@ public class MessageProcessor(
     }
 
     // Explicit implementation for the original interface to avoid breaking build if interface not updated yet
-    async Task IMessageProcessor.ProcessMessageAsync(Message message, CancellationToken ct) 
+    async Task IMessageProcessor.ProcessMessageAsync(Message message, CancellationToken ct)
         => await ProcessAndAcknowledgeAsync(message, ct);
 }
