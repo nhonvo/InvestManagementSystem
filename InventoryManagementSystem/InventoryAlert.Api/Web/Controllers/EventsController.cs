@@ -30,6 +30,10 @@ public class EventsController(IEventService eventService) : ControllerBase
         [FromBody] PublishEventRequest request,
         CancellationToken ct)
     {
+        if (string.IsNullOrEmpty(request.EventType))
+        {
+            return BadRequest(new { Message = "EventType is required." });
+        }
         await _eventService.PublishEventAsync(request.EventType, request.Payload, ct);
         return Accepted();
     }

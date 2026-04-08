@@ -34,7 +34,11 @@ public class WatchlistServiceTests
         _redis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(redisDb.Object);
 
         _uow.Setup(x => x.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>((action, _) => action());
+            .Returns<Func<Task>, CancellationToken>(async (action, ct) => 
+            {
+                await action();
+                await _db.SaveChangesAsync(ct);
+            });
 
         var mockWatchlistRepo = new Mock<IWatchlistRepository>();
         mockWatchlistRepo.Setup(x => x.GetByUserIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))

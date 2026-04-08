@@ -79,25 +79,12 @@ public class EventsControllerTests
             Symbol = "TSLA"
         };
 
-        MarketPriceAlertPayload? captured = null;
-        _service
-            .Setup(s => s.PublishEventAsync(
-                It.IsAny<string>(),
-                It.IsAny<MarketPriceAlertPayload>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask)
-            .Callback<string, MarketPriceAlertPayload, CancellationToken>(
-                (_, p, _) => captured = p);
 
         await _sut.TriggerMarketAlert(request, Ct);
 
-        _service.Verify(s => s.PublishEventAsync(
-            InventoryAlert.Contracts.Events.EventTypes.MarketPriceAlert,
-            It.IsAny<MarketPriceAlertPayload>(), Ct), Times.Once);
+        _service.Verify(s => s.TriggerMarketAlertAsync(
+            It.Is<MarketAlertRequest>(r => r.ProductId == 7 && r.Symbol == "TSLA"), Ct), Times.Once);
 
-        captured.Should().NotBeNull();
-        captured!.ProductId.Should().Be(7);
-        captured.Symbol.Should().Be("TSLA");
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -126,24 +113,12 @@ public class EventsControllerTests
             Symbol = "GOOGL"
         };
 
-        CompanyNewsAlertPayload? captured = null;
-        _service
-            .Setup(s => s.PublishEventAsync(
-                It.IsAny<string>(),
-                It.IsAny<CompanyNewsAlertPayload>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask)
-            .Callback<string, CompanyNewsAlertPayload, CancellationToken>(
-                (_, p, _) => captured = p);
 
         await _sut.TriggerNewsAlert(request, Ct);
 
-        _service.Verify(s => s.PublishEventAsync(
-            InventoryAlert.Contracts.Events.EventTypes.CompanyNewsAlert,
-            It.IsAny<CompanyNewsAlertPayload>(), Ct), Times.Once);
+        _service.Verify(s => s.TriggerNewsAlertAsync(
+            It.Is<NewsAlertRequest>(r => r.Symbol == "GOOGL"), Ct), Times.Once);
 
-        captured.Should().NotBeNull();
-        captured!.Symbol.Should().Be("GOOGL");
     }
 
     // ══════════════════════════════════════════════════════════════

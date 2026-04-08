@@ -30,7 +30,11 @@ public class AlertRuleServiceTests
         _db = new InventoryDbContext(options);
 
         _uow.Setup(x => x.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>((action, _) => action());
+            .Returns<Func<Task>, CancellationToken>(async (action, ct) => 
+            {
+                await action();
+                await _db.SaveChangesAsync(ct);
+            });
 
         var mockAlertRepo = new Mock<IAlertRuleRepository>();
         mockAlertRepo.Setup(x => x.GetByUserIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
