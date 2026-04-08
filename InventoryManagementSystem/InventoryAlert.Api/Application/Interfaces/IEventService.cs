@@ -9,6 +9,5 @@ public interface IEventService
     Task TriggerMarketAlertAsync(MarketAlertRequest request, CancellationToken ct = default);
     Task TriggerNewsAlertAsync(NewsAlertRequest request, CancellationToken ct = default);
 
-    Task<IEnumerable<EventLogResponse>> GetEventLogsAsync(string eventType, int limit = 20, CancellationToken ct = default);
     Task<IEnumerable<string>> GetSupportedEventTypesAsync();
 }

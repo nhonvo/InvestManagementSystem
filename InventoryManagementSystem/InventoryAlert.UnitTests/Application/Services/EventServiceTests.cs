@@ -12,7 +12,6 @@ namespace InventoryAlert.UnitTests.Application.Services;
 public class EventServiceTests
 {
     private readonly Mock<IEventPublisher> _publisher = new();
-    private readonly Mock<IEventLogRepository> _eventLogRepository = new();
     private readonly Mock<ILogger<EventService>> _logger = new();
     private readonly EventService _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
@@ -21,30 +20,12 @@ public class EventServiceTests
     {
         _sut = new EventService(
             _publisher.Object,
-            _eventLogRepository.Object,
-            new Mock<IEventLogQuery>().Object,
             _logger.Object);
-
-        // Default: AddAsync returns the same EventLog
-        _eventLogRepository
-            .Setup(r => r.AddAsync(It.IsAny<EventLog>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((EventLog log, CancellationToken _) => log);
     }
 
     // ════════════════════════════════════════════════════════════════
     // PublishEventAsync
     // ════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task Publish_PersistsEventLog()
-    {
-        var payload = new { Symbol = "AAPL", DropPercent = 0.15m };
-
-        await _sut.PublishEventAsync("MarketPriceAlert", payload, Ct);
-
-        _eventLogRepository.Verify(r =>
-            r.AddAsync(It.IsAny<EventLog>(), Ct), Times.Once);
-    }
 
     [Fact]
     public async Task Publish_CallsPublisher_WithCorrectEventType()
@@ -76,25 +57,6 @@ public class EventServiceTests
 
         captured!.Source.Should().Be("InventoryAlert.Api");
         captured.EventType.Should().Be("CompanyNewsAlert");
-    }
-
-    [Fact]
-    public async Task Publish_PersistsLog_WithCorrectFields()
-    {
-        EventLog? captured = null;
-        _eventLogRepository
-            .Setup(r => r.AddAsync(It.IsAny<EventLog>(), Ct))
-            .Callback<EventLog, CancellationToken>((log, _) => captured = log)
-            .ReturnsAsync(new EventLog());
-
-        await _sut.PublishEventAsync("InsiderSellAlert", new { Symbol = "GOOGL" }, Ct);
-
-        captured.Should().NotBeNull();
-        captured!.EventType.Should().Be("InsiderSellAlert");
-        captured.Status.Should().Be("Published");
-        captured.Source.Should().Be("InventoryAlert.Api");
-        captured.MessageId.Should().NotBeNullOrWhiteSpace();
-        captured.Payload.Should().Contain("GOOGL");
     }
 
     // ════════════════════════════════════════════════════════════════

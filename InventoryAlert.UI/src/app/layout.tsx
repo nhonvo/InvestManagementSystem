@@ -13,7 +13,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-[#050505] text-white min-h-screen flex flex-col selection:bg-blue-500/30`}>
+      <body 
+        className={`${inter.className} bg-[#050505] text-white min-h-screen flex flex-col selection:bg-blue-500/30 antialiased`}
+        style={{
+          backgroundImage: `
+            radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.03) 0, transparent 50%)
+          `,
+          backgroundAttachment: 'fixed',
+        }}
+      >
         <header className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl flex items-center justify-between px-8 py-4">
           <div className="flex items-center gap-10">
             <Link href="/" className="group">

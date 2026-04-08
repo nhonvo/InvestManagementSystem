@@ -18,7 +18,6 @@ public class SqsDispatcher(
     IMessageProcessor processor,
     IDistributedCache cache,
     IConnectionMultiplexer redis,
-    IEventLogDynamoRepository dynamoDb,
     WorkerSettings settings,
     ILogger<SqsDispatcher> logger) : ISqsDispatcher
 {
@@ -26,7 +25,6 @@ public class SqsDispatcher(
     private readonly IMessageProcessor _processor = processor;
     private readonly IDatabase _redisDb = redis.GetDatabase();
     private readonly IDistributedCache _cache = cache;
-    private readonly IEventLogDynamoRepository _dynamoDb = dynamoDb;
     private readonly WorkerSettings _settings = settings;
     private readonly ILogger<SqsDispatcher> _logger = logger;
 
@@ -81,27 +79,17 @@ public class SqsDispatcher(
             return true;
         }
 
-        // 6. Execution & Telemetry
+        // 6. Execution
         try
         {
             _logger.LogInformation("[Dispatcher] Handing off to MessageProcessor.");
-
             await _processor.ProcessMessageAsync(message, ct);
-            bool handledSuccessfully = true; // Interface method assumes success if it doesn't throw
-
-            if (handledSuccessfully)
-            {
-                await WriteTelemetryAsync(envelope, "processed", ct);
-                await _redisDb.KeyExpireAsync(dedupKey, TimeSpan.FromHours(48));
-                return true;
-            }
-
-            return false;
+            await _redisDb.KeyExpireAsync(dedupKey, TimeSpan.FromHours(48));
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[Dispatcher] Processing failed.");
-            await WriteTelemetryAsync(envelope, "failed", ct);
             return false; // Redeliver
         }
     }
@@ -140,28 +128,6 @@ public class SqsDispatcher(
         catch { return false; }
     }
 
-    private async Task WriteTelemetryAsync(EventEnvelope envelope, string status, CancellationToken ct)
-    {
-        try
-        {
-            await _dynamoDb.SaveAsync(new EventLogEntry
-            {
-                MessageId = envelope.MessageId,
-                EventType = envelope.EventType,
-                CorrelationId = envelope.CorrelationId,
-                ProcessedAt = DateTime.UtcNow.ToString("O"),
-                Status = status,
-                Payload = envelope.Payload,
-                Source = envelope.Source,
-                Ttl = DateTimeOffset.UtcNow.AddDays(90).ToUnixTimeSeconds()
-            }, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[Dispatcher] Failed to write telemetry to DynamoDB.");
-        }
-    }
-
     private async Task MoveToDlqAsync(Message message, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(_settings.Aws.SqsDlqUrl)) return;
@@ -176,5 +142,5 @@ public class SqsDispatcher(
     }
 
     private static int GetReceiveCount(Message message) =>
-        message.Attributes != null && message.Attributes.TryGetValue("ApproximateReceiveCount", out var s) && int.TryParse(s, out var i) ? i : 1;
+        message.Attributes != null && message.Attributes.TryGetValue("ApproximateReceiveCount", out var iStr) && int.TryParse(iStr, out var i) ? i : 1;
 }

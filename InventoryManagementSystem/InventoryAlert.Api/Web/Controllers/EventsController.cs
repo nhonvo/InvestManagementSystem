@@ -77,17 +77,4 @@ public class EventsController(IEventService eventService) : ControllerBase
         return Ok(types);
     }
 
-    /// <summary>Get event logs for a specific event type (from DynamoDB).</summary>
-    /// <param name="eventType">The canonical event type string.</param>
-    /// <param name="limit">Number of records to fetch.</param>
-    /// <param name="ct">Cancellation token.</param>
-    [HttpGet("logs/{eventType}")]
-    [ProducesResponseType(typeof(IEnumerable<EventLogResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetEventLogs(string eventType, [FromQuery] int limit = 20, CancellationToken ct = default)
-    {
-        var logs = await _eventService.GetEventLogsAsync(eventType, limit, ct);
-        return Ok(logs);
-    }
 }

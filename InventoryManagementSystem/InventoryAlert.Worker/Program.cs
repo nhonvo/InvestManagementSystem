@@ -127,7 +127,6 @@ try
     builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.EarningsCommandHandler>();
 
     // ── Repositories (Worker Specific) ────────────────────────────────────────
-    builder.Services.AddScoped<IEventLogDynamoRepository, EventLogDynamoRepository>();
     builder.Services.AddScoped<INewsDynamoRepository, NewsDynamoRepository>();
     builder.Services.AddScoped<IPriceHistoryDynamoRepository, PriceHistoryDynamoRepository>();
     builder.Services.AddScoped<IMarketNewsDynamoRepository, MarketNewsDynamoRepository>();

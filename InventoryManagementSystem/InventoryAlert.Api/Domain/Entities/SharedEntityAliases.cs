@@ -3,5 +3,4 @@
 // compiles without modifying every using statement.
 // See: InventoryAlert.Contracts/Entities/
 
-global using EventLog = InventoryAlert.Contracts.Persistence.Entities.EventLogEntry;
 global using Product = InventoryAlert.Contracts.Entities.Product;

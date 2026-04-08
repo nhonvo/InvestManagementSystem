@@ -40,7 +40,6 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
         services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IEventLogRepository, EventLogRepository>();
 
         // ── External HTTP clients ────────────────────────────────────────────
         services.AddConfiguredHttpClients(settings);
@@ -75,9 +74,7 @@ public static class InfrastructureServiceExtensions
             return new Amazon.DynamoDBv2.AmazonDynamoDBClient(config);
         });
 
-        services.AddScoped<EventLogDynamoRepository>();
         services.AddScoped<NewsDynamoRepository>();
-        services.AddScoped<IEventLogQuery, DynamoDbEventLogQuery>();
 
         // ── Messaging / Notifications ────────────────────────────────────────
         services.AddScoped<IEventPublisher, SnsEventPublisher>();

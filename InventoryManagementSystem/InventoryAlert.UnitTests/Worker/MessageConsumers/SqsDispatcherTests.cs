@@ -4,7 +4,6 @@ using Amazon.SQS.Model;
 using FluentAssertions;
 using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Contracts.Events;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Infrastructure.MessageConsumers;
 using InventoryAlert.Worker.Interfaces;
@@ -22,8 +21,7 @@ public class SqsDispatcherTests
     private readonly Mock<IMessageProcessor> _processorMock = new();
     private readonly Mock<IDistributedCache> _cacheMock = new();
     private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new(); // Back to Loose behavior, but with correct setup
-    private readonly Mock<IEventLogDynamoRepository> _dynamoDbMock = new();
+    private readonly Mock<IDatabase> _redisDbMock = new();
     private readonly Mock<ILogger<SqsDispatcher>> _loggerMock = new();
     private readonly WorkerSettings _settings;
     private readonly SqsDispatcher _sut;
@@ -37,7 +35,6 @@ public class SqsDispatcherTests
 
         _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
 
-        // Base Redis Defaults - USING THE 4-ARG OVERLOAD that is actually called
         _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
         _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>()))
@@ -46,7 +43,6 @@ public class SqsDispatcherTests
         _redisDbMock.Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
-        // Cache Defaults
         _cacheMock.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[])null!);
         _cacheMock.Setup(c => c.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
@@ -57,13 +53,12 @@ public class SqsDispatcherTests
             _processorMock.Object,
             _cacheMock.Object,
             _redisMock.Object,
-            _dynamoDbMock.Object,
             _settings,
             _loggerMock.Object);
     }
 
     [Fact]
-    public async Task DispatchAsync_ReturnsTrue_AndWritesTelemetry_WhenProcessedSuccessfully()
+    public async Task DispatchAsync_ReturnsTrue_WhenProcessedSuccessfully()
     {
         // Arrange
         var messageId = "msg-123";
@@ -108,7 +103,6 @@ public class SqsDispatcherTests
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
         };
 
-        // Redefine redis for failure explicitly - 4 arg version
         _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), When.NotExists))
             .ReturnsAsync(false);
 
