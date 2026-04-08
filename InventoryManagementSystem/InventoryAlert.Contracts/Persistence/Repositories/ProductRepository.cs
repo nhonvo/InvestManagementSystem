@@ -1,8 +1,9 @@
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+namespace InventoryAlert.Contracts.Persistence.Repositories;
 
 public class ProductRepository(InventoryDbContext context) : GenericRepository<Product>(context), IProductRepository
 {

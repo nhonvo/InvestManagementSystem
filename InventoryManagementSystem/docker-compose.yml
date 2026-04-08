@@ -157,6 +157,20 @@ services:
     networks:
       - app-network
 
+  # ==========================================================
+  # Seq — Centralized Logging
+  # ==========================================================
+  seq:
+    image: datalust/seq:latest
+    container_name: inventory_seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5341:80"        # UI on port 5341 (standard local Seq port)
+    networks:
+      - app-network
+    restart: unless-stopped
+
 volumes:
   pgdata:
 

@@ -1,8 +1,8 @@
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+namespace InventoryAlert.Contracts.Persistence.Repositories;
 
 public class GenericRepository<T>(InventoryDbContext context) : IGenericRepository<T> where T : class
 {
@@ -44,7 +44,7 @@ public class GenericRepository<T>(InventoryDbContext context) : IGenericReposito
         return (items, count);
     }
 
-    public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken)
     {
         return await _dbSet.FindAsync([id], cancellationToken);
     }

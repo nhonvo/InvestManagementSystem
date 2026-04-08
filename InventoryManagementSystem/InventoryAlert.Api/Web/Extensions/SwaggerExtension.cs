@@ -1,7 +1,8 @@
-using InventoryAlert.Api.Domain.Constants;
+using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Api.Web.Filters;
 using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 
 namespace InventoryAlert.Api.Web.Extensions;
 
@@ -77,5 +78,16 @@ public static class SwaggerExtension
             setupAction.SwaggerEndpoint("/swagger/v1/swagger.json", $"{ApplicationConstants.Name} API v1");
             setupAction.RoutePrefix = "swagger";
         });
+
+        if (app is IEndpointRouteBuilder endpoints)
+        {
+            endpoints.MapScalarApiReference(options =>
+            {
+                options
+                    .WithTitle($"{ApplicationConstants.Name} API Reference")
+                    .WithTheme(ScalarTheme.Mars)
+                    .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+            });
+        }
     }
 }

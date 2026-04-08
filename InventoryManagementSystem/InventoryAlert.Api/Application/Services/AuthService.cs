@@ -1,11 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using InventoryAlert.Api.Application.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Contracts.Entities;
 using Microsoft.IdentityModel.Tokens;

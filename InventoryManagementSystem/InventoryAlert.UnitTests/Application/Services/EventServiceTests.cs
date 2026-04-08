@@ -1,7 +1,7 @@
 using FluentAssertions;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Events;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,14 +12,17 @@ namespace InventoryAlert.UnitTests.Application.Services;
 public class EventServiceTests
 {
     private readonly Mock<IEventPublisher> _publisher = new();
+    private readonly Mock<ICorrelationProvider> _correlation = new();
     private readonly Mock<ILogger<EventService>> _logger = new();
     private readonly EventService _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     public EventServiceTests()
     {
+        _correlation.Setup(c => c.GetCorrelationId()).Returns("test-correlation-id");
         _sut = new EventService(
             _publisher.Object,
+            _correlation.Object,
             _logger.Object);
     }
 
@@ -41,6 +44,7 @@ public class EventServiceTests
 
         captured.Should().NotBeNull();
         captured!.EventType.Should().Be("EarningsAlert");
+        captured.CorrelationId.Should().Be("test-correlation-id");
         _publisher.Verify(p => p.PublishAsync(It.IsAny<EventEnvelope>(), Ct), Times.Once);
     }
 

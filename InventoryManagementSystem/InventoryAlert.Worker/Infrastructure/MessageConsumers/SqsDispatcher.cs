@@ -64,6 +64,7 @@ public class SqsDispatcher(
             ["EventType"] = envelope.EventType,
             ["CorrelationId"] = envelope.CorrelationId
         });
+        using var logContext = Serilog.Context.LogContext.PushProperty("CorrelationId", envelope.CorrelationId);
 
         // 4. Atomic Deduplication (Redis)
         var dedupKey = $"msg:processed:{envelope.MessageId}";

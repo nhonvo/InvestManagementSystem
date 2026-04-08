@@ -1,9 +1,8 @@
-using InventoryAlert.Api.Application.Common.Exceptions;
-using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Interfaces;
-using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Constants;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 
-namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+namespace InventoryAlert.Contracts.Persistence.Repositories;
 
 public class UnitOfWork : IUnitOfWork
 {

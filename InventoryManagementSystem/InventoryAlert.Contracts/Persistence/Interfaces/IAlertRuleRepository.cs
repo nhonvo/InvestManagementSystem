@@ -1,6 +1,6 @@
 using InventoryAlert.Contracts.Entities;
 
-namespace InventoryAlert.Api.Domain.Interfaces;
+namespace InventoryAlert.Contracts.Persistence.Interfaces;
 
 public interface IAlertRuleRepository : IGenericRepository<AlertRule>
 {

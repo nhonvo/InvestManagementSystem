@@ -1,8 +1,6 @@
 using System.Text.Json;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Application.Mappings;
-using InventoryAlert.Api.Domain.Interfaces;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
 
@@ -14,9 +12,11 @@ namespace InventoryAlert.Api.Application.Services;
 /// </summary>
 public class EventService(
     IEventPublisher publisher,
+    ICorrelationProvider correlationProvider,
     ILogger<EventService> logger) : IEventService
 {
     private readonly IEventPublisher _publisher = publisher;
+    private readonly ICorrelationProvider _correlation = correlationProvider;
     private readonly ILogger<EventService> _logger = logger;
 
     public async Task PublishEventAsync<TPayload>(string eventType, TPayload payload, CancellationToken ct = default)
@@ -26,7 +26,7 @@ public class EventService(
         {
             EventType = eventType,
             Payload = payloadJson,
-            CorrelationId = Guid.NewGuid().ToString(),
+            CorrelationId = _correlation.GetCorrelationId(),
             Source = "InventoryAlert.Api"
         };
 

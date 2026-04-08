@@ -1,4 +1,4 @@
-﻿namespace InventoryAlert.IntegrationTests;
+namespace InventoryAlert.IntegrationTests;
 
 public class UnitTest1
 {

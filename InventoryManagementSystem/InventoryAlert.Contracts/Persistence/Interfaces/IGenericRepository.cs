@@ -1,8 +1,8 @@
-namespace InventoryAlert.Api.Domain.Interfaces;
+namespace InventoryAlert.Contracts.Persistence.Interfaces;
 
 public interface IGenericRepository<T> where T : class
 {
-    Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken);
     Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken);
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(int skip, int take, CancellationToken cancellationToken);
     Task<T> AddAsync(T entity, CancellationToken cancellationToken);

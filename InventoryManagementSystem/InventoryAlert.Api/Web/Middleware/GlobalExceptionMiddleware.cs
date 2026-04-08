@@ -1,7 +1,6 @@
 using System.Net;
-using InventoryAlert.Api.Application.Common.Exceptions;
-using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Exceptions;
+using InventoryAlert.Contracts.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Models;
 
 namespace InventoryAlert.Api.Web.Middleware;
@@ -53,7 +52,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
             errorCode = $"{ApplicationConstants.Name}.{ErrorRespondCode.NOT_FOUND}";
             errorMessage = exception.Message;
         }
-        else if (exception is FluentValidation.ValidationException or InventoryAlert.Api.Domain.Exceptions.ValidationException)
+        else if (exception is FluentValidation.ValidationException or InventoryAlert.Contracts.Common.Exceptions.ValidationException)
         {
             statusCode = HttpStatusCode.BadRequest;
             errorCode = $"{ApplicationConstants.Name}.{ErrorRespondCode.BAD_REQUEST}";

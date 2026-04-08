@@ -1,4 +1,4 @@
-namespace InventoryAlert.Api.Domain.Interfaces;
+namespace InventoryAlert.Contracts.Persistence.Interfaces;
 
 public interface IUnitOfWork
 {

@@ -17,10 +17,22 @@ using InventoryAlert.Worker.Infrastructure.MessageConsumers;
 using InventoryAlert.Worker.Infrastructure.Messaging;
 using InventoryAlert.Worker.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using RestSharp;
 using Serilog;
 using Serilog.Events;
 using StackExchange.Redis;
+
+// ─── Early Configuration Binding for Bootstrap ───────────────────────────────
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json")
+    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", true)
+    .AddEnvironmentVariables()
+    .Build();
+
+var bootstrapSettings = configuration.Get<WorkerSettings>()
+    ?? throw new InvalidOperationException("WorkerSettings configuration is missing.");
 
 // ─── Serilog bootstrap (identical pattern to the Api) ─────────────────────────
 Log.Logger = new LoggerConfiguration()
@@ -31,6 +43,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithMachineName()
     .Enrich.WithEnvironmentName()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
     .WriteTo.File("logs/worker-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
@@ -45,22 +58,24 @@ try
     builder.Services.AddSerilog();
 
     // ── Configuration ─────────────────────────────────────────────────────────
-    var settings = builder.Configuration.Get<WorkerSettings>()
-        ?? throw new InvalidOperationException("WorkerSettings configuration is missing.");
+    var settings = builder.Configuration.Get<WorkerSettings>() ?? bootstrapSettings;
 
     builder.Services.AddSingleton(settings);
 
     // ── EF Core (shared PostgreSQL schema with API) ───────────────────────────
     builder.Services.AddDbContext<InventoryDbContext>(opts =>
-        opts.UseNpgsql(settings.Database.DefaultConnection));
+    {
+        opts.UseNpgsql(settings.Database.DefaultConnection)
+            .LogTo(Log.Information, new[] { DbLoggerCategory.Database.Command.Name }, Microsoft.Extensions.Logging.LogLevel.Information);
+    });
 
     // ── Redis Distributed Cache ───────────────────────────────────────────────
     builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-        ConnectionMultiplexer.Connect(settings.Redis.Connection));
+        ConnectionMultiplexer.Connect(settings.Redis.ConnectionString));
 
     builder.Services.AddStackExchangeRedisCache(opts =>
     {
-        opts.Configuration = settings.Redis.Connection;
+        opts.Configuration = settings.Redis.ConnectionString;
         opts.InstanceName = "inventoryalert:";
     });
 
@@ -126,7 +141,14 @@ try
     builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.RecommendCommandHandler>();
     builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.EarningsCommandHandler>();
 
-    // ── Repositories (Worker Specific) ────────────────────────────────────────
+    // ── Repositories (Worker Specific & Shared) ───────────────────────────────
+    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+    builder.Services.AddScoped<IProductRepository, ProductRepository>();
+    builder.Services.AddScoped<IWatchlistRepository, WatchlistRepository>();
+    builder.Services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
+    builder.Services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
+    builder.Services.AddScoped<IUserRepository, UserRepository>();
+
     builder.Services.AddScoped<INewsDynamoRepository, NewsDynamoRepository>();
     builder.Services.AddScoped<IPriceHistoryDynamoRepository, PriceHistoryDynamoRepository>();
     builder.Services.AddScoped<IMarketNewsDynamoRepository, MarketNewsDynamoRepository>();

@@ -41,8 +41,12 @@ jobs:
         dotnet tool install --global dotnet-reportgenerator-globaltool
         reportgenerator \
           -reports:./coverage/**/coverage.cobertura.xml \
-          -targetdir:./coverage/html \
-          -reporttypes:"Html;TextSummary"
+          -targetdir:./coverage/report \
+          -reporttypes:"Html;MarkdownSummary"
+        
+        # Display summary in GitHub Action UI
+        echo "## Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        cat ./coverage/report/Summary.md >> $GITHUB_STEP_SUMMARY
           
     - name: Integration Test
       run: dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
@@ -51,7 +55,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: code-coverage-report
-        path: ./coverage/html
+        path: ./coverage/report
 
     # ── Node.js Setup (UI) ─────────────────────────────────────────────────────────────
     - name: Setup Node.js

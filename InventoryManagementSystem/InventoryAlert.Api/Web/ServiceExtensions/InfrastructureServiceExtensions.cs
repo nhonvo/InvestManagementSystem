@@ -1,16 +1,17 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Infrastructure.External;
 using InventoryAlert.Api.Infrastructure.Messaging;
 using InventoryAlert.Api.Infrastructure.Notifications;
-using InventoryAlert.Api.Infrastructure.Persistence.Repositories;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Serilog;
 using RestSharp;
 using StackExchange.Redis;
 
@@ -32,7 +33,10 @@ public static class InfrastructureServiceExtensions
 
         // ── Persistence ─────────────────────────────────────────────────────
         services.AddDbContext<InventoryDbContext>(options =>
-            options.UseNpgsql(settings.Database.DefaultConnection, b => b.MigrationsAssembly("InventoryAlert.Api")));
+        {
+            options.UseNpgsql(settings.Database.DefaultConnection, b => b.MigrationsAssembly("InventoryAlert.Api"))
+                   .LogTo(Log.Information, new[] { DbLoggerCategory.Database.Command.Name }, Microsoft.Extensions.Logging.LogLevel.Information);
+        });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IProductRepository, ProductRepository>();

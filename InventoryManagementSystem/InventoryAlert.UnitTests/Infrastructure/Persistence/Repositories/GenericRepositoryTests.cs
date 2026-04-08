@@ -1,5 +1,5 @@
 using FluentAssertions;
-using InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

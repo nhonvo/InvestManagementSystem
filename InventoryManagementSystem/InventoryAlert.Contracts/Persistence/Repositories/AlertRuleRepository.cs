@@ -1,9 +1,9 @@
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+namespace InventoryAlert.Contracts.Persistence.Repositories;
 
 public class AlertRuleRepository(InventoryDbContext context)
     : GenericRepository<AlertRule>(context), IAlertRuleRepository

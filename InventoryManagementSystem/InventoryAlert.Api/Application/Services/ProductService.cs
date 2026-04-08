@@ -1,10 +1,10 @@
 using FluentValidation;
-using InventoryAlert.Api.Application.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Mappings;
-using InventoryAlert.Api.Domain.Constants;
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Common.Constants;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 

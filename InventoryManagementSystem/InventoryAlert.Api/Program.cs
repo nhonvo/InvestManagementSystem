@@ -1,3 +1,4 @@
+using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Api.Web.Extensions;
 using InventoryAlert.Api.Web.Middleware;
@@ -9,6 +10,17 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 
+// ─── Early Configuration Binding for Bootstrap ───────────────────────────────
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json")
+    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+    .AddEnvironmentVariables()
+    .Build();
+
+var bootstrapSettings = configuration.Get<AppSettings>() 
+    ?? throw new InvalidOperationException("AppSettings configuration is missing.");
+
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -16,6 +28,7 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
     .WriteTo.File("logs/inventoryalert-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
@@ -29,11 +42,13 @@ try
     // ─── Serilog ──────────────────────────────────────────────────────────────
     builder.Host.UseSerilog();
 
-    // ─── Configuration ────────────────────────────────────────────────────────
-    var settings = builder.Configuration.Get<AppSettings>()
-        ?? throw new InvalidOperationException("AppSettings configuration is missing.");
+    // ─── Clean Configuration Injection ────────────────────────────────────────
+    // Re-bind to ensure consistency with the container's environment
+    var settings = builder.Configuration.Get<AppSettings>() ?? bootstrapSettings;
 
     builder.Services.AddSingleton(settings);
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICorrelationProvider, InventoryAlert.Api.Web.Infrastructure.CorrelationProvider>();
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
@@ -45,7 +60,7 @@ try
             policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
     });
 
-    var jwtKey = builder.Configuration["Jwt:Key"];
+    var jwtKey = settings.Jwt.Key;
     if (string.IsNullOrEmpty(jwtKey))
     {
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
@@ -58,6 +73,7 @@ try
             throw new InvalidOperationException("Jwt:Key is required in configuration.");
         }
     }
+
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {

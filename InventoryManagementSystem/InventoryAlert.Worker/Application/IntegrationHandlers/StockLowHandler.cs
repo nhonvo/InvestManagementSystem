@@ -1,7 +1,6 @@
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 
@@ -9,9 +8,9 @@ namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 /// Trigger handler: verifies the current stock level in the DB 
 /// and logs a warning if it's still below threshold.
 /// </summary>
-public class StockLowHandler(InventoryDbContext db, ILogger<StockLowHandler> logger) : IStockLowHandler
+public class StockLowHandler(IProductRepository products, ILogger<StockLowHandler> logger) : IStockLowHandler
 {
-    private readonly InventoryDbContext _db = db;
+    private readonly IProductRepository _products = products;
     private readonly ILogger<StockLowHandler> _logger = logger;
 
     public async Task HandleAsync(StockLowAlertPayload payload, CancellationToken ct = default)
@@ -19,9 +18,7 @@ public class StockLowHandler(InventoryDbContext db, ILogger<StockLowHandler> log
         // Structured Logging: pass IDs as parameters, not just in string
         _logger.LogInformation("[StockLowHandler] Triggered for ProductId {ProductId}. Verifying current stock level...", payload.ProductId);
 
-        var product = await _db.Products
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == payload.ProductId, ct);
+        var product = await _products.GetByIdAsync(payload.ProductId, ct);
 
         if (product == null)
         {

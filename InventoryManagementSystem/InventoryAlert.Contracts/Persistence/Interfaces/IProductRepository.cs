@@ -1,4 +1,6 @@
-namespace InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Entities;
+
+namespace InventoryAlert.Contracts.Persistence.Interfaces;
 
 public interface IProductRepository : IGenericRepository<Product>
 {

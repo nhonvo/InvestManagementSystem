@@ -4,13 +4,14 @@ using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Api.Domain.Interfaces;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.UnitTests.Helpers;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using InventoryAlert.Contracts.Configuration;
 
 namespace InventoryAlert.UnitTests.Application.Services;
 
