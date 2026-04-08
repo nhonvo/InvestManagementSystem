@@ -26,10 +26,7 @@ public sealed class ProductRequestValidator : AbstractValidator<DTOs.ProductRequ
         RuleFor(x => x.StockCount)
             .GreaterThanOrEqualTo(0).WithMessage("StockCount must be 0 or greater.");
 
-        RuleFor(x => x.StockAlertThreshold)
-            .GreaterThanOrEqualTo(0)
-            .When(x => x.StockAlertThreshold.HasValue)
-            .WithMessage("StockAlertThreshold must be 0 or greater if provided.");
+
 
         RuleFor(x => x.PriceAlertThreshold)
             .InclusiveBetween(0.01, 1.0)

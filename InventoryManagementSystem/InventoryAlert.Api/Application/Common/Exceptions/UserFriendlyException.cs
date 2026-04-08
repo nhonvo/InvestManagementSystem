@@ -9,7 +9,8 @@ public enum ErrorCode
     BadRequest,
     Unauthorized,
     Internal,
-    UnprocessableEntity
+    UnprocessableEntity,
+    Forbidden
 }
 
 public class UserFriendlyException : Exception

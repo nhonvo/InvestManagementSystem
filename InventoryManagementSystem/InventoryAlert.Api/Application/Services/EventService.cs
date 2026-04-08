@@ -1,8 +1,10 @@
 using System.Text.Json;
+using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Mappings;
 using InventoryAlert.Api.Domain.Interfaces;
 using InventoryAlert.Contracts.Events;
+using InventoryAlert.Contracts.Events.Payloads;
 
 namespace InventoryAlert.Api.Application.Services;
 
@@ -21,7 +23,7 @@ public class EventService(
     private readonly IEventLogQuery _eventLogQuery = eventLogQuery;
     private readonly ILogger<EventService> _logger = logger;
 
-    public async Task<IEnumerable<InventoryAlert.Api.Application.DTOs.EventLogResponse>> GetEventLogsAsync(string eventType, int limit = 20, CancellationToken ct = default)
+    public async Task<IEnumerable<EventLogResponse>> GetEventLogsAsync(string eventType, int limit = 20, CancellationToken ct = default)
     {
         var logs = await _eventLogQuery.GetRecentEventsAsync(eventType, limit, ct);
         return logs.ToResponse();
@@ -54,6 +56,27 @@ public class EventService(
         _logger.LogInformation("[EventService] Logged event {MessageId} to DynamoDB for {EventType}", log.MessageId, eventType);
 
         await _publisher.PublishAsync(envelope, ct);
+    }
+
+    public async Task TriggerMarketAlertAsync(MarketAlertRequest request, CancellationToken ct = default)
+    {
+        var payload = new MarketPriceAlertPayload
+        {
+            ProductId = request.ProductId,
+            Symbol = request.Symbol.ToUpperInvariant()
+        };
+
+        await PublishEventAsync(EventTypes.MarketPriceAlert, payload, ct);
+    }
+
+    public async Task TriggerNewsAlertAsync(NewsAlertRequest request, CancellationToken ct = default)
+    {
+        var payload = new CompanyNewsAlertPayload
+        {
+            Symbol = request.Symbol.ToUpperInvariant()
+        };
+
+        await PublishEventAsync(EventTypes.CompanyNewsAlert, payload, ct);
     }
 
     public Task<IEnumerable<string>> GetSupportedEventTypesAsync()

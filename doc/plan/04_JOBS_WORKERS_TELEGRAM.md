@@ -16,6 +16,39 @@
 | `MarketStatusJob`      | Every 5 min     | `/stock/market-status`   | Caches in Redis `market:status:{exchange}`, TTL 5 min |
 | `EarningsCalendarJob`  | Daily 08:00 UTC | `/calendar/earnings`     | Syncs upcoming earnings to Redis (7-day window) |
 
+### 1.1 Standardized Job Pattern (The Result Flow)
+
+All jobs (Hangfire & SQS Handlers) must follow a unified result-oriented execution pattern to ensure consistent logging and failure handling.
+
+```csharp
+public enum JobStatus { Success, Failed, Skipped, PartiallySucceeded }
+
+public record JobResult(
+    JobStatus Status, 
+    string Message = "", 
+    int ProcessedCount = 0, 
+    Exception? Error = null);
+
+// Unified Pattern Example
+public async Task<JobResult> ExecuteAsync(...) {
+    try {
+        // 1. Validation Logic (Return Skipped if no work)
+        // 2. Strawman Gatekeeper call (Finnhub)
+        // 3. Database operation (Postgres/DynamoDB)
+        // 4. Return Success
+    } catch (Exception ex) {
+        // 5. Log structured error + Return Failed
+    }
+}
+```
+
+### 1.2 Finnhub Centralization (The Strawman Pattern)
+
+To avoid scattered API keys and 429 Errors, all Finnhub calls are routed through a `FinnhubClient` with global rate-limiting.
+- **Circuit Breaker**: Trips if Finnhub returns >5 consecutive 5xx errors.
+- **Rate-limit Guard**: Uses a SempahoreSlim(60) to block concurrent calls beyond the free-tier limit.
+- **Fail-Safe**: If call fails, return `JobResult.Failed` but do NOT crash the worker loop.
+
 ### Rate Limit Budget (Finnhub free: 60 req/min)
 
 | Job                  | Symbols (est.) | Calls/run | Calls/hour    |
@@ -44,9 +77,17 @@
 | `symbol.added`                 | `SymbolAddedHandler`         | Trigger immediate profile + quote sync for new symbol           |
 | `alert.rule.created`           | `AlertRuleHandler`           | Load rule into Redis for fast evaluation by SyncPricesJob       |
 
----
+### 2.1 SQS Reliability & DLQ Strategy
 
-## 3. Telegram Bot (InventoryAlert.Worker — TelegramBotService)
+Retry logic is managed by the `SqsDispatcher` (Path B) or Hangfire (Path A).
+- **Retry Count**: Exactly 3 attempts (tracked via `ApproximateReceiveCount` SQS attribute).
+- **Result Logic**:
+    - **Success**: Delete message immediately from SQS.
+    - **Skipped**: Log rationale (e.g. "Deduplicated"), then Delete message.
+    - **Failed**: 
+        - If `< 3 retries`: Let SQS Re-drive (Visibility Timeout).
+        - If `>= 3 retries`: Move to `inventory-event-dlq` and log "Poison Message".
+- **DLQ Alarm**: Alert sent via Telegram if DLQ count > 0.
 
 ### Architecture
 ```

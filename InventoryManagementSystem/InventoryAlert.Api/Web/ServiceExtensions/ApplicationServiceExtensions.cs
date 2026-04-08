@@ -16,6 +16,10 @@ public static class ApplicationServiceExtensions
     {
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IWatchlistService, WatchlistService>();
+        services.AddScoped<IAlertRuleService, AlertRuleService>();
+        services.AddScoped<IStockDataService, StockDataService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         // Validation rules are registered here, but auto-validation execution
         // is plugged alongside MVC in MvcExtension to avoid duplication.

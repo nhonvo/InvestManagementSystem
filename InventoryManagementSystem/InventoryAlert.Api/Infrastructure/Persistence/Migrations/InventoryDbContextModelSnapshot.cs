@@ -22,6 +22,154 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("InventoryAlert.Contracts.Entities.AlertRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastTriggeredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NotifyChannel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Operator")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Threshold")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol")
+                        .HasDatabaseName("idx_alertrules_symbol");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("idx_alertrules_user");
+
+                    b.ToTable("AlertRules", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Field = "price",
+                            IsActive = true,
+                            NotifyChannel = "telegram",
+                            Operator = "gt",
+                            Symbol = "AAPL",
+                            Threshold = 250m,
+                            UserId = "00000000-0000-0000-0000-000000000001"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Field = "price",
+                            IsActive = true,
+                            NotifyChannel = "telegram",
+                            Operator = "lt",
+                            Symbol = "MSFT",
+                            Threshold = 350m,
+                            UserId = "11111111-1111-1111-1111-111111111111"
+                        });
+                });
+
+            modelBuilder.Entity("InventoryAlert.Contracts.Entities.CompanyProfile", b =>
+                {
+                    b.Property<string>("Symbol")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Exchange")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Industry")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("IpoDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Logo")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("MarketCap")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RefreshedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WebUrl")
+                        .HasColumnType("text");
+
+                    b.HasKey("Symbol");
+
+                    b.ToTable("CompanyProfiles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Symbol = "AAPL",
+                            Currency = "USD",
+                            Exchange = "NASDAQ",
+                            Industry = "Technology",
+                            Logo = "https://static2.finnhub.io/logo/8743234a-800d-11ea-8020-000000000001.png",
+                            Name = "Apple Inc",
+                            RefreshedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Symbol = "MSFT",
+                            Currency = "USD",
+                            Exchange = "NASDAQ",
+                            Industry = "Technology",
+                            Logo = "https://static2.finnhub.io/logo/829651a0-800d-11ea-8951-000000000003.png",
+                            Name = "Microsoft Corp",
+                            RefreshedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Symbol = "GOOGL",
+                            Currency = "USD",
+                            Exchange = "NASDAQ",
+                            Industry = "Technology",
+                            Logo = "https://static2.finnhub.io/logo/8d68923a-800d-11ea-9c09-000000000004.png",
+                            Name = "Alphabet Inc",
+                            RefreshedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("InventoryAlert.Contracts.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -62,7 +210,7 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
 
                     b.HasData(
                         new
@@ -98,6 +246,120 @@ namespace InventoryAlert.Api.Infrastructure.Persistence.Migrations
                             StockCount = 5,
                             TickerSymbol = "MSFT"
                         });
+                });
+
+            modelBuilder.Entity("InventoryAlert.Contracts.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("Users", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "admin@example.com",
+                            PasswordHash = "$2a$11$qlQhPRy3I8X3WXtMQ9AWcO4pGzSMlboi.8p.PyQvar8aakes5yVFi",
+                            Username = "admin"
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "user1@example.com",
+                            PasswordHash = "$2a$11$qlQhPRy3I8X3WXtMQ9AWcO4pGzSMlboi.8p.PyQvar8aakes5yVFi",
+                            Username = "user1"
+                        });
+                });
+
+            modelBuilder.Entity("InventoryAlert.Contracts.Entities.Watchlist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("idx_watchlists_user");
+
+                    b.HasIndex("UserId", "Symbol")
+                        .IsUnique();
+
+                    b.ToTable("Watchlists", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                            AddedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Symbol = "AAPL",
+                            UserId = "00000000-0000-0000-0000-000000000001"
+                        },
+                        new
+                        {
+                            Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                            AddedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Symbol = "MSFT",
+                            UserId = "00000000-0000-0000-0000-000000000001"
+                        },
+                        new
+                        {
+                            Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+                            AddedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Symbol = "GOOGL",
+                            UserId = "11111111-1111-1111-1111-111111111111"
+                        });
+                });
+
+            modelBuilder.Entity("InventoryAlert.Contracts.Entities.Watchlist", b =>
+                {
+                    b.HasOne("InventoryAlert.Contracts.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("Symbol")
+                        .HasPrincipalKey("TickerSymbol")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 #pragma warning restore 612, 618
         }

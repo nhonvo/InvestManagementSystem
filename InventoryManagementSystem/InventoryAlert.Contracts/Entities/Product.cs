@@ -12,7 +12,7 @@ public class Product
     public decimal OriginPrice { get; set; }
     public decimal CurrentPrice { get; set; }  // Last synced price from Finnhub
     public double PriceAlertThreshold { get; set; } // e.g. 0.2 = alert when drop > 20%
+    public int StockAlertThreshold { get; set; } // Alert when stock counts <= this
     public int StockCount { get; set; }
-    public int StockAlertThreshold { get; set; } // TODO: REMOVE THIS FIELDS AND LOGIC RELATED
     public DateTime? LastAlertSentAt { get; set; }
 }

@@ -5,27 +5,6 @@ TTL is enabled on every table — the attribute is always `Ttl` (Unix epoch seco
 
 ---
 
-## Table 1: `inventory-event-logs`
-
-**Purpose:** Audit trail for every SNS event published or SQS message processed.
-
-| Attribute     | Type   | Key Role    | Notes                           |
-|---------------|--------|-------------|---------------------------------|
-| `EventType`   | String | HashKey (PK) | e.g. `stock.price.updated`     |
-| `MessageId`   | String | RangeKey    | Correlation ID or SQS MessageId |
-| `Source`      | String |             | `api` or `worker`               |
-| `Status`      | String |             | `published`, `processed`, `failed` |
-| `Payload`     | String |             | Raw JSON payload                |
-| `CorrelationId` | String |           | Original SNS correlation ID     |
-| `ProcessedAt` | String |             | ISO 8601 datetime               |
-| `Ttl`         | Number | TTL attr    | 90-day expiry                   |
-
-**Access patterns:**
-- Query by `EventType` → get all messages of that type, sorted by `MessageId`
-- GSI not needed for basic audit; add `ProcessedAt-index` if time-range queries required
-
----
-
 ## Table 2: `inventory-news`
 
 **Purpose:** Company-specific news articles from Finnhub `/company-news`.

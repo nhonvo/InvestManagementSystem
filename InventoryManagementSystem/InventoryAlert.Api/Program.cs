@@ -97,6 +97,12 @@ try
         app.Logger.LogInformation("Applying database migrations...");
         dbContext.Database.Migrate();
         app.Logger.LogInformation("Database migration complete.");
+
+        if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
+        {
+            await InventoryAlert.Api.Infrastructure.Persistence.DatabaseSeeder.SeedAsync(
+                dbContext, app.Logger);
+        }
     }
     catch (Exception ex)
     {

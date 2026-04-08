@@ -10,6 +10,7 @@
 - build a pattern jobs in worker like wrap all logic like access db, call finnhub as jobs return (result, jobsstatus) 
 - JobResult = success, failed, skipped
 - success and skipped deleted message and failed retry 3 times before go to DLQ
+- Remove DynamoDB `EventLog` table and migrate all telemetry to Centralized Structured Logging (ELK/Kibana)
 - refactor worker review api and worker project log handle exception, ...mapping pattern
 - review and enhance seed data
 - update doc readme and build doc for new developer and how to run or maintain project, draw some chart about system architecture, data flow, sequence diagram, ...
@@ -85,7 +86,7 @@ Stop using raw domain state names as events. Events describe **something that ha
 | Price Snapshots (history)  | DynamoDB   | `inventory-price-history`         | 90d  | Append-only, time-keyed                  |
 | Analyst Recommendations    | DynamoDB   | `inventory-recommendations`       | 90d  | One per symbol per period                |
 | Earnings (quarterly)       | DynamoDB   | `inventory-earnings`              | 2y   | Quarterly, rarely updated                |
-| Event Audit Log            | DynamoDB   | `inventory-event-logs`            | 90d  | Write-heavy, no joins needed             |
+| Event Audit Log            | ELK Stack  | `mp-{service}-{YYYY.MM.DD}`       | 90d  | Replaces DynamoDB `inventory-event-logs`|
 | Telegram Chat State        | Redis      | `telegram:session:{chatId}`       | 1h   | Ephemeral conversation context           |
 | Price Alert Cooldown       | Redis      | `alert:history:{symbol}`          | 24h  | Dedup alerting within window             |
 | Message Dedup Cache        | Redis      | `inventoryalert:processed:{msgId}` | 48h | SQS idempotency guard                   |
@@ -114,8 +115,7 @@ Stop using raw domain state names as events. Events describe **something that ha
 - Per-symbol page: profile, news, recommendations, earnings charts
 - Alert rule manager
 - Market news feed
-- Event log viewer
-- Admin: system health, log drill-down
+- Admin: system health, log drill-down (via Kibana link)
 
 ---
 
@@ -169,3 +169,25 @@ App (Serilog)
 - Finnhub API call rate vs rate-limit threshold
 - SQS DLQ depth over time
 - Event throughput by EventType
+
+---
+
+## 6. Detailed Task Breakdown
+
+### 6.1 Authentication & Security (Identity)
+- **Engine**: ASP.NET Core Identity with Entity Framework Core (Postgres).
+- **Format**: JWT Bearer tokens for API/UI communication.
+- **Roles**: `User` (Subscribed symbols, alert rules) and `Admin` (Job management, system health).
+- **Features**: Registration, Login, and Password Reset (simulated via logs).
+
+### 6.2 Data Seeding & Reliability
+- **Tool**: Use `Bogus` library to generate realistic financial entities.
+- **Coverage**: Initial 50 NASDAQ/NYSE symbols, company profiles, and 3-month sample price history.
+- **Environment**: Seed logic runs automatically in `Development` and `Docker` environments if the database is empty.
+
+### 6.3 Project Health: Logging & Exceptions
+- **Global Exceptions**: Implement `IProblemDetailsService` (ASP.NET Core 8+) or a custom Middleware to return RFC 7807 `ProblemDetails` for all unhandled errors.
+- **Log Enrichment**: 
+    - Use Serilog `LogContext.PushProperty` to attach `JobId` or `Symbol` to every log line in the worker handlers.
+    - Implement a `DiagnosticEventListener` for EF Core to log slow queries (>500ms) as Warnings.
+- **Mapping**: Standardize on `Direct Mapping` for entities -> events to avoid AutoMapper complexity in high-throughput worker loops.

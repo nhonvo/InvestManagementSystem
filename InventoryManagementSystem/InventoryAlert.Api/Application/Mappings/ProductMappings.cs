@@ -16,7 +16,8 @@ public static class ProductMappings
             StockCount = product.StockCount,
             CurrentPrice = product.CurrentPrice,
             OriginPrice = product.OriginPrice,
-            PriceAlertThreshold = product.PriceAlertThreshold
+            PriceAlertThreshold = product.PriceAlertThreshold,
+            StockAlertThreshold = product.StockAlertThreshold
         };
     }
 
@@ -35,9 +36,9 @@ public static class ProductMappings
             TickerSymbol = request.TickerSymbol ?? string.Empty,
             StockCount = request.StockCount,
             OriginPrice = request.Price,
-            CurrentPrice = 0, // Always start at 0 until synced
-            PriceAlertThreshold = request.PriceAlertThreshold ?? 0.1, // Default 10%
-            StockAlertThreshold = request.StockAlertThreshold ?? 0    // Default 0 (no alert)
+            PriceAlertThreshold = request.PriceAlertThreshold ?? 0.1,
+            StockAlertThreshold = request.StockAlertThreshold ?? 10,
+            CurrentPrice = 0 // Always start at 0 until synced
         };
     }
 

@@ -38,6 +38,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
                 ErrorCode.VersionConflict or ErrorCode.ItemAlreadyExists or ErrorCode.Conflict => HttpStatusCode.Conflict,
                 ErrorCode.BadRequest => HttpStatusCode.BadRequest,
                 ErrorCode.Unauthorized => HttpStatusCode.Unauthorized,
+                ErrorCode.Forbidden => HttpStatusCode.Forbidden,
                 ErrorCode.Internal => HttpStatusCode.InternalServerError,
                 ErrorCode.UnprocessableEntity => HttpStatusCode.UnprocessableEntity,
                 _ => HttpStatusCode.InternalServerError

@@ -137,6 +137,26 @@ services:
     networks:
       - app-network
 
+  # ==========================================================
+  # Next.js UI Frontend
+  # ==========================================================
+  ui:
+    build:
+      context: ../InventoryAlert.UI
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8080
+    container_name: inventory_ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXTAUTH_SECRET=dev-secret
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      - api
+    networks:
+      - app-network
+
 volumes:
   pgdata:
 

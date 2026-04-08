@@ -10,4 +10,5 @@ public class ProductResponse
     public decimal OriginPrice { get; set; }
     public decimal CurrentPrice { get; set; }
     public double PriceAlertThreshold { get; set; }
+    public int StockAlertThreshold { get; set; }
 }

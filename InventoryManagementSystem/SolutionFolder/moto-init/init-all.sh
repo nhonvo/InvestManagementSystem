@@ -121,5 +121,81 @@ aws dynamodb update-time-to-live \
     --endpoint-url "$ENDPOINT_URL" \
     --region "$REGION" || echo "TTL for 'inventory-news' might already be enabled"
 
+# inventory-market-news
+aws dynamodb create-table \
+  --table-name inventory-market-news \
+  --attribute-definitions \
+    AttributeName=Category,AttributeType=S \
+    AttributeName=PublishedAt,AttributeType=S \
+  --key-schema \
+    AttributeName=Category,KeyType=HASH \
+    AttributeName=PublishedAt,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "Table 'inventory-market-news' might already exist"
+
+aws dynamodb update-time-to-live \
+  --table-name inventory-market-news \
+  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "TTL for 'inventory-market-news' might already be enabled"
+
+# inventory-price-history
+aws dynamodb create-table \
+  --table-name inventory-price-history \
+  --attribute-definitions \
+    AttributeName=TickerSymbol,AttributeType=S \
+    AttributeName=Timestamp,AttributeType=S \
+  --key-schema \
+    AttributeName=TickerSymbol,KeyType=HASH \
+    AttributeName=Timestamp,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "Table 'inventory-price-history' might already exist"
+
+aws dynamodb update-time-to-live \
+  --table-name inventory-price-history \
+  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "TTL for 'inventory-price-history' might already be enabled"
+
+# inventory-recommendations
+aws dynamodb create-table \
+  --table-name inventory-recommendations \
+  --attribute-definitions \
+    AttributeName=Symbol,AttributeType=S \
+    AttributeName=Period,AttributeType=S \
+  --key-schema \
+    AttributeName=Symbol,KeyType=HASH \
+    AttributeName=Period,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "Table 'inventory-recommendations' might already exist"
+
+aws dynamodb update-time-to-live \
+  --table-name inventory-recommendations \
+  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "TTL for 'inventory-recommendations' might already be enabled"
+
+# inventory-earnings
+aws dynamodb create-table \
+  --table-name inventory-earnings \
+  --attribute-definitions \
+    AttributeName=Symbol,AttributeType=S \
+    AttributeName=Period,AttributeType=S \
+  --key-schema \
+    AttributeName=Symbol,KeyType=HASH \
+    AttributeName=Period,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "Table 'inventory-earnings' might already exist"
+
+aws dynamodb update-time-to-live \
+  --table-name inventory-earnings \
+  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
+  --endpoint-url "$ENDPOINT_URL" \
+  --region "$REGION" || echo "TTL for 'inventory-earnings' might already be enabled"
+
 echo "=== Combined Init Complete ==="
 exit 0

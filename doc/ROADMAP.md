@@ -100,6 +100,18 @@ Review and enhance the `Program.cs` design. Use extension methods to organize th
 - [x] Create `ServiceCollectionExtensions.AddApplication()`
 - [x] Extract magic strings to a `Constants` class
 
+### 8. Stock & Market Data Service Implementation ✅
+
+> **Source:** USER Request — **Completed 2026-04-07**
+
+Implement a comprehensive service for orchestrated stock, market, and crypto data fetching with multi-layer caching (Redis + Postgres).
+
+- [x] Create `IStockDataService` and `StockDataService`
+- [x] Implement Redis-first caching for Quotes, Peers, Market Status
+- [x] Implement DB-first caching for Company Profiles
+- [x] Full coverage for News, Recommendations, Earnings, and Calendars
+- [x] Crypto exchange and symbol support
+
 ---
 
 ## 🟡 P2 — Data Integrity & Validation
@@ -153,15 +165,17 @@ Should we return the list of created products or just the count?
 
 ## 🏗️ P2 — Modernization & UI (New)
 
-### 12. Simple Web Dashboard ✅
+### 12. Next.js 15 Web Dashboard ✅
+ 
+ > **Source:** USER Request — **Completed 2026-04-07**
+ 
+ - [x] Create `InventoryAlert.UI` project (Next.js 15 + Tailwind CSS)
+ - [x] Implement modern dark-themed UI with glassmorphism
+ - [x] Routes: Market Explorer, Price Alerts, Portfolio, Symbol Details
+ - [x] Integrated with `StocksController` via `StockDataService`
+ - [ ] Replace static chart placeholders with functional **Recharts** implementations
+ - [ ] Implement Next.js Route Handlers for secure API proxying
 
-> **Source:** USER Request — **Completed 2026-04-05**
-
-- [x] Create `wwwroot` folder in `InventoryAlert.Api`
-- [x] Implement `index.html` with vanilla JS/CSS (SPA with Sidebar + 4 views)
-- [x] Glassmorphism dark mode theme with Inter typography
-- [x] Connected to `GET /api/products` and `GET /api/products/price-alerts`
-- [x] Sidebar navigation: Dashboard / Products / Price Alerts / Control Center
 
 ### 13. Shared Project — `InventoryAlert.Contracts` ✅ (Already Exists)
 
@@ -265,15 +279,210 @@ Implement pagination for list endpoints (`GetProducts`). Accept query parameters
 - [x] Update `GetAllAsync` in repository to support `Skip/Take`
 
 ### 14. Finnhub Sync Design Review
+**Verdict:** Keep UnitOfWork. It provides transaction safety for multi-table operations. For single-table operations, it adds minimal overhead since EF Core's `SaveChanges` is already atomic.
+
+- [x] Audit all service methods for consistent UnitOfWork usage
+- [x] Ensure `ExecuteTransactionAsync` wraps only multi-step operations
+- [x] Document when to use `UnitOfWork` vs plain `SaveChangesAsync`
+
+### 7. Program.cs Organization
+
+> **Source:** `Program.cs:L15,L34`
+
+Review and enhance the `Program.cs` design. Use extension methods to organize the code and make it more readable and maintainable. Move static file names to constants.
+
+- [x] Create `ServiceCollectionExtensions.AddInfrastructure()`
+- [x] Create `ServiceCollectionExtensions.AddApplication()`
+- [x] Extract magic strings to a `Constants` class
+
+### 8. Stock & Market Data Service Implementation ✅
+
+> **Source:** USER Request — **Completed 2026-04-07**
+
+Implement a comprehensive service for orchestrated stock, market, and crypto data fetching with multi-layer caching (Redis + Postgres).
+
+- [x] Create `IStockDataService` and `StockDataService`
+- [x] Implement Redis-first caching for Quotes, Peers, Market Status
+- [x] Implement DB-first caching for Company Profiles
+- [x] Full coverage for News, Recommendations, Earnings, and Calendars
+- [x] Crypto exchange and symbol support
+
+---
+
+## 🟡 P2 — Data Integrity & Validation
+
+### 8. Input Validation
+
+> **Source:** `ProductController.cs:L71,L87`
+
+Add validation for input data using FluentValidation or Data Annotations. Ensure data being processed is valid and provide meaningful error messages when validation fails. Review use of data annotations or validation attributes on DTOs.
+
+- [x] Install `FluentValidation.AspNetCore`
+- [x] Create `ProductRequestDtoValidator`
+- [x] Register validators in DI
+- [x] Return `400 Bad Request` with validation details
+
+### 9. DTO Design Review
+
+> **Source:** `ProductController.cs:L74,L76`, `ProductServices.cs:L40`
+
+Review `ProductDto` and `ProductRequestDto`. Separate the properties required for creating vs updating. Rename `GetHighValueProducts` to something more descriptive like `GetSignificantLossProducts`. The update method should use the ID from the route, not the body.
+
+**Current state:** `ProductRequestDto` (create/update) and `ProductDto` (response) are already separated. ✅
+
+- [x] `UpdateProductAsync` always uses route ID (body ID ignored)
+- [x] Renamed `GetHighValueProducts` → `GetPriceLossAlertsAsync`
+- [x] Renamed endpoint `low-stock` → `price-alerts`
+
+### 10. Null Handling in Finnhub Responses
+
+> **Source:** `ProductServices.cs:L107`
+
+Should we check if the price is null before assigning it to `CurrentPrice`? Or should we set the current price to 0 if the price is null?
+
+**Recommendation:** Skip the product entirely if the price is null. Setting it to 0 would trigger false loss alerts.
+
+- [x] `quote?.CurrentPrice is null or 0` → `continue` when null (ProductService + SyncPricesJob)
+- [x] Warning logged when a symbol returns null or zero price
+
+### 11. BulkInsert Response Design
+
+> **Source:** `ProductServices.cs:L71`
+
+Should we return the list of created products or just the count?
+
+**Recommendation:** Return `204 No Content` or the count. Returning thousands of full objects wastes bandwidth.
+
+- [x] `BulkInsertProducts` returns `204 No Content`
+- [x] No body returned — bandwidth optimized
+
+---
+
+## 🏗️ P2 — Modernization & UI (New)
+
+### 12. Next.js 15 Web Dashboard ✅
+ 
+ > **Source:** USER Request — **Completed 2026-04-07**
+ 
+ - [x] Create `InventoryAlert.UI` project (Next.js 15 + Tailwind CSS)
+ - [x] Implement modern dark-themed UI with glassmorphism
+ - [x] Routes: Market Explorer, Price Alerts, Portfolio, Symbol Details
+ - [x] Integrated with `StocksController` via `StockDataService`
+ - [ ] Replace static chart placeholders with functional **Recharts** implementations
+ - [ ] Implement Next.js Route Handlers for secure API proxying
+
+
+### 13. Shared Project — `InventoryAlert.Contracts` ✅ (Already Exists)
+
+> **Note:** `InventoryAlert.Contracts` **already exists** as the shared project.
+> Both `InventoryAlert.Api` and `InventoryAlert.Worker` reference it via `<ProjectReference>` — **no new project needed**.
+> The tasks below are **enhancements** to the existing shared project.
+>
+> **Invariant:** `InventoryAlert.Contracts` is the single source of truth for every type that crosses a service boundary. No entity or payload may be defined in both `Api` and `Worker`.
+
+#### What the Shared Project Must Own
+
+| Category                                      | Current State                                        | Target                             |
+| :-------------------------------------------- | :--------------------------------------------------- | :--------------------------------- |
+| Domain entities (`Product`, `EventLog`, …)    | ✅ In `Contracts/Entities/`                          | Keep — verified                    |
+| Event payloads (`MarketPriceAlertPayload`, …) | ✅ In `Contracts/Events/Payloads/`                   | Keep — verified                    |
+| `EventEnvelope`                               | ✅ Updated — `EventType`, `Payload`, `CorrelationId` | Keep                               |
+| `EventTypes` constants                        | ✅ Reverse-DNS naming applied                        | Keep                               |
+| App-wide constants (cache keys, SQS headers)  | ✅ In `Contracts/Constants/`                         | Keep                               |
+| Shared configuration models                   | ❌ Duplicated per project                            | Move to `Contracts/Configuration/` |
+
+#### Build Tasks
+
+- [x] Entities centralized: `Product`, `EventLog`, `EarningsRecord`, `InsiderTransaction`, `NewsRecord`
+- [x] `global using` aliases in `Api/Domain/Entities/SharedEntityAliases.cs` for backward compat
+- [x] `global using` aliases in `Worker/SharedEntityAliases.cs` for backward compat
+- [x] `Constants/AlertConstants.cs` — `CacheKeys`, `EventTypes`, `SqsHeaders` centralized
+- [x] `Events/EventEnvelope.cs` — standardized envelope with `CorrelationId` + `Source`
+- [x] `Events/EventTypes.cs` — reverse-DNS format + `IsKnown()` + `IReadOnlySet<string>`
+- [x] **Move shared config models** — create `Contracts/Configuration/SharedAwsSettings.cs` and `SharedFinnhubSettings.cs` so both `Api` and `Worker` read from the same schema
+- [x] **Add `InventoryAlert.ArchitectureTests`** — use `NetArchTest.Rules` to **enforce** at CI time that:
+  - `InventoryAlert.Api` has no internal entity definitions
+  - `InventoryAlert.Worker` has no internal entity definitions
+  - All event payloads live only in `Contracts`
+- [x] **NuGet packaging (future)** — if a 3rd service (e.g. `InventoryAlert.Sample`) is added, package `Contracts` as a private NuGet feed artifact so versioning is explicit
+
+#### Reference Architecture
+
+```text
+InventoryAlert.Contracts/  ← shared library, referenced by all
+├── Entities/              ← EF-mapped domain entities
+├── Events/
+│   ├── EventEnvelope.cs   ← envelope contract
+│   ├── EventTypes.cs      ← canonical type registry
+│   └── Payloads/          ← one file per event type
+├── Constants/
+│   └── AlertConstants.cs  ← CacheKeys, SqsHeaders, defaults
+└── Configuration/         ← PLANNED: shared config POCOs
+    ├── SharedAwsSettings.cs
+    └── SharedFinnhubSettings.cs
+
+InventoryAlert.Api/
+  └── Domain/Entities/SharedEntityAliases.cs  ← global using only
+
+InventoryAlert.Worker/
+  └── SharedEntityAliases.cs                  ← global using only
+```
+
+---
+
+## 📂 P3 — Logging & Observability (New)
+
+### 14. Centralized Logging (Serilog) ✅
+
+> **Source:** USER Request — **Completed 2026-04-05**
+
+- [x] Serilog bootstrapped in `InventoryAlert.Worker/Program.cs`
+- [x] JSON file sink + Console sink (rolling daily, 7-day retention)
+- [x] `CorrelationIdMiddleware` tracks requests across Api and Worker
+- [x] `MachineName` and `EnvironmentName` enrichers added
+
+### 15. Global Exception Strategy ✅
+
+> **Source:** USER Request — **Completed 2026-04-05**
+
+- [x] `ExceptionHandlingMiddleware` refactored for full RFC-7807 compliance (`type`, `instance`, semantic slugs)
+- [x] `HangfireJobLoggingFilter` — global job error auditing via `ILogger`
+- [x] All domain exceptions (`NotFoundException`, `ValidationException`, `ArgumentException`) mapped to HTTP codes
+
+---
+
+## 🟢 P4 — Performance & Scalability
+
+### 12. Caching ✅
+
+> **Source:** `ProductController.cs:L68`
+
+Implement caching for frequently accessed data (product details) using in-memory caching or Redis, depending on scale and expected load.
+
+- [x] Add `IMemoryCache` for `GetProductById`
+- [x] Add cache invalidation on Update/Delete
+- [x] Evaluate Redis if scaling beyond a single instance
+
+### 13. Pagination ✅
+
+> **Source:** `ProductController.cs:L73`
+
+Implement pagination for list endpoints (`GetProducts`). Accept query parameters for page number and page size. Return subset of data with metadata (total items, total pages).
+
+- [x] Create `PaginationParams` (PageNumber, PageSize)
+- [x] Create `PagedResult<T>` wrapper
+- [x] Update `GetAllAsync` in repository to support `Skip/Take`
+
+### 14. Finnhub Sync Design Review ✅
 
 > **Source:** `ProductServices.cs:L89`
 
 Should we get the quote for each product on every API call, or store the price in the database and update it regularly?
 
-**Current state:** ✅ Already implemented! `SyncCurrentPricesAsync` updates DB via BackgroundWorker. `GetHighValueProducts` now reads from DB + live Finnhub data.
+**Current state:** ✅ Already implemented! `SyncCurrentPricesAsync` updates DB via BackgroundWorker. `GetHighValueProducts` now reads from DB (no live API calls).
 
-- [x] Consider making `GetHighValueProducts` read only from DB (no live API calls) for faster response
-- [x] Let the BackgroundWorker be the single source of truth for `CurrentPrice`
+- [x] `GetHighValueProducts` reads only from DB for faster response
+- [x] BackgroundWorker is the single source of truth for `CurrentPrice`
 
 ---
 
@@ -289,6 +498,7 @@ Add simple JWT-based authentication to secure the API endpoints and ensure only 
 - [x] Configure JWT in `Program.cs`
 - [x] Add `[Authorize]` to protected endpoints
 - [x] Create login/token endpoint
+- [x] **User Registration** — Implemented `POST /api/auth/register` with unique index, password hashing, and transaction safety.
 
 ### 16. Web Security (OWASP) ✅
 
@@ -326,6 +536,7 @@ Protect against SQL injection, XSS, and CSRF. Use parameterized queries (EF Core
 - [x] Group unit tests logically inside `InventoryAlert.UnitTests`: structure them exactly to mirror the 3 target projects (`Api`, `Worker`, `Contracts`).
 - [x] Ensure unit tests only use mocks (`Moq`) and don't hit real databases or brokers.
 - [x] Create a new project `InventoryAlert.IntegrationTests` for end-to-end and DB testing (e.g., hitting Testcontainers or an EF Core InMemory DB, and Moto for AWS).
+- [x] **107 Unit Tests Passing** — Verified full coverage for `ProductService`, `WatchlistService` (with Redis integration), and `AuthController`.
 
 **Existing Unit Tests (`InventoryAlert.UnitTests`) progress:**
 
@@ -335,6 +546,8 @@ Protect against SQL injection, XSS, and CSRF. Use parameterized queries (EF Core
 - [x] Mock `IFinnhubClient` and `IProductRepository`
 - [x] Test `EventService` (transaction call, publisher payload)
 - [x] Test `EventsController` (202/400 statuses, payload mapping)
+- [x] Test `WatchlistService` (caching, deduplication)
+- [x] Test `AuthController` (Registration conflicts, async handlers)
 
 ### 19. Async/Await Audit ✅
 
@@ -360,6 +573,7 @@ Review DI usage. Ensure constructor injection is used consistently. Review servi
 | `IFinnhubClient`     | Scoped                | ✅                                 |
 | `IProductService`    | Scoped                | ✅                                 |
 | `IProductRepository` | Scoped                | ✅                                 |
+| `IConnectionMultiplier` | Singleton          | ✅ (Redis Multiplexer)              |
 | `FinnhubSyncWorker`  | Removed               | ✅ Hosted via Hangfire instead     |
 
 - [x] Verify `FinnhubSyncWorker` uses `IServiceScopeFactory` (not direct injection) - **Worker replaced entirely by Hangfire Job!**
@@ -369,7 +583,7 @@ Review DI usage. Ensure constructor injection is used consistently. Review servi
 
 ## ⚫ P6 — DevOps & Automation
 
-### 21. Messaging & Advanced Background Jobs
+### 21. Messaging & Advanced Background Jobs ✅
 
 > **Source:** `ProductController.cs:L97` — _important high priority_
 
@@ -415,7 +629,7 @@ Implement AutoMapper to centralize mapping between domain models and DTOs. Reduc
 
 ---
 
-## 🏗️ P2 — Architecture Evolution (Phase 2)
+## 🏗️ P2 — Architecture Evolution (Phase 2) ✅
 
 > See `doc/PHASE2_PLAN.md` for full spec and diagrams.
 
@@ -470,6 +684,6 @@ Implement AutoMapper to centralize mapping between domain models and DTOs. Reduc
 - **Result:** Pure, non-stale test results.
 - **Reference:** `.editorconfig` rules require clean/rebuild for strict enforcement in some environments.
 
-> **Last Updated:** 2026-04-06
+> **Last Updated:** 2026-04-07
 >
 > **Legend:** 🔴 P0 = Do now | 🟠 P1 = Next sprint | 🟡 P2 = Data/Validation | 🏗️ P2 = Architecture | 🟢 P3 = Observability | 🟢 P4 = Performance | 🔵 P4 = Security | 🟣 P5 = Quality | ⚫ P6 = DevOps

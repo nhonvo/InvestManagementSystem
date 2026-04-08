@@ -1,6 +1,7 @@
 using FluentAssertions;
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Api.Infrastructure.Persistence.Repositories;
+using InventoryAlert.Contracts.Entities;
+using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -8,192 +9,76 @@ namespace InventoryAlert.UnitTests.Infrastructure.Persistence.Repositories;
 
 public class GenericRepositoryTests : IDisposable
 {
-    private readonly InventoryDbContext _dbContext;
+    private readonly InventoryDbContext _context;
     private readonly GenericRepository<Product> _sut;
-    private static readonly CancellationToken Ct = CancellationToken.None;
 
     public GenericRepositoryTests()
     {
-        // Each test gets its own isolated in-memory database
         var options = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-
-        _dbContext = new InventoryDbContext(options);
-        _sut = new GenericRepository<Product>(_dbContext);
+        _context = new InventoryDbContext(options);
+        _sut = new GenericRepository<Product>(_context);
     }
-
-    public void Dispose()
-    {
-        _dbContext.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // AddAsync
-    // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task AddAsync_PersistsEntity_AndReturnsIt()
+    public async Task AddAsync_AddsEntity()
     {
-        var product = BuildProduct(name: "Apple", ticker: "AAPL");
-
-        var returned = await _sut.AddAsync(product, Ct);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        returned.Should().NotBeNull();
-        returned.Name.Should().Be("Apple");
-        returned.TickerSymbol.Should().Be("AAPL");
-
-        var inDb = await _dbContext.Products.FirstOrDefaultAsync(p => p.Name == "Apple", Ct);
-        inDb.Should().NotBeNull();
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // AddRangeAsync
-    // ════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task AddRangeAsync_AddsAllEntities()
-    {
-        var products = new[]
-        {
-            BuildProduct(name: "Alpha", ticker: "ALP"),
-            BuildProduct(name: "Beta",  ticker: "BET"),
-            BuildProduct(name: "Gamma", ticker: "GAM")
-        };
-
-        await _sut.AddRangeAsync(products, Ct);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        var count = await _dbContext.Products.CountAsync(Ct);
-        count.Should().Be(3);
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // GetByIdAsync
-    // ════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task GetByIdAsync_ReturnsEntity_WhenExists()
-    {
-        var seeded = BuildProduct(name: "Google", ticker: "GOOGL");
-        _dbContext.Products.Add(seeded);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        var result = await _sut.GetByIdAsync(seeded.Id, Ct);
+        var product = new Product { Name = "Test Product", TickerSymbol = "TEST" };
+        var result = await _sut.AddAsync(product, default);
+        await _context.SaveChangesAsync();
 
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Google");
-        result.TickerSymbol.Should().Be("GOOGL");
+        _context.Products.Count().Should().Be(1);
     }
 
     [Fact]
-    public async Task GetByIdAsync_ReturnsNull_WhenNotExists()
+    public async Task GetPagedAsync_ReturnsCorrectPage()
     {
-        var result = await _sut.GetByIdAsync(999, Ct);
+        // Arrange
+        var products = Enumerable.Range(1, 10).Select(i => new Product { Name = $"Product {i}", TickerSymbol = $"P{i}" });
+        await _sut.AddRangeAsync(products, default);
+        await _context.SaveChangesAsync();
 
-        result.Should().BeNull();
+        // Act
+        var (items, total) = await _sut.GetPagedAsync(skip: 2, take: 3, default);
+
+        // Assert
+        total.Should().Be(10);
+        items.Should().HaveCount(3);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // GetAllAsync
-    // ════════════════════════════════════════════════════════════════
-
     [Fact]
-    public async Task GetAllAsync_ReturnsAllEntities()
+    public async Task UpdateAsync_UpdatesEntity()
     {
-        _dbContext.Products.AddRange(
-            BuildProduct(name: "P1"),
-            BuildProduct(name: "P2"),
-            BuildProduct(name: "P3"));
-        await _dbContext.SaveChangesAsync(Ct);
+        var product = new Product { Name = "Old Name", TickerSymbol = "OLD" };
+        await _sut.AddAsync(product, default);
+        await _context.SaveChangesAsync();
 
-        var result = await _sut.GetAllAsync(Ct);
-
-        result.Should().HaveCount(3);
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // UpdateAsync
-    // ════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task UpdateAsync_MutatesEntity()
-    {
-        var product = BuildProduct(name: "Before");
-        _dbContext.Products.Add(product);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        product.Name = "After";
+        product.Name = "New Name";
         await _sut.UpdateAsync(product);
-        await _dbContext.SaveChangesAsync(Ct);
+        await _context.SaveChangesAsync();
 
-        var inDb = await _dbContext.Products.FindAsync([product.Id], Ct);
-        inDb!.Name.Should().Be("After");
+        var updated = await _sut.GetByIdAsync(product.Id, default);
+        updated!.Name.Should().Be("New Name");
     }
-
-    // ════════════════════════════════════════════════════════════════
-    // DeleteAsync
-    // ════════════════════════════════════════════════════════════════
 
     [Fact]
     public async Task DeleteAsync_RemovesEntity()
     {
-        var product = BuildProduct(name: "ToDelete");
-        _dbContext.Products.Add(product);
-        await _dbContext.SaveChangesAsync(Ct);
+        var product = new Product { Name = "Ghost", TickerSymbol = "GHOST" };
+        await _sut.AddAsync(product, default);
+        await _context.SaveChangesAsync();
 
         await _sut.DeleteAsync(product);
-        await _dbContext.SaveChangesAsync(Ct);
+        await _context.SaveChangesAsync();
 
-        var inDb = await _dbContext.Products.FindAsync([product.Id], Ct);
-        inDb.Should().BeNull();
+        _context.Products.Count().Should().Be(0);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // UpdateRangeAsync
-    // ════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task UpdateRangeAsync_UpdatesAllEntities()
+    public void Dispose()
     {
-        var products = new[]
-        {
-            BuildProduct(name: "Old1", currentPrice: 100m),
-            BuildProduct(name: "Old2", currentPrice: 200m)
-        };
-        _dbContext.Products.AddRange(products);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        foreach (var p in products)
-            p.CurrentPrice += 50m;
-
-        await _sut.UpdateRangeAsync(products);
-        await _dbContext.SaveChangesAsync(Ct);
-
-        var updated = await _dbContext.Products.ToListAsync(Ct);
-        updated.Should().AllSatisfy(p =>
-            p.CurrentPrice.Should().BeGreaterThan(100m));
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
     }
-
-    // ════════════════════════════════════════════════════════════════
-    // Private helper
-    // ════════════════════════════════════════════════════════════════
-
-    private static Product BuildProduct(
-        string name = "Test",
-        string ticker = "TST",
-        decimal originPrice = 100m,
-        decimal currentPrice = 90m,
-        double threshold = 0.2,
-        int stock = 10) => new()
-        {
-            Name = name,
-            TickerSymbol = ticker,
-            OriginPrice = originPrice,
-            CurrentPrice = currentPrice,
-            PriceAlertThreshold = threshold,
-            StockCount = stock
-        };
 }

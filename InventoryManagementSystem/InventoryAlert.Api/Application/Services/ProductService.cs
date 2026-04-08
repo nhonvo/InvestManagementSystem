@@ -107,7 +107,6 @@ public class ProductService(
             // Note: CurrentPrice is managed by FinnhubSync and should not be reset during update.
             existing.OriginPrice = request.Price;
             existing.PriceAlertThreshold = request.PriceAlertThreshold ?? 0.1;
-            existing.StockAlertThreshold = request.StockAlertThreshold ?? 0;
 
             var updated = await _productRepository.UpdateAsync(existing);
             result = updated.ToResponse();

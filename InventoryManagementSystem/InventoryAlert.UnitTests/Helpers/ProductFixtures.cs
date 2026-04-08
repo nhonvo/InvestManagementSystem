@@ -4,23 +4,31 @@ namespace InventoryAlert.UnitTests.Helpers;
 
 public static class ProductFixtures
 {
+    private static int _counter = 1000;
+
     public static Product BuildProduct(
-        int id = 1,
+        int? id = null,
         string name = "TestProduct",
-        string ticker = "TST",
+        string? ticker = null,
         decimal originPrice = 100m,
         decimal currentPrice = 90m,
         double threshold = 0.2,
-        int stock = 10) => new()
+        int stock = 10,
+        int stockThreshold = 10)
+    {
+        var nextId = id ?? Interlocked.Increment(ref _counter);
+        return new()
         {
-            Id = id,
+            Id = nextId,
             Name = name,
-            TickerSymbol = ticker,
+            TickerSymbol = ticker ?? $"T{nextId}",
             OriginPrice = originPrice,
             CurrentPrice = currentPrice,
             PriceAlertThreshold = threshold,
+            StockAlertThreshold = stockThreshold,
             StockCount = stock
         };
+    }
 
     public static ProductRequest BuildRequest(
         string name = "TestProduct",
@@ -28,14 +36,14 @@ public static class ProductFixtures
         decimal price = 100m,
         double threshold = 0.2,
         int stock = 10,
-        int stockAlertThreshold = 0) => new()
+        int stockThreshold = 10) => new()
     {
         Name = name,
         TickerSymbol = ticker ?? string.Empty,
         Price = price,
         PriceAlertThreshold = threshold,
-        StockCount = stock,
-        StockAlertThreshold = stockAlertThreshold
+        StockAlertThreshold = stockThreshold,
+        StockCount = stock
     };
 
     public static ProductResponse BuildResponse(
@@ -45,7 +53,8 @@ public static class ProductFixtures
         decimal originPrice = 100m,
         decimal currentPrice = 90m,
         double threshold = 0.2,
-        int stock = 10) => new()
+        int stock = 10,
+        int stockThreshold = 10) => new()
         {
             Id = id,
             Name = name,
@@ -53,6 +62,7 @@ public static class ProductFixtures
             OriginPrice = originPrice,
             CurrentPrice = currentPrice,
             PriceAlertThreshold = threshold,
+            StockAlertThreshold = stockThreshold,
             StockCount = stock
         };
 

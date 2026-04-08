@@ -110,15 +110,43 @@ try
     builder.Services.AddScoped<IStockLowHandler, StockLowHandler>();
     builder.Services.AddScoped<IRawDefaultHandler, DefaultHandler>();
     builder.Services.AddScoped<UnknownEventHandler>();
+    
+    // New Event Handlers
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.PriceUpdatePayload>, PriceUpdateHandler>();
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.MarketNewsPayload>, MarketNewsHandler>();
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.EarningsPayload>, EarningsHandler>();
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.RecommendationUpdatedPayload>, RecommendationHandler>();
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.SymbolAddedPayload>, SymbolAddedHandler>();
+    builder.Services.AddScoped<IEventHandler<InventoryAlert.Contracts.Events.Payloads.AlertRulePayload>, AlertRuleHandler>();
+
+    // Telegram
+    builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.TelegramBotService>();
+    builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.PriceCommandHandler>();
+    builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.NewsCommandHandler>();
+    builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.RecommendCommandHandler>();
+    builder.Services.AddScoped<InventoryAlert.Worker.Application.Telegram.EarningsCommandHandler>();
 
     // ── Repositories (Worker Specific) ────────────────────────────────────────
     builder.Services.AddScoped<IEventLogDynamoRepository, EventLogDynamoRepository>();
     builder.Services.AddScoped<INewsDynamoRepository, NewsDynamoRepository>();
+    builder.Services.AddScoped<IPriceHistoryDynamoRepository, PriceHistoryDynamoRepository>();
+    builder.Services.AddScoped<IMarketNewsDynamoRepository, MarketNewsDynamoRepository>();
+    builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+    builder.Services.AddScoped<IEarningsDynamoRepository, EarningsDynamoRepository>();
 
     // ── Hangfire Jobs (Scoped) ────────────────────────────────────────────────
     builder.Services.AddScoped<PollSqsJob>();
     builder.Services.AddScoped<SyncPricesJob>();
     builder.Services.AddScoped<NewsCheckJob>();
+    
+    // New Hangfire Jobs
+    builder.Services.AddScoped<MarketNewsJob>();
+    builder.Services.AddScoped<RecommendationsJob>();
+    builder.Services.AddScoped<EarningsJob>();
+    builder.Services.AddScoped<ProfileSyncJob>();
+    builder.Services.AddScoped<SymbolCrawlJob>();
+    builder.Services.AddScoped<MarketStatusJob>();
+    builder.Services.AddScoped<EarningsCalendarJob>();
 
     // ── Background Task Queue (In-Memory) ─────────────────────────────────────
     builder.Services.AddSingleton<IBackgroundTaskQueue>(ctx =>

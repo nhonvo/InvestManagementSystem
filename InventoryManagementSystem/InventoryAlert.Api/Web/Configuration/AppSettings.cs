@@ -9,6 +9,7 @@ public class AppSettings
     public CacheSettings Cache { get; set; } = new();
     public SharedDatabaseSettings Database { get; set; } = new();
     public SharedFinnhubSettings Finnhub { get; set; } = new();
+    public RedisSettings Redis { get; set; } = new();
     public JwtSettings Jwt { get; set; } = new();
     public int MinuteSyncCurrentPrice { get; set; }
     public TelegramSetting Telegram { get; set; } = new();

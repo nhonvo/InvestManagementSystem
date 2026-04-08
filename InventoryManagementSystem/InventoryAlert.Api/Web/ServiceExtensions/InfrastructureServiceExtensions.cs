@@ -1,3 +1,4 @@
+using StackExchange.Redis;
 using Amazon.SimpleNotificationService;
 using InventoryAlert.Api.Domain.Constants;
 using Amazon.SQS;
@@ -26,12 +27,20 @@ public static class InfrastructureServiceExtensions
         this IServiceCollection services,
         AppSettings settings)
     {
+        // ── Redis ───────────────────────────────────────────────────────────
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+            ConnectionMultiplexer.Connect(settings.Redis.ConnectionString));
+
         // ── Persistence ─────────────────────────────────────────────────────
         services.AddDbContext<InventoryDbContext>(options =>
             options.UseNpgsql(settings.Database.DefaultConnection, b => b.MigrationsAssembly("InventoryAlert.Api")));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IWatchlistRepository, WatchlistRepository>();
+        services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
+        services.AddScoped<ICompanyProfileRepository, CompanyProfileRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IEventLogRepository, EventLogRepository>();
 
         // ── External HTTP clients ────────────────────────────────────────────

@@ -2,24 +2,28 @@ using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Domain.Constants;
 using InventoryAlert.Api.Domain.Interfaces;
-using InventoryAlert.Api.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryAlert.Api.Infrastructure.Persistence.Repositories;
 
-/// <summary>
-/// Coordinates atomic transactions across one or more repositories.
-/// Use when an operation spans multiple DB writes that must succeed or fail together.
-/// </summary>
 public class UnitOfWork : IUnitOfWork
 {
     private readonly InventoryDbContext _dbContext;
-    public IProductRepository ProductRepository { get; }
+    
+    public IProductRepository Products { get; }
+    public IWatchlistRepository Watchlists { get; }
+    public IAlertRuleRepository AlertRules { get; }
+    public ICompanyProfileRepository CompanyProfiles { get; }
+    public IUserRepository Users { get; }
 
     public UnitOfWork(InventoryDbContext dbContext)
     {
         _dbContext = dbContext;
-        ProductRepository = new ProductRepository(_dbContext);
+        Products = new ProductRepository(_dbContext);
+        Watchlists = new WatchlistRepository(_dbContext);
+        AlertRules = new AlertRuleRepository(_dbContext);
+        CompanyProfiles = new CompanyProfileRepository(_dbContext);
+        Users = new UserRepository(_dbContext);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
@@ -59,4 +63,3 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 }
-

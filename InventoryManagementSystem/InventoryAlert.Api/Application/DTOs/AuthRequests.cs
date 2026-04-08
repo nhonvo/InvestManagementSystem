@@ -1,15 +1,9 @@
 namespace InventoryAlert.Api.Application.DTOs;
 
-public class LoginRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
+public record LoginRequest(string Username, string Password);
 
-public class RegisterRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
+public record RegisterRequest(string Username, string Password, string Email);
+
+public record AuthResponse(string Token);
+
+public record RegistrationResponse(string Message); 

@@ -1,66 +1,55 @@
 using FluentAssertions;
-using InventoryAlert.Api.Application.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
-using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Controllers;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Web.Controllers;
 
 public class AuthControllerTests
 {
-    private readonly AppSettings _settings;
+    private readonly Mock<IAuthService> _authService = new();
     private readonly AuthController _sut;
+    private static readonly CancellationToken Ct = CancellationToken.None;
 
     public AuthControllerTests()
     {
-        _settings = new AppSettings
-        {
-            Auth = new AuthSettings { Username = "admin", Password = "password123" },
-            Jwt = new JwtSettings { Key = "super_secret_key_that_is_long_enough_for_hmac_sha256", Issuer = "issuer", Audience = "audience" }
-        };
-        _sut = new AuthController(_settings);
+        _sut = new AuthController(_authService.Object);
     }
 
     [Fact]
-    public void Login_ReturnsOk_WithToken_WhenCredentialsValid()
+    public async Task Login_ReturnsOk_WithToken_WhenCredentialsValid()
     {
         // Arrange
-        var request = new LoginRequest { Username = "admin", Password = "password123" };
+        var request = new LoginRequest("admin", "password123");
+        var expectedResponse = new AuthResponse("valid_token");
+        _authService.Setup(s => s.LoginAsync(request, Ct))
+            .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = _sut.Login(request);
+        var result = await _sut.Login(request, Ct);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        okResult.Value!.ToString().Should().Contain("token");
+        okResult.Value.Should().Be(expectedResponse);
     }
 
     [Fact]
-    public void Login_ThrowsUnauthorized_WhenCredentialsInvalid()
+    public async Task Register_ReturnsOk_WithResponse()
     {
         // Arrange
-        var request = new LoginRequest { Username = "admin", Password = "wrong" };
+        var request = new RegisterRequest("newuser", "password", "test@example.com");
+        var expectedResponse = new RegistrationResponse("User registered successfully");
+        _authService.Setup(s => s.RegisterAsync(request, Ct))
+            .ReturnsAsync(expectedResponse);
 
         // Act
-        var act = () => _sut.Login(request);
+        var result = await _sut.Register(request, Ct);
 
         // Assert
-        act.Should().Throw<UserFriendlyException>()
-           .And.ErrorCode.Should().Be(ErrorCode.Unauthorized);
-    }
-
-    [Fact]
-    public void Register_ReturnsOk_Always()
-    {
-        // Arrange
-        var request = new RegisterRequest { Username = "newuser", Password = "password" };
-
-        // Act
-        var result = _sut.Register(request);
-
-        // Assert
-        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().Be(expectedResponse);
     }
 }

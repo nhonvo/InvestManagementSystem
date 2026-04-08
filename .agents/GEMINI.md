@@ -5,13 +5,16 @@ description:
 ---
 
 # InventoryAlert.Api — Project Context
+
 ---
+
 description: AI cold-start briefing for InventoryAlert.Api. Read before every session.
 type: reference
 status: active
 version: 2.0
 tags: [context, gemini, inventoryalert, ddd, dotnet, onboarding]
 last_updated: 2026-04-04
+
 ---
 
 > **Read this file first.** This is the AI cold-start briefing for this codebase.
@@ -22,6 +25,7 @@ last_updated: 2026-04-04
 ## What This Project Does
 
 Real-time inventory management system with stock price monitoring.
+
 - Tracks products with ticker symbols (e.g., `AAPL`, `GOOGL`)
 - Syncs live prices from **Finnhub API** every N minutes via a background worker
 - Triggers price-drop alerts when drop % exceeds a per-product threshold
@@ -32,7 +36,7 @@ Real-time inventory management system with stock price monitoring.
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+| :--- | :--- |
 | Runtime | .NET 10 (C# 12) |
 | Web Framework | ASP.NET Core Minimal Hosting |
 | ORM | EF Core 10 + Npgsql (PostgreSQL) |
@@ -49,30 +53,37 @@ Real-time inventory management system with stock price monitoring.
 
 ```
 ojt-training/
-├── GEMINI.md                          ← AI cold-start briefing (this file)
-├── InventoryManagementSystem/
-│   ├── InventoryAlert.Api/            ← main API project
-│   │   ├── Domain/                    ← entities, repo interfaces (no dependencies)
-│   │   ├── Application/               ← services, DTOs (depends on Domain only)
-│   │   ├── Infrastructure/            ← EF Core, repos, Finnhub client, worker
-│   │   └── Web/                       ← controllers, DI extensions, config model
-│   └── InventoryAlert.Tests/          ← xUnit test project
-│       ├── Application/Services/
-│       ├── Web/Controllers/
-│       ├── Infrastructure/Persistence/Repositories/
-│       └── Helpers/                   ← ProductFixtures shared builders
 ├── .agents/
+│   ├── GEMINI.md                      ← AI cold-start briefing (this file)
 │   ├── rules/project-rules.md         ← project coding standards
 │   ├── workflows/                     ← slash-command workflows
 │   ├── skills/                        ← deep knowledge documents
 │   └── scripts/core/                  ← BM25 indexer + search engine
-└── doc/                               ← active feature specs and guides
-    ├── README.md                      ← doc index
-    ├── ROADMAP.md
-    ├── ENHANCEMENT_PLAN.md
-    ├── EVENT_DRIVEN_PLAN.md
-    ├── WALKTHROUGH.md
-    └── archive/                       ← completed legacy documentation
+├── doc/                               ← active feature specs and guides
+│   ├── README.md                      ← doc index
+│   ├── ROADMAP.md
+│   ├── ENHANCEMENT_PLAN.md
+│   ├── EVENT_DRIVEN_PLAN.md
+│   ├── WALKTHROUGH.md
+│   ├── plan/                          ← page-level specs
+│   │   ├── 01_APPLICATION_REDEFINITION.md
+│   │   ├── 02_API_ENDPOINT_PLAN.md
+│   │   ├── 03_DYNAMODB_TABLE_DESIGN.md
+│   │   ├── 04_JOBS_WORKERS_TELEGRAM.md
+│   │   └── 05_UI_PLAN.md
+│   └── archive/                       ← completed legacy documentation
+├── InventoryAlert.UI/                 ← Next.js 15 frontend
+└── InventoryManagementSystem/
+    ├── InventoryAlert.Api/            ← main API project
+    │   ├── Domain/                    ← entities, repo interfaces (no dependencies)
+    │   ├── Application/               ← services, DTOs (depends on Domain only)
+    │   ├── Infrastructure/            ← EF Core, repos, Finnhub client, worker
+    │   └── Web/                       ← controllers, DI extensions, config model
+    └── InventoryAlert.Tests/          ← xUnit test project
+        ├── Application/Services/
+        ├── Web/Controllers/
+        ├── Infrastructure/Persistence/Repositories/
+        └── Helpers/                   ← ProductFixtures shared builders
 ```
 
 ---
@@ -98,7 +109,7 @@ public class Product
 ## Key Service: `ProductService`
 
 | Method | What it does |
-|--------|-------------|
+| :--- | :--- |
 | `GetAllProductsAsync` | Returns all products mapped to `ProductResponse` |
 | `GetProductByIdAsync` | Returns one product or `null` |
 | `CreateProductAsync` | Adds product, calls `SaveChangesAsync` |
@@ -110,10 +121,26 @@ public class Product
 
 ---
 
+## Key Service: `StockDataService`
+
+| Method | What it does |
+| :--- | :--- |
+| `GetQuoteAsync` | Returns price quote (Redis cache-first) |
+| `GetProfileAsync` | Returns company profile (Postgres cache-first) |
+| `GetCompanyNewsAsync` | Returns filtered news for a symbol |
+| `GetRecommendationsAsync`| Returns analyst recommendation trends |
+| `GetEarningsAsync` | Returns historical earnings data |
+| `SearchSymbolsAsync` | Search for tickers/companies on Finnhub |
+| `GetMarketNewsAsync` | Returns general market news |
+| `GetMarketStatusAsync` | Returns if exchange is open/closed |
+| `GetCryptoExchangesAsync`| Returns supported crypto exchanges |
+
+---
+
 ## DI Registration Points
 
 | What | Where |
-|------|-------|
+| :--- | :--- |
 | Application services | `Web/ServiceExtensions/ApplicationServiceExtensions.cs` |
 | Infrastructure (repos, EF, Finnhub, worker) | `Web/ServiceExtensions/InfrastructureServiceExtensions.cs` |
 | Config singleton | `Program.cs` (`builder.Services.AddSingleton(settings)`) |
@@ -123,7 +150,7 @@ public class Product
 ## Known Tech Debt (do not repeat)
 
 | # | Location | Issue |
-|---|----------|-------|
+| :--- | :--- | :--- |
 | 1 | `ProductService.UpdateProductAsync` | `StockAlertThreshold` silently dropped — not on entity |
 | 2 | `ProductService.UpdateProductAsync` | Blank entity captured before transaction lambda |
 | 3 | `ProductService.DeleteProductAsync` | Same blank-entity pattern |
@@ -136,7 +163,7 @@ public class Product
 ## Available Slash Commands
 
 | Command | When to use |
-|---------|-------------|
+| :--- | :--- |
 | `/init` | Start of every session — re-index BM25, sync context |
 | `/plan` | Design a feature before implementation |
 | `/feature-flow` | Master dev lifecycle: requirement → Domain → App → Infra → Web → Tests → PR |
@@ -155,6 +182,7 @@ public class Product
 ## BM25 Search Quick Reference
 
 ```bash
+
 # From project root — re-index
 python .agents/scripts/core/bm25_indexer.py
 
@@ -187,7 +215,7 @@ python .agents/scripts/core/bm25_search.py "ProductService" --verify
 3 products seeded in `AppDbContext.OnModelCreating`:
 
 | Name | Ticker | OriginPrice | CurrentPrice | Threshold | Stock |
-|------|--------|-------------|--------------|-----------|-------|
+| :--- | :--- | :--- | :--- | :--- | :--- |
 | Apple | AAPL | 250 | 200 | 0.20 | 50 |
 | Google | GOOGL | 300 | 300 | 0.10 | 100 |
 | Microsoft | MSFT | 400 | 400 | 0.15 | 5 |
@@ -223,7 +251,7 @@ python .agents/scripts/core/bm25_search.py "your question about the code" -n 5
 ## Quick Links
 
 | Resource | Path |
-|---------|------|
+| :--- | :--- |
 | AI System Core | `.agents/GEMINI.md` |
 | DDD Architecture Rules | `.agents/skills/ddd-architecture/SKILL.md` |
 | Testing Patterns | `.agents/skills/testing-patterns/SKILL.md` |
