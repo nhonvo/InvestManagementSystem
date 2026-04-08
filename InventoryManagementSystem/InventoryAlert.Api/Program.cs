@@ -84,6 +84,23 @@ try
                 ValidateIssuer = false,
                 ValidateAudience = false
             };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var authHeader = context.Request.Headers["Authorization"].ToString();
+                    if (string.IsNullOrEmpty(authHeader)) return Task.CompletedTask;
+
+                    // If the header starts with 'ey' (JWT start) and doesn't have 'Bearer ', 
+                    // extract it manually to improve DX for manual curl/tool calls.
+                    if (authHeader.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = authHeader;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
     builder.Services.AddAuthorization();
 

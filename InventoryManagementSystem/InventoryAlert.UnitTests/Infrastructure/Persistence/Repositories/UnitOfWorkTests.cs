@@ -1,5 +1,5 @@
 using FluentAssertions;
-using InventoryAlert.Api.Application.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Contracts.Persistence;
 using Microsoft.EntityFrameworkCore;

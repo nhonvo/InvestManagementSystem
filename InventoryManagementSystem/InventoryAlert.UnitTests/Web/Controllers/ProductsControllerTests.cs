@@ -1,5 +1,5 @@
 using FluentAssertions;
-using InventoryAlert.Api.Application.Common.Exceptions;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Controllers;
