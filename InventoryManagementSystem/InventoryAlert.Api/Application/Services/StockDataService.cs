@@ -190,8 +190,9 @@ public class StockDataService(
         if (!string.IsNullOrEmpty(type))
             items = items.Where(s => string.Equals(s.Type, type, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        return items.Select(s => new SymbolSearchResponse(
-            s.Symbol ?? string.Empty, s.Description ?? string.Empty, s.Type ?? string.Empty, s.DisplaySymbol)).ToList();
+        return [.. items.Select(s => new SymbolSearchResponse(
+            s.Symbol ?? string.Empty, s.Description
+                                      ?? string.Empty, s.Type ?? string.Empty, s.DisplaySymbol))];
     }
 
     // ── Crypto ────────────────────────────────────────────────────────────────
