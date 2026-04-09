@@ -29,7 +29,8 @@ public record CompanyNewsResponse(
     string? Source,
     string? Url,
     string? Image,
-    string PublishedAt);
+    string PublishedAt,
+    long DateTime);
 
 public record RecommendationResponse(
     string Period,
@@ -53,7 +54,8 @@ public record MarketNewsResponse(
     string? Url,
     string? Image,
     string? Category,
-    string PublishedAt);
+    string PublishedAt,
+    long DateTime);
 
 public record MarketStatusResponse(
     string Exchange,

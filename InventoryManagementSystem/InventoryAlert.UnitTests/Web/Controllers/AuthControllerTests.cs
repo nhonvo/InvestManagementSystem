@@ -3,6 +3,7 @@ using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Controllers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using Xunit;
 
@@ -11,6 +12,7 @@ namespace InventoryAlert.UnitTests.Web.Controllers;
 public class AuthControllerTests
 {
     private readonly Mock<IAuthService> _authService = new();
+    private readonly Mock<IMemoryCache> _cache = new();
     private readonly AuthController _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
@@ -29,7 +31,7 @@ public class AuthControllerTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _sut.Login(request, Ct);
+        var result = await _sut.Login(request, _cache.Object, Ct);
 
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;

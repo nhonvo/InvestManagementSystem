@@ -10,8 +10,8 @@ interface PriceAlertModalProps {
   currentPrice: number
 }
 
-export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: PriceAlertModalProps) {
-  const [threshold, setThreshold] = useState(currentPrice.toString())
+export function PriceAlertModal({ isOpen, onClose, symbol = "SYMBOL", currentPrice = 0 }: PriceAlertModalProps) {
+  const [threshold, setThreshold] = useState(currentPrice?.toString() ?? "0")
   const [operator, setOperator] = useState('gt')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -85,7 +85,7 @@ export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: Price
               onChange={(e) => setThreshold(e.target.value)}
               className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white outline-hidden focus:border-blue-500/50 transition-all font-mono text-xl"
             />
-            <p className="text-[10px] text-zinc-500 mt-2 px-1 italic">Current Price: ${currentPrice.toFixed(2)}</p>
+            <p className="text-[10px] text-zinc-500 mt-2 px-1 italic">Current Price: ${currentPrice?.toFixed(2) ?? "0.00"}</p>
           </div>
 
           {error && (

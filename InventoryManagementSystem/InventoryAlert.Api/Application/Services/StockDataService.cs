@@ -43,7 +43,14 @@ public class StockDataService(
             q.PercentChange ?? 0, q.HighPrice ?? 0, q.LowPrice ?? 0,
             q.OpenPrice ?? 0, q.PreviousClose ?? 0, q.Timestamp ?? 0);
 
-        await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(result, _json), TimeSpan.FromMinutes(1));
+        try
+        {
+            await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(result, _json), TimeSpan.FromMinutes(1));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write quote to Redis cache for {Symbol}. Returning fresh result.", symbol);
+        }
         return result;
     }
 
@@ -89,14 +96,38 @@ public class StockDataService(
     {
         var toDate = to ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
         var fromDate = from ?? DateTime.UtcNow.AddDays(-7).ToString("yyyy-MM-dd");
+        var cacheKey = $"news:{symbol}:{fromDate}:{toDate}";
+
+        try
+        {
+            var cached = await _cache.StringGetAsync(cacheKey);
+            if (cached.HasValue)
+                return JsonSerializer.Deserialize<List<CompanyNewsResponse>>((string)cached!, _json) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read news from Redis cache for {Symbol}.", symbol);
+        }
 
         var items = await _finnhub.GetCompanyNewsAsync(symbol, fromDate, toDate, ct);
-        return items
+        var result = items
             .Take(limit)
             .Select(n => new CompanyNewsResponse(
                 n.Headline ?? string.Empty, n.Summary, n.Source, n.Url, n.Image,
-                DateTimeOffset.FromUnixTimeSeconds(n.Datetime).ToString("O")))
+                DateTimeOffset.FromUnixTimeSeconds(n.Datetime).ToString("O"),
+                n.Datetime))
             .ToList();
+
+        try
+        {
+            await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(result, _json), TimeSpan.FromMinutes(10));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write news to Redis cache for {Symbol}.", symbol);
+        }
+
+        return result;
     }
 
     // ── Recommendations ───────────────────────────────────────────────────────
@@ -129,7 +160,17 @@ public class StockDataService(
             return JsonSerializer.Deserialize<List<string>>((string)cached!, _json) ?? [];
 
         var peers = await _finnhub.GetPeersAsync(symbol, ct);
-        await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(peers, _json), TimeSpan.FromHours(24));
+        
+        if (peers.Count == 0) return peers;
+
+        try
+        {
+            await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(peers, _json), TimeSpan.FromHours(24));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write peers to Redis cache for {Symbol}.", symbol);
+        }
         return peers;
     }
 
@@ -141,7 +182,8 @@ public class StockDataService(
         return items.Take(limit)
             .Select(n => new MarketNewsResponse(
                 n.Headline ?? string.Empty, n.Summary, n.Source, n.Url, n.Image, n.Category,
-                DateTimeOffset.FromUnixTimeSeconds(n.Datetime).ToString("O")))
+                DateTimeOffset.FromUnixTimeSeconds(n.Datetime).ToString("O"),
+                n.Datetime))
             .ToList();
     }
 
@@ -182,17 +224,43 @@ public class StockDataService(
 
     // ── Symbol Search ─────────────────────────────────────────────────────────
 
-    // TODO: Optimize by bulk fetching multiple symbols if the UI requested many items.
     public async Task<List<SymbolSearchResponse>> SearchSymbolsAsync(string query, string? type, CancellationToken ct = default)
     {
+        // Cache per-query results to avoid a Finnhub round-trip on repeated searches.
+        // TTL is 1 h — symbol metadata changes rarely and Finnhub rate limits are finite.
+        var cacheKey = $"symbol:search:{query.ToUpperInvariant()}:{type ?? "all"}";
+        var cached = await _cache.StringGetAsync(cacheKey);
+        if (cached.HasValue)
+        {
+            try
+            {
+                var hit = JsonSerializer.Deserialize<List<SymbolSearchResponse>>((string)cached!, _json);
+                if (hit != null) return hit;
+            }
+            catch (JsonException)
+            {
+                // corrupt cache entry — fall through to Finnhub
+            }
+        }
+
         var result = await _finnhub.SearchSymbolsAsync(query, ct);
         var items = result?.Result ?? [];
         if (!string.IsNullOrEmpty(type))
             items = items.Where(s => string.Equals(s.Type, type, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        return [.. items.Select(s => new SymbolSearchResponse(
-            s.Symbol ?? string.Empty, s.Description
-                                      ?? string.Empty, s.Type ?? string.Empty, s.DisplaySymbol))];
+        List<SymbolSearchResponse> response = [.. items.Select(s => new SymbolSearchResponse(
+            s.Symbol ?? string.Empty, s.Description ?? string.Empty, s.Type ?? string.Empty, s.DisplaySymbol))];
+
+        try
+        {
+            await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(response, _json), TimeSpan.FromHours(1));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[StockDataService] Failed to cache symbol search result for {Query}.", query);
+        }
+
+        return response;
     }
 
     // ── Crypto ────────────────────────────────────────────────────────────────

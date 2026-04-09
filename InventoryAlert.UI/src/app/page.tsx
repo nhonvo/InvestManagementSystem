@@ -12,18 +12,31 @@ interface WatchlistItem {
   change: number;
 }
 
+interface NewsItem {
+  headline: string;
+  source: string;
+  dateTime: number;
+  url: string;
+  image: string;
+}
+
 export default function Dashboard() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const loadWatchlist = async () => {
+  const loadDashboardData = async () => {
     try {
-      const data = await fetchApi("/api/v1/watchlist");
-      setWatchlist(data);
+      const [watchlistData, newsData] = await Promise.all([
+        fetchApi("/api/v1/watchlist"),
+        fetchApi("/api/v1/market/news?limit=5")
+      ]);
+      setWatchlist(watchlistData);
+      setNews(newsData);
     } catch (err: any) {
-      setError(err.message || "Failed to load watchlist");
+      setError(err.message || "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
@@ -39,14 +52,14 @@ export default function Dashboard() {
       await fetchApi(`/api/v1/watchlist/${symbol}`, {
         method: 'DELETE'
       });
-      loadWatchlist();
+      loadDashboardData();
     } catch (err: any) {
       alert(err.message || "Failed to remove symbol");
     }
   };
 
   useEffect(() => {
-    loadWatchlist();
+    loadDashboardData();
   }, []);
 
   return (
@@ -54,7 +67,7 @@ export default function Dashboard() {
       <AddSymbolModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onSuccess={loadWatchlist} 
+        onSuccess={loadDashboardData} 
       />
       <div className="flex flex-col lg:flex-row gap-6 h-full">
         <div className="flex-1 flex flex-col gap-6">
@@ -134,21 +147,37 @@ export default function Dashboard() {
             <Link href="/market" className="text-xs text-blue-400 hover:underline">View All</Link>
           </div>
           <div className="flex flex-col gap-5">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex gap-4 group cursor-pointer pb-2 border-b border-white/5 last:border-0 hover:border-white/10 transition-colors">
-                <div className="w-20 h-20 bg-zinc-800 rounded-xl shrink-0 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center text-blue-500/30 text-xs">IMG</div>
-                </div>
-                <div className="flex flex-col justify-between py-0.5">
-                  <p className="text-sm font-bold leading-snug line-clamp-2 group-hover:text-blue-400 transition-colors">Tech stocks rally continues as AI spending increases across sectors</p>
-                  <div className="flex gap-2 text-[10px] items-center text-zinc-500 mt-2 font-medium">
-                    <span className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 uppercase">Reuters</span>
-                    <span>•</span>
-                    <span>2h ago</span>
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-zinc-900/50 animate-pulse rounded-xl border border-white/5"></div>
+              ))
+            ) : (
+              news.slice(0, 5).map((item, i) => (
+                <a 
+                  key={i} 
+                  href={item.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex gap-4 group cursor-pointer pb-2 border-b border-white/5 last:border-0 hover:border-white/10 transition-colors"
+                >
+                  <div className="w-20 h-20 bg-zinc-800 rounded-xl shrink-0 overflow-hidden relative">
+                    {item.image ? (
+                      <img src={item.image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center text-blue-500/30 text-[10px] font-bold">NEWS</div>
+                    )}
                   </div>
-                </div>
-              </div>
-            ))}
+                  <div className="flex flex-col justify-between py-0.5">
+                    <p className="text-sm font-bold leading-snug line-clamp-2 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{item.headline}</p>
+                    <div className="flex gap-2 text-[10px] items-center text-zinc-500 mt-2 font-black uppercase tracking-widest">
+                      <span className="text-blue-500">{item.source}</span>
+                      <span>•</span>
+                      <span>{new Date(item.dateTime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                </a>
+              ))
+            )}
           </div>
           
           <div className="mt-4 p-5 rounded-2xl bg-linear-to-br from-blue-600 to-indigo-700 shadow-xl shadow-blue-900/20">

@@ -30,7 +30,7 @@ public class AuthService(IUnitOfWork unitOfWork, AppSettings settings) : IAuthSe
         // 1. Check fixed admin credentials
         if (request.Username == validUsername && request.Password == validPassword)
         {
-            var token = GenerateJwtToken(request.Username);
+            var token = GenerateJwtToken(request.Username, "Admin");
             return new AuthResponse(token);
         }
 
@@ -40,7 +40,7 @@ public class AuthService(IUnitOfWork unitOfWork, AppSettings settings) : IAuthSe
         {
             if (BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                var token = GenerateJwtToken(user.Username);
+                var token = GenerateJwtToken(user.Username, user.Role);
                 return new AuthResponse(token);
             }
         }
@@ -72,12 +72,13 @@ public class AuthService(IUnitOfWork unitOfWork, AppSettings settings) : IAuthSe
         return new RegistrationResponse("Registration successful");
     }
 
-    private string GenerateJwtToken(string username)
+    private string GenerateJwtToken(string username, string role)
     {
         var jwtSettings = _settings.Jwt;
         var key = jwtSettings.Key ?? throw new UserFriendlyException(ErrorCode.Internal, ApplicationConstants.Messages.JwtKeyMissing);
         var issuer = jwtSettings.Issuer;
         var audience = jwtSettings.Audience;
+        var expiryHours = jwtSettings.ExpiryHours > 0 ? jwtSettings.ExpiryHours : 2;
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -85,7 +86,7 @@ public class AuthService(IUnitOfWork unitOfWork, AppSettings settings) : IAuthSe
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(ClaimTypes.Role, role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -93,7 +94,7 @@ public class AuthService(IUnitOfWork unitOfWork, AppSettings settings) : IAuthSe
             issuer,
             audience,
             claims,
-            expires: DateTime.UtcNow.AddHours(2),
+            expires: DateTime.UtcNow.AddHours(expiryHours),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

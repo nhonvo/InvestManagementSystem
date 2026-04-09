@@ -30,6 +30,18 @@ _unitOfWorkMock
     .Returns<Func<Task>, CancellationToken>((action, _) => action());
 ```
 
+### Audit Verification
+Any service method that modifies internal state must verify that mandatory audit logs are created:
+
+```csharp
+_stockTxRepo.Verify(r => r.AddAsync(It.Is<StockTransaction>(t => 
+    t.ProductId == 1 && 
+    t.Quantity == 50 && 
+    t.UserId == "expected-user-id"), 
+    It.IsAny<CancellationToken>()), 
+    Times.Once);
+```
+
 ### Running Tests
 
 ```bash

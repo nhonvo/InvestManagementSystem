@@ -1,5 +1,7 @@
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Entities;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.UnitTests.Helpers;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
@@ -17,7 +19,7 @@ public class NewsCheckJobTests : IDisposable
     private readonly InventoryDbContext _db;
     private readonly Mock<IDistributedCache> _cacheMock = new();
     private readonly Mock<IFinnhubClient> _finnhubMock = new();
-    private readonly Mock<INewsHandler> _newsHandlerMock = new();
+    private readonly Mock<INewsDynamoRepository> _newsRepoMock = new();
     private readonly Mock<ILogger<NewsCheckJob>> _loggerMock = new();
     private readonly NewsCheckJob _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
@@ -29,7 +31,7 @@ public class NewsCheckJobTests : IDisposable
             .Options;
         _db = new InventoryDbContext(options);
 
-        _sut = new NewsCheckJob(_db, _cacheMock.Object, _finnhubMock.Object, _newsHandlerMock.Object, _loggerMock.Object);
+        _sut = new NewsCheckJob(_db, _cacheMock.Object, _finnhubMock.Object, _newsRepoMock.Object, _loggerMock.Object);
     }
 
     public void Dispose()
@@ -39,7 +41,7 @@ public class NewsCheckJobTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_TriggersHandler_WhenNewNewsFound()
+    public async Task ExecuteAsync_SavesNewsToRepo_WhenNewNewsFound()
     {
         // Arrange
         var ticker = "AAPL";
@@ -60,7 +62,7 @@ public class NewsCheckJobTests : IDisposable
         await _sut.ExecuteAsync(Ct);
 
         // Assert
-        _newsHandlerMock.Verify(h => h.HandleAsync(It.Is<CompanyNewsAlertPayload>(p => p.Symbol == ticker), It.IsAny<CancellationToken>()), Times.Once);
+        _newsRepoMock.Verify(h => h.BatchSaveAsync(It.Is<IEnumerable<NewsDynamoEntry>>(e => e.Any(x => x.TickerSymbol == ticker)), It.IsAny<CancellationToken>()), Times.Once);
 
         _cacheMock.Verify(c => c.SetAsync(It.Is<string>(k => k.Contains(ticker)), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }

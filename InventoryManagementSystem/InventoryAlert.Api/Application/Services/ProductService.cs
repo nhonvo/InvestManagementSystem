@@ -7,6 +7,8 @@ using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
 using Microsoft.Extensions.Caching.Memory;
+using InventoryAlert.Contracts.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace InventoryAlert.Api.Application.Services;
 
@@ -17,6 +19,7 @@ public class ProductService(
     IMemoryCache cache,
     AppSettings appSettings,
     IValidator<ProductRequest> validator,
+    IStockTransactionRepository stockTxRepo,
     ILogger<ProductService> logger) : IProductService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -25,11 +28,11 @@ public class ProductService(
     private readonly IMemoryCache _cache = cache;
     private readonly AppSettings _appSettings = appSettings;
     private readonly IValidator<ProductRequest> _validator = validator;
+    private readonly IStockTransactionRepository _stockTxRepo = stockTxRepo;
     private readonly ILogger<ProductService> _logger = logger;
 
     public async Task<PagedResult<ProductResponse>> GetProductsPagedAsync(ProductQueryParams queryParams, CancellationToken cancellationToken)
     {
-        // Defensive check: ensure pagination is valid before reaching repository
         if (queryParams.PageNumber < 1) queryParams.PageNumber = 1;
         if (queryParams.PageSize < 1) queryParams.PageSize = 10;
 
@@ -42,7 +45,7 @@ public class ProductService(
             Items = items.ToResponse(),
             TotalItems = totalCount,
             PageNumber = queryParams.PageNumber,
-            PageSize = queryParams.PageSize,
+            PageSize = queryParams.PageSize
         };
     }
 
@@ -54,47 +57,51 @@ public class ProductService(
 
     public async Task<ProductResponse?> GetProductByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var cacheKey = $"Product_{id}";
-        if (!_cache.TryGetValue(cacheKey, out ProductResponse? response))
+        var cacheKey = $"product_{id}";
+        if (_cache.TryGetValue(cacheKey, out ProductResponse? cached))
         {
-            var product = await _productRepository.GetByIdAsync(id, cancellationToken)
-                ?? throw new UserFriendlyException(ErrorCode.NotFound, string.Format(ApplicationConstants.Messages.ProductNotFound, id));
-
-
-            response = product.ToResponse();
-            var ttlMinutes = _appSettings.Cache.ProductTtlMinutes;
-            _cache.Set(cacheKey, response, TimeSpan.FromMinutes(ttlMinutes));
+            return cached;
         }
+
+        var product = await _productRepository.GetByIdAsync(id, cancellationToken);
+        if (product == null)
+            throw new UserFriendlyException(ErrorCode.NotFound, string.Format(ApplicationConstants.Messages.ProductNotFound, id));
+
+        var response = product.ToResponse();
+        _cache.Set(cacheKey, response, TimeSpan.FromMinutes(_appSettings.Cache.ProductTtlMinutes));
         return response;
     }
 
     public async Task<ProductResponse> CreateProductAsync(ProductRequest request, CancellationToken cancellationToken)
     {
-        // Enforce Unique Ticker Symbol
-        var otherWithTicker = await _productRepository.GetByTickerAsync(request.TickerSymbol, cancellationToken);
-        if (otherWithTicker != null)
+        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+
+        var existingWithTicker = await _productRepository.GetByTickerAsync(request.TickerSymbol ?? string.Empty, cancellationToken);
+        if (existingWithTicker != null)
         {
             throw new UserFriendlyException(ErrorCode.Conflict, string.Format("Ticker '{0}' already exists.", request.TickerSymbol));
         }
 
-        var product = request.ToEntity();
-        var created = await _productRepository.AddAsync(product, cancellationToken);
+        var entity = request.ToEntity();
+        var created = await _productRepository.AddAsync(entity, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         return created.ToResponse();
     }
 
     public async Task<ProductResponse> UpdateProductAsync(int id, ProductRequest request, CancellationToken cancellationToken)
     {
+        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+
         ProductResponse result = null!;
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
             var existing = await _productRepository.GetByIdAsync(id, cancellationToken)
                 ?? throw new UserFriendlyException(ErrorCode.NotFound, string.Format(ApplicationConstants.Messages.ProductNotFound, id));
 
-            // Check if ticker is being changed to another product's ticker
             if (existing.TickerSymbol != request.TickerSymbol)
             {
-                var otherWithTicker = await _productRepository.GetByTickerAsync(request.TickerSymbol, cancellationToken);
+                var otherWithTicker = await _productRepository.GetByTickerAsync(request.TickerSymbol ?? string.Empty, cancellationToken);
                 if (otherWithTicker != null)
                 {
                     throw new UserFriendlyException(ErrorCode.Conflict, string.Format("Ticker '{0}' already exists.", request.TickerSymbol));
@@ -104,7 +111,6 @@ public class ProductService(
             existing.Name = request.Name ?? string.Empty;
             existing.TickerSymbol = request.TickerSymbol ?? string.Empty;
             existing.StockCount = request.StockCount;
-            // Note: CurrentPrice is managed by FinnhubSync and should not be reset during update.
             existing.OriginPrice = request.Price;
             existing.PriceAlertThreshold = request.PriceAlertThreshold ?? 0.1;
 
@@ -112,8 +118,7 @@ public class ProductService(
             result = updated.ToResponse();
         }, cancellationToken);
 
-        _cache.Remove($"Product_{id}");
-
+        _cache.Remove($"product_{id}");
         return result;
     }
 
@@ -129,12 +134,11 @@ public class ProductService(
             result = deleted.ToResponse();
         }, cancellationToken);
 
-        _cache.Remove($"Product_{id}");
-
+        _cache.Remove($"product_{id}");
         return result;
     }
 
-    public async Task<ProductResponse> UpdateStockCountAsync(int id, int newCount, CancellationToken cancellationToken)
+    public async Task<ProductResponse> UpdateStockCountAsync(int id, int newCount, string userId, CancellationToken cancellationToken)
     {
         ProductResponse result = null!;
         await _unitOfWork.ExecuteTransactionAsync(async () =>
@@ -142,63 +146,48 @@ public class ProductService(
             var existing = await _productRepository.GetByIdAsync(id, cancellationToken)
                 ?? throw new UserFriendlyException(ErrorCode.NotFound, string.Format(ApplicationConstants.Messages.ProductNotFound, id));
 
+            var diff = newCount - existing.StockCount;
+            if (diff == 0)
+            {
+                result = existing.ToResponse();
+                return;
+            }
+
             existing.StockCount = newCount;
             var updated = await _productRepository.UpdateAsync(existing);
+
+            // Record transaction audit
+            await _stockTxRepo.AddAsync(new StockTransaction
+            {
+                ProductId = id,
+                UserId = userId,
+                Quantity = diff,
+                Type = diff > 0 ? StockTransactionType.Restock : StockTransactionType.Adjustment,
+                Timestamp = DateTime.UtcNow,
+                Reference = "Manual API Update"
+            }, cancellationToken);
+            
             result = updated.ToResponse();
         }, cancellationToken);
 
-        _cache.Remove($"Product_{id}");
+        _cache.Remove($"product_{id}");
         return result;
     }
-
 
     public async Task BulkInsertProductsAsync(IEnumerable<ProductRequest> requests, CancellationToken cancellationToken)
     {
         if (!requests.Any()) return;
 
-        var errors = new List<string>();
-        foreach (var (req, index) in requests.Select((v, i) => (v, i)))
+        var tickers = requests.Select(r => r.TickerSymbol ?? string.Empty).Where(t => t != string.Empty).Distinct();
+        var duplicates = await _productRepository.GetExistingTickersAsync(tickers, cancellationToken);
+        if (duplicates.Any())
         {
-            var vr = await _validator.ValidateAsync(req, cancellationToken);
-            if (!vr.IsValid)
-            {
-                errors.Add($"Item {index + 1} ('{req.Name}'): " + string.Join("; ", vr.Errors.Select(e => e.ErrorMessage)));
-            }
+            throw new UserFriendlyException(ErrorCode.Conflict, $"Tickers already exist: {string.Join(", ", duplicates)}");
         }
 
-        if (errors.Count != 0)
-        {
-            throw new UserFriendlyException(ErrorCode.BadRequest,
-                "Bulk validation failed: " + string.Join(" | ", errors));
-        }
-
-        // Check for duplicates within the request
-        var duplicateTickersInRequest = requests
-            .GroupBy(r => r.TickerSymbol)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-
-        if (duplicateTickersInRequest.Count != 0)
-        {
-            throw new UserFriendlyException(ErrorCode.Conflict,
-                "Bulk insert contains duplicate ticker symbols within the request: " + string.Join(", ", duplicateTickersInRequest));
-        }
-
-        // Check for existing tickers in DB
-        var incomingTickers = requests.Select(r => r.TickerSymbol).Distinct().ToList();
-        var duplicatesInDb = await _productRepository.GetExistingTickersAsync(incomingTickers, cancellationToken);
-        var existingTickers = duplicatesInDb.ToList();
-
-        if (existingTickers.Count != 0)
-        {
-            throw new UserFriendlyException(ErrorCode.Conflict,
-                "Bulk insert contains tickers that already exist in the database: " + string.Join(", ", existingTickers));
-        }
-
+        var entities = requests.ToEntity();
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            var entities = requests.ToEntity();
             await _productRepository.AddRangeAsync(entities, cancellationToken);
         }, cancellationToken);
     }
@@ -208,23 +197,15 @@ public class ProductService(
         var products = await _productRepository.GetAllAsync(cancellationToken);
         var alerts = new List<PriceLossResponse>();
         var updatedProducts = new List<Product>();
-        var cooldown = TimeSpan.FromHours(1);
 
         foreach (var product in products)
         {
-            if (product?.CurrentPrice is 0 || product?.OriginPrice is 0) continue;
-
-            // Only re-alert if LastAlertSentAt is null OR cooldown has elapsed
-            if (product!.LastAlertSentAt.HasValue &&
-                DateTime.UtcNow - product.LastAlertSentAt.Value < cooldown)
-                continue;
-
-            var priceDiff = product.CurrentPrice - product.OriginPrice;
-            var priceChangePercent = priceDiff / product.OriginPrice;
-
-            if (priceChangePercent < 0)
+            if (product.OriginPrice > 0 && product.CurrentPrice > 0)
             {
+                var priceDiff = product.CurrentPrice - product.OriginPrice;
+                var priceChangePercent = priceDiff / product.OriginPrice;
                 var lossMagnitude = Math.Abs(priceChangePercent);
+
                 if (lossMagnitude >= (decimal)product.PriceAlertThreshold)
                 {
                     product.LastAlertSentAt = DateTime.UtcNow;
@@ -260,22 +241,32 @@ public class ProductService(
     public async Task SyncCurrentPricesAsync(CancellationToken cancellationToken)
     {
         var products = await _productRepository.GetAllAsync(cancellationToken);
-        var updated = new List<Product>();
+        if (!products.Any()) return;
 
-        foreach (var product in products)
+        var updated = new System.Collections.Concurrent.ConcurrentBag<Product>();
+        var semaphore = new SemaphoreSlim(5);
+
+        var tasks = products.Select(async product =>
         {
-            var quote = await _finnhubClient.GetQuoteAsync(product.TickerSymbol, cancellationToken);
-            if (quote?.CurrentPrice is null or 0)
+            await semaphore.WaitAsync(cancellationToken);
+            try
             {
-                _logger.LogWarning("[ProductService] Null or zero price returned for {Symbol}. Skipping.", product.TickerSymbol);
-                continue;
+                var quote = await _finnhubClient.GetQuoteAsync(product.TickerSymbol, cancellationToken);
+                if (quote?.CurrentPrice is not null and > 0)
+                {
+                    product.CurrentPrice = quote.CurrentPrice.Value;
+                    updated.Add(product);
+                }
             }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
 
-            product.CurrentPrice = quote.CurrentPrice.Value;
-            updated.Add(product);
-        }
+        await Task.WhenAll(tasks);
 
-        if (updated.Count > 0)
+        if (!updated.IsEmpty)
         {
             await _unitOfWork.ExecuteTransactionAsync(async () =>
             {

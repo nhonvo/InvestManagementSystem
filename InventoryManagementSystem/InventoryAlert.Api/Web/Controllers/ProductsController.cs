@@ -1,7 +1,9 @@
 using Asp.Versioning;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace InventoryAlert.Api.Web.Controllers;
 
@@ -9,10 +11,14 @@ namespace InventoryAlert.Api.Web.Controllers;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
-// [Authorize]
+[Authorize]
 public class ProductsController(IProductService productService) : ControllerBase
 {
     private readonly IProductService _productService = productService;
+
+    private string UserId => User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
+        ?? throw new UnauthorizedAccessException("User identification missing from token.");
 
     /// <summary>Get all products.</summary>
     [HttpGet]
@@ -56,12 +62,12 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     /// <summary>Partial update of stock count.</summary>
-    [HttpPatch("{id:int}/stock/{count:int}")]
+    [HttpPatch("{id:int}/stock")]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> PatchStockCount([FromRoute] int id, [FromRoute] int count, CancellationToken cancellationToken)
+    public async Task<IActionResult> PatchStockCount([FromRoute] int id, [FromBody] UpdateStockRequest request, CancellationToken cancellationToken)
     {
-        var result = await _productService.UpdateStockCountAsync(id, count, cancellationToken);
+        var result = await _productService.UpdateStockCountAsync(id, request.Count, UserId, cancellationToken);
         return Ok(result);
     }
 
@@ -71,7 +77,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteProduct([FromRoute] int id, CancellationToken cancellationToken)
     {
-        var result = await _productService.DeleteProductAsync(id, cancellationToken);
+      var result = await _productService.DeleteProductAsync(id, cancellationToken);
         return Ok(result);
     }
 
@@ -94,6 +100,9 @@ public class ProductsController(IProductService productService) : ControllerBase
     }
 
     /// <summary>Triggers a manual sync of CurrentPrice from Finnhub for all products.</summary>
+    // [SECURITY] No rate-limiting on this manual trigger. A malicious authenticated user
+    // can hammer Finnhub by calling this endpoint repeatedly. Consider adding an endpoint-level
+    // cooldown key in Redis or moving to a background job.
     [HttpPost("sync-price")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SyncStockPrice(CancellationToken cancellationToken)

@@ -52,6 +52,29 @@ public class DynamoDbGenericRepository<T>(IAmazonDynamoDB dynamoDbClient, ILogge
         }
     }
 
+    public virtual async Task BatchSaveAsync(IEnumerable<T> entities, CancellationToken ct = default)
+    {
+        // DynamoDB batch writes are limited to 25 items per call.
+        const int maxBatchSize = 25;
+        var list = entities.ToList();
+
+        for (int i = 0; i < list.Count; i += maxBatchSize)
+        {
+            var chunk = list.Skip(i).Take(maxBatchSize).ToList();
+            try
+            {
+                var batch = _context.CreateBatchWrite<T>();
+                batch.AddPutItems(chunk);
+                await batch.ExecuteAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DynamoDB] Batch save failed for {Type} (chunk starting at {Index}).", typeof(T).Name, i);
+                throw;
+            }
+        }
+    }
+
     public virtual async Task DeleteAsync(T entity, CancellationToken ct = default)
     {
         try

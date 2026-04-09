@@ -1,4 +1,6 @@
 using InventoryAlert.Contracts.Events.Payloads;
+using InventoryAlert.Contracts.Persistence.Entities;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Application.IntegrationHandlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using Microsoft.Extensions.Logging;
@@ -11,11 +13,12 @@ public class PriceAlertHandlerTests
 {
     private readonly Mock<ILogger<PriceAlertHandler>> _loggerMock = new();
     private readonly Mock<IFinnhubClient> _finnhubMock = new();
+    private readonly Mock<IPriceHistoryDynamoRepository> _priceHistoryRepoMock = new();
     private readonly PriceAlertHandler _sut;
 
     public PriceAlertHandlerTests()
     {
-        _sut = new PriceAlertHandler(_finnhubMock.Object, _loggerMock.Object);
+        _sut = new PriceAlertHandler(_finnhubMock.Object, _priceHistoryRepoMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -43,5 +46,8 @@ public class PriceAlertHandlerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+
+        _priceHistoryRepoMock.Verify(r => r.SaveAsync(It.Is<PriceHistoryEntry>(e =>
+            e.TickerSymbol == "MSFT" && e.Price == 400.50m), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

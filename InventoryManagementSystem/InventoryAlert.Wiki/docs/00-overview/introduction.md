@@ -17,4 +17,5 @@ Users who maintain a portfolio of stock watchlists need to know immediately when
 | 📈 **Price Sync** | Automatic price updates via Finnhub every scheduled interval |
 | 🔔 **Alert Dispatch** | Telegram notification when alert conditions are met |
 | 🧮 **Market Status** | Detects market open/closed hours to suppress noise |
-| 🗂️ **Audit Log** | Persistent log of alert events and price history |
+| 🗂️ **Event Logs** | Persistent log of alert events and price history |
+| 🛡️ **Inventory Audit** | Manual stock adjustments are tracked with user-id accountability |

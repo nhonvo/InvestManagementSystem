@@ -7,6 +7,7 @@ public interface IUnitOfWork
     IAlertRuleRepository AlertRules { get; }
     ICompanyProfileRepository CompanyProfiles { get; }
     IUserRepository Users { get; }
+    IStockTransactionRepository StockTransactions { get; }
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
     Task ExecuteTransactionAsync(Action action, CancellationToken cancellationToken);

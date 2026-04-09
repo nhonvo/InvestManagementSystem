@@ -36,12 +36,22 @@ erDiagram
         decimal Price
         datetime RecordedAt
     }
+    StockTransaction {
+        Guid Id PK
+        int ProductId FK
+        string UserId
+        int Quantity
+        string Type
+        string Reference
+        datetime Timestamp
+    }
 
     User ||--o{ WatchlistItem : "watches"
     User ||--o{ AlertRule : "defines"
     Product ||--o{ WatchlistItem : "tracked in"
     Product ||--o{ AlertRule : "referenced by"
     Product ||--o{ PriceHistory : "has"
+    Product ||--o{ StockTransaction : "audited by"
 ```
 
 ---

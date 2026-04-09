@@ -1,25 +1,24 @@
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Worker.Application.IntegrationHandlers;
 
 /// <summary>
-/// Trigger handler: fetches the last 24h of headlines for a symbol 
-/// and persists them to DynamoDB.
+/// Trigger handler: fetches the last 24h of headlines for a symbol
+/// and persists them to DynamoDB in a single batch write.
+/// Uses IProductRepository instead of direct DbContext to respect DDD layer rules.
 /// </summary>
 public class NewsHandler(
-    InventoryDbContext db,
+    IProductRepository productRepository,
     INewsDynamoRepository newsRepo,
     IFinnhubClient finnhub,
     ILogger<NewsHandler> logger)
     : INewsHandler
 {
-    private readonly InventoryDbContext _db = db;
+    private readonly IProductRepository _productRepository = productRepository;
     private readonly INewsDynamoRepository _newsRepo = newsRepo;
     private readonly IFinnhubClient _finnhub = finnhub;
     private readonly ILogger<NewsHandler> _logger = logger;
@@ -28,9 +27,8 @@ public class NewsHandler(
     {
         _logger.LogInformation("[NewsHandler] Triggered for {Symbol}. Fetching latest news from Finnhub...", payload.Symbol);
 
-        var product = await _db.Products
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.TickerSymbol == payload.Symbol, ct);
+        // Use repository interface — keeps Application layer free of EF/DbContext imports.
+        var product = await _productRepository.GetByTickerAsync(payload.Symbol, ct);
 
         if (product is null)
         {
@@ -49,11 +47,9 @@ public class NewsHandler(
             return;
         }
 
-        foreach (var article in articles)
-        {
-            var entry = MapToDynamoEntry(payload.Symbol, article);
-            await _newsRepo.SaveAsync(entry, ct);
-        }
+        // Batch-write up to 25 items per DynamoDB call instead of N individual PutItem calls.
+        var entries = articles.Select(a => MapToDynamoEntry(payload.Symbol, a)).ToList();
+        await _newsRepo.BatchSaveAsync(entries, ct);
 
         _logger.LogInformation("[NewsHandler] Successfully processed {Count} articles for {Symbol}.", articles.Count, payload.Symbol);
     }

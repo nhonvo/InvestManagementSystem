@@ -1,12 +1,15 @@
+using Asp.Versioning;
 using InventoryAlert.Api.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace InventoryAlert.Api.Web.Controllers;
 
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}")]
 [ApiController]
 [Authorize]
-[Route("api/v1")]
 public class StocksController(IStockDataService service) : ControllerBase
 {
     private readonly IStockDataService _service = service;
@@ -40,9 +43,17 @@ public class StocksController(IStockDataService service) : ControllerBase
 
     [HttpGet("stocks/{symbol}/news")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCompanyNews(string symbol, [FromQuery] int limit = 10,
+    public async Task<IActionResult> GetCompanyNews(string symbol, [FromQuery][Range(1, 100)] int limit = 10,
         [FromQuery] string? from = null, [FromQuery] string? to = null, CancellationToken ct = default)
-        => Ok(await _service.GetCompanyNewsAsync(symbol.ToUpperInvariant(), limit, from, to, ct));
+    {
+        // Simple validation for dates if provided
+        if (!string.IsNullOrEmpty(from) && !DateTime.TryParse(from, out _))
+            return BadRequest("Invalid 'from' date format. Use YYYY-MM-DD.");
+        if (!string.IsNullOrEmpty(to) && !DateTime.TryParse(to, out _))
+            return BadRequest("Invalid 'to' date format. Use YYYY-MM-DD.");
+
+        return Ok(await _service.GetCompanyNewsAsync(symbol.ToUpperInvariant(), limit, from, to, ct));
+    }
 
     [HttpGet("stocks/{symbol}/recommendations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -97,7 +108,7 @@ public class StocksController(IStockDataService service) : ControllerBase
 
     [HttpGet("crypto/symbols")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCryptoSymbols([FromQuery] string exchange, CancellationToken ct)
+    public async Task<IActionResult> GetCryptoSymbols([FromQuery][Required] string exchange, CancellationToken ct)
         => Ok(await _service.GetCryptoSymbolsAsync(exchange, ct));
 
     [HttpGet("crypto/{symbol}/quote")]

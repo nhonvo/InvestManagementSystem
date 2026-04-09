@@ -13,6 +13,7 @@ public class UnitOfWork : IUnitOfWork
     public IAlertRuleRepository AlertRules { get; }
     public ICompanyProfileRepository CompanyProfiles { get; }
     public IUserRepository Users { get; }
+    public IStockTransactionRepository StockTransactions { get; }
 
     public UnitOfWork(InventoryDbContext dbContext)
     {
@@ -22,6 +23,7 @@ public class UnitOfWork : IUnitOfWork
         AlertRules = new AlertRuleRepository(_dbContext);
         CompanyProfiles = new CompanyProfileRepository(_dbContext);
         Users = new UserRepository(_dbContext);
+        StockTransactions = new StockTransactionRepository(_dbContext);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)

@@ -146,16 +146,35 @@ public class StockDataServiceTests
     }
 
     [Fact]
-    public async Task SearchSymbols_FetchesFromFinnhub()
+    public async Task SearchSymbols_FetchesFromFinnhub_AndCachesResult_WhenCacheMiss()
     {
         var query = "AAPL";
         var finnhubResponse = new FinnhubSymbolSearch { Result = [new FinnhubSymbolItem { Symbol = "AAPL", Description = "Apple" }] };
+
+        _cache.Setup(c => c.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(RedisValue.Null);
         _finnhub.Setup(f => f.SearchSymbolsAsync(query, Ct)).ReturnsAsync(finnhubResponse);
 
         var result = await _sut.SearchSymbolsAsync(query, null, Ct);
 
         result.Should().HaveCount(1);
         result[0].Symbol.Should().Be("AAPL");
+    }
+
+    [Fact]
+    public async Task SearchSymbols_ReturnsCachedResult_WhenAvailable()
+    {
+        var query = "AAPL";
+        var cachedResponse = new List<SymbolSearchResponse> { new("AAPL", "Apple", "Stock", "AAPL") };
+        var json = JsonSerializer.Serialize(cachedResponse, InventoryAlert.Contracts.Configuration.JsonOptions.Default);
+
+        _cache.Setup(c => c.StringGetAsync(It.Is<RedisKey>(k => k.ToString().Contains(query)), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(json);
+
+        var result = await _sut.SearchSymbolsAsync(query, null, Ct);
+
+        result.Should().HaveCount(1);
+        result[0].Symbol.Should().Be("AAPL");
+        _finnhub.Verify(f => f.SearchSymbolsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

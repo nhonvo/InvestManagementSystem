@@ -23,6 +23,7 @@ public class ProductServiceTests
     private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
     private readonly AppSettings _appSettings;
     private readonly Mock<IValidator<ProductRequest>> _validator = new();
+    private readonly Mock<IStockTransactionRepository> _stockTxRepo = new();
     private readonly Mock<ILogger<ProductService>> _logger = new();
     private readonly ProductService _sut;
 
@@ -43,6 +44,7 @@ public class ProductServiceTests
             _cache,
             _appSettings,
             _validator.Object,
+            _stockTxRepo.Object,
             _logger.Object);
     }
 
@@ -281,16 +283,18 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task UpdateStockCount_UpdatesOnlyStockCount_AndClearsCache()
+    public async Task UpdateStockCount_UpdatesOnlyStockCount_LogsTransaction_AndClearsCache()
     {
         var existing = ProductFixtures.BuildProduct(id: 1, stock: 10);
         _productRepository.Setup(r => r.GetByIdAsync(1, Ct)).ReturnsAsync(existing);
         _productRepository.Setup(r => r.UpdateAsync(It.IsAny<Product>())).Returns(Task.FromResult(existing));
 
-        var result = await _sut.UpdateStockCountAsync(1, 99, Ct);
+        var result = await _sut.UpdateStockCountAsync(1, 99, "test-user", Ct);
 
         result.StockCount.Should().Be(99);
         _productRepository.Verify(r => r.UpdateAsync(It.Is<Product>(p => p.StockCount == 99)), Times.Once);
+        _stockTxRepo.Verify(r => r.AddAsync(It.Is<InventoryAlert.Contracts.Entities.StockTransaction>(t => 
+            t.ProductId == 1 && t.Quantity == 89 && t.UserId == "test-user"), Ct), Times.Once);
         _unitOfWork.Verify(u => u.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), Ct), Times.Once);
     }
 

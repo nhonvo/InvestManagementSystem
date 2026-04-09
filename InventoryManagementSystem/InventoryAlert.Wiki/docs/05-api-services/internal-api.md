@@ -17,6 +17,7 @@
 | POST | `/products` | Add a new stock symbol |
 | DELETE | `/products/{id}` | Remove a tracked stock |
 | PUT | `/products/{id}/sync-price` | Manually trigger a price sync |
+| PUT | `/products/{id}/stock` | Update stock count (with audit trail) |
 
 ## Alert Rules
 

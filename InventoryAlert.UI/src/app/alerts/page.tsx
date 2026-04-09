@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
+import { PriceAlertModal } from "@/components/PriceAlertModal";
 
 interface AlertRule {
   id: string;
@@ -18,18 +19,21 @@ export default function AlertsManager() {
   const [alerts, setAlerts] = useState<AlertRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchApi("/api/v1/alerts");
+      setAlerts(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load alerts");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadAlerts() {
-      try {
-        const data = await fetchApi("/api/v1/alerts");
-        setAlerts(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load alerts");
-      } finally {
-        setLoading(false);
-      }
-    }
     loadAlerts();
   }, []);
 
@@ -51,10 +55,19 @@ export default function AlertsManager() {
           <h1 className="text-4xl font-black tracking-tighter uppercase">Alert Center</h1>
           <p className="text-zinc-500 font-medium mt-1 text-lg">Manage your automated market triggers and notifications.</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white font-black px-6 py-3 rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] tracking-tight text-sm">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-black px-6 py-3 rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] tracking-tight text-sm"
+        >
           + CREATE NEW RULE
         </button>
       </div>
+
+      <PriceAlertModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={loadAlerts}
+      />
 
       {loading ? (
         <div className="space-y-4 animate-pulse">

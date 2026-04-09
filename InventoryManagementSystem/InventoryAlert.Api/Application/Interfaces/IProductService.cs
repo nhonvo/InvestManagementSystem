@@ -10,7 +10,7 @@ public interface IProductService
     Task<ProductResponse> CreateProductAsync(ProductRequest request, CancellationToken cancellationToken);
     Task<ProductResponse> UpdateProductAsync(int id, ProductRequest request, CancellationToken cancellationToken);
     Task<ProductResponse?> DeleteProductAsync(int id, CancellationToken cancellationToken);
-    Task<ProductResponse> UpdateStockCountAsync(int id, int newCount, CancellationToken cancellationToken);
+    Task<ProductResponse> UpdateStockCountAsync(int id, int newCount, string userId, CancellationToken cancellationToken);
     Task BulkInsertProductsAsync(IEnumerable<ProductRequest> requests, CancellationToken cancellationToken);
 
     /// <summary>Returns products whose current price has dropped beyond their configured PriceAlertThreshold.

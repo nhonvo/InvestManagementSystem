@@ -15,7 +15,7 @@ public class AlertRulesController(IAlertRuleService service) : ControllerBase
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
-        ?? "anonymous";
+        ?? throw new UnauthorizedAccessException("User identification missing from token.");
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -33,6 +33,7 @@ public class AlertRulesController(IAlertRuleService service) : ControllerBase
 
     [HttpPut("{ruleId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAlert(Guid ruleId, [FromBody] AlertRuleRequest request, CancellationToken ct)
         => Ok(await _service.UpdateAlertAsync(UserId, ruleId, request, ct));

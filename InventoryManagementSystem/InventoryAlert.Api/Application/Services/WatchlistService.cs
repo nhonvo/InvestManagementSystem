@@ -21,19 +21,26 @@ public class WatchlistService(
     private readonly IDatabase _cache = redis.GetDatabase();
     private readonly IEventPublisher _events = eventPublisher;
     private readonly ILogger<WatchlistService> _logger = logger;
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
 
     public async Task<List<WatchlistItemResponse>> GetUserWatchlistAsync(string userId, CancellationToken ct = default)
     {
         var cacheKey = $"watchlist:{userId}";
         var cached = await _cache.StringGetAsync(cacheKey);
         if (cached.HasValue)
-            return JsonSerializer.Deserialize<List<WatchlistItemResponse>>((string)cached!, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+            return JsonSerializer.Deserialize<List<WatchlistItemResponse>>((string)cached!, _jsonOptions) ?? [];
 
         var items = await _unitOfWork.Watchlists.GetByUserIdAsync(userId, ct);
 
         var response = items.Select(w => new WatchlistItemResponse(
                 w.Symbol,
                 w.Product != null ? w.Product.Name : w.Symbol,
+                // Product entity does not have an Exchange field yet.
+                // Populate once CompanyProfile sync adds Exchange to the Product entity.
                 string.Empty,
                 "stock",
                 w.Product != null ? (decimal?)w.Product.CurrentPrice : null,
@@ -41,17 +48,26 @@ public class WatchlistService(
                 w.AddedAt))
             .ToList();
 
-        await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(response), TimeSpan.FromMinutes(1));
+        await _cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(response, _jsonOptions), TimeSpan.FromMinutes(1));
         return response;
     }
 
     public async Task AddToWatchlistAsync(string userId, string symbol, CancellationToken ct = default)
     {
-        // 1. Validate symbol existence
-        var search = await _finnhub.SearchSymbolsAsync(symbol, ct);
-        if (search?.Result is null || !search.Result.Any(s => string.Equals(s.Symbol, symbol, StringComparison.OrdinalIgnoreCase)))
+        // 1. Validate symbol existence (with Redis caching to avoid hitting Finnhub rate limits)
+        var symbolKey = symbol.ToUpperInvariant();
+        var validationCacheKey = $"symbol_valid:{symbolKey}";
+        var isSymbolValid = await _cache.KeyExistsAsync(validationCacheKey);
+
+        if (!isSymbolValid)
         {
-            throw new UserFriendlyException(ErrorCode.BadRequest, $"Symbol '{symbol}' not found on Finnhub.");
+            var search = await _finnhub.SearchSymbolsAsync(symbolKey, ct);
+            if (search?.Result is null || !search.Result.Any(s => string.Equals(s.Symbol, symbolKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new UserFriendlyException(ErrorCode.BadRequest, $"Symbol '{symbolKey}' not found on Finnhub.");
+            }
+            // Cache valid symbols for 24 hours
+            await _cache.StringSetAsync(validationCacheKey, "true", TimeSpan.FromHours(24));
         }
 
         await _unitOfWork.ExecuteTransactionAsync(async () =>

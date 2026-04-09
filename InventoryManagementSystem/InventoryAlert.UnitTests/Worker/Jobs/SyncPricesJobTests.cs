@@ -42,6 +42,7 @@ public class SyncPricesJobTests : IDisposable
         var product = ProductFixtures.BuildProduct(ticker: "AAPL", currentPrice: 100m);
         _db.Products.Add(product);
         await _db.SaveChangesAsync(Ct);
+        _db.Entry(product).State = EntityState.Detached; // Simulate clean start
 
         _cacheMock.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((byte[])null!);
         _finnhubMock.Setup(f => f.FetchQuoteAsync("AAPL", It.IsAny<CancellationToken>())).ReturnsAsync(new FinnhubQuoteModel { CurrentPrice = 110m });
@@ -50,8 +51,7 @@ public class SyncPricesJobTests : IDisposable
         await _sut.ExecuteAsync(Ct);
 
         // Assert
-        product.CurrentPrice.Should().Be(110m);
-        var inDb = await _db.Products.FirstAsync();
+        var inDb = await _db.Products.AsNoTracking().FirstAsync();
         inDb.CurrentPrice.Should().Be(110m);
     }
 

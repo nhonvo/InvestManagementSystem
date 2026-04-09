@@ -25,9 +25,10 @@ function LoginForm() {
         body: JSON.stringify({ username, password }),
       })
       
-      if (data.token) {
-        localStorage.setItem('auth_token', data.token)
-        router.push('/')
+      const token = data.token || data.Token;
+      if (token) {
+        localStorage.setItem('auth_token', token)
+        window.location.href = '/' // Force hard redirect to sync all components
       }
     } catch (err: any) {
       setError(err.message || 'Login failed')

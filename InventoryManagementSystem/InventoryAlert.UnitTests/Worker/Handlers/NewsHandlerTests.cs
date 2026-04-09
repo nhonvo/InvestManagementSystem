@@ -1,6 +1,7 @@
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.UnitTests.Helpers;
 using InventoryAlert.Worker.Application.IntegrationHandlers;
@@ -14,8 +15,8 @@ namespace InventoryAlert.UnitTests.Worker.Handlers;
 
 public class NewsHandlerTests : IDisposable
 {
-    private readonly InventoryDbContext _db;
-    private readonly Mock<NewsDynamoRepository> _newsRepoMock;
+    private readonly Mock<IProductRepository> _productRepoMock = new();
+    private readonly Mock<INewsDynamoRepository> _newsRepoMock = new();
     private readonly Mock<IFinnhubClient> _finnhubMock = new();
     private readonly Mock<ILogger<NewsHandler>> _loggerMock = new();
     private readonly NewsHandler _sut;
@@ -23,21 +24,11 @@ public class NewsHandlerTests : IDisposable
 
     public NewsHandlerTests()
     {
-        var options = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        _db = new InventoryDbContext(options);
-
-        var dynamoMock = new Mock<Amazon.DynamoDBv2.IAmazonDynamoDB>();
-        var repoLoggerMock = new Mock<ILogger<NewsDynamoRepository>>();
-        _newsRepoMock = new Mock<NewsDynamoRepository>(dynamoMock.Object, repoLoggerMock.Object);
-
-        _sut = new NewsHandler(_db, _newsRepoMock.Object, _finnhubMock.Object, _loggerMock.Object);
+        _sut = new NewsHandler(_productRepoMock.Object, _newsRepoMock.Object, _finnhubMock.Object, _loggerMock.Object);
     }
 
     public void Dispose()
     {
-        _db.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -47,8 +38,7 @@ public class NewsHandlerTests : IDisposable
         // Arrange
         var ticker = "AAPL";
         var product = ProductFixtures.BuildProduct(ticker: ticker);
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync(Ct);
+        _productRepoMock.Setup(r => r.GetByTickerAsync(ticker, Ct)).ReturnsAsync(product);
 
         var payload = new CompanyNewsAlertPayload
         {
@@ -67,10 +57,10 @@ public class NewsHandlerTests : IDisposable
         await _sut.HandleAsync(payload, Ct);
 
         // Assert
-        _newsRepoMock.Verify(r => r.SaveAsync(It.Is<NewsDynamoEntry>(e =>
-            e.TickerSymbol == ticker &&
-            e.Headline == "Apple is doing great" &&
-            e.FinnhubId == 12345), Ct), Times.Once);
+        _newsRepoMock.Verify(r => r.BatchSaveAsync(It.Is<IEnumerable<NewsDynamoEntry>>(e => e.Any(x =>
+            x.TickerSymbol == ticker &&
+            x.Headline == "Apple is doing great" &&
+            x.FinnhubId == 12345)), Ct), Times.Once);
     }
 
     [Fact]
@@ -83,6 +73,6 @@ public class NewsHandlerTests : IDisposable
         await _sut.HandleAsync(payload, Ct);
 
         // Assert
-        _newsRepoMock.Verify(r => r.SaveAsync(It.IsAny<NewsDynamoEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+        _newsRepoMock.Verify(r => r.BatchSaveAsync(It.IsAny<IEnumerable<NewsDynamoEntry>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

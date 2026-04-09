@@ -56,8 +56,22 @@ try
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowAll",
-            policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        // Dev: allow all origins for local tooling. Production: restrict to configured origins.
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
+        {
+            options.AddPolicy("AllowAll",
+                policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        }
+        else
+        {
+            var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+            options.AddPolicy("AllowAll",
+                policy => policy
+                    .WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());
+        }
     });
 
     var jwtKey = settings.Jwt.Key;
@@ -122,25 +136,25 @@ try
     // ─── Build ────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // ─── Auto-migrate on startup ──────────────────────────────────────────────
-    try
+    // ─── Auto-migrate on startup (Dev/Docker only) ──────────────────────────
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
     {
-        using var scope = app.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
-        app.Logger.LogInformation("Applying database migrations...");
-        dbContext.Database.Migrate();
-        app.Logger.LogInformation("Database migration complete.");
-
-        if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
+        try
         {
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            app.Logger.LogInformation("Applying database migrations...");
+            dbContext.Database.Migrate();
+            app.Logger.LogInformation("Database migration complete.");
+
             await InventoryAlert.Api.Infrastructure.Persistence.DatabaseSeeder.SeedAsync(
                 dbContext, app.Logger);
         }
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogCritical(ex, "Error occurred during database migration");
-        throw;
+        catch (Exception ex)
+        {
+            app.Logger.LogCritical(ex, "Error occurred during database migration");
+            throw;
+        }
     }
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────
@@ -151,18 +165,16 @@ try
     app.UseResponseCompression();
     app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
 
+    app.UseHttpsRedirection();
     app.UseRouting();
     app.UseCors("AllowAll");
 
-    // Cache must be injected AFTER Routing/Cors to hit variations safely securely.
     app.UseResponseCaching();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
     {
         app.UseSwaggerWithUI();
     }
-
-    app.UseHttpsRedirection();
 
     app.UseAuthentication();
     app.UseAuthorization();

@@ -14,6 +14,7 @@ public class InventoryDbContext(DbContextOptions<InventoryDbContext> options) : 
     public DbSet<AlertRule> AlertRules { get; set; }
     public DbSet<CompanyProfile> CompanyProfiles { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<StockTransaction> StockTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

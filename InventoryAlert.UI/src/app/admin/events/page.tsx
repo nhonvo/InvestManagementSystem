@@ -6,7 +6,7 @@ import { fetchApi } from "@/lib/api";
 interface Product {
   id: number;
   name: string;
-  ticker: string;
+  tickerSymbol: string;
 }
 
 export default function AdminEvents() {
@@ -20,8 +20,8 @@ export default function AdminEvents() {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const data = await fetchApi("/api/v1.0/products");
-        setProducts(data.items || []); // PagedResult has .items
+        const data = await fetchApi("/api/v1/products");
+        setProducts(data.items || data.Items || []); // Handle different casing from API
       } catch (err) {
         console.error("Failed to load products for triggers", err);
       }
@@ -34,7 +34,7 @@ export default function AdminEvents() {
     setLoading(true);
     setTriggerStatus(null);
     try {
-      await fetchApi("/api/v1.0/events/market-alert", {
+      await fetchApi("/api/v1/events/market-alert", {
         method: "POST",
         body: JSON.stringify({ productId: marketProductId, symbol: marketSymbol })
       });
@@ -53,7 +53,7 @@ export default function AdminEvents() {
     setLoading(true);
     setTriggerStatus(null);
     try {
-      await fetchApi("/api/v1.0/events/news-alert", {
+      await fetchApi("/api/v1/events/news-alert", {
         method: "POST",
         body: JSON.stringify({ symbol: newsSymbol })
       });
@@ -156,7 +156,7 @@ export default function AdminEvents() {
                 >
                   <option value="">Select Product...</option>
                   {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.ticker})</option>
+                    <option key={p.id} value={p.id}>{p.name} ({p.tickerSymbol})</option>
                   ))}
                 </select>
                 <input 

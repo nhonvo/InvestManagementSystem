@@ -10,16 +10,16 @@ using InventoryAlert.Worker.Interfaces;
 namespace InventoryAlert.Worker.Application;
 
 /// <summary>
-/// Orchestrates message routing between Hangfire (reliable/retriable) 
-/// and the Native Background Task Queue (low priority/in-memory).
+/// Orchestrates message routing: all event types are dispatched to Hangfire for
+/// persistent/retriable execution. Unknown messages are enqueued on the default Hangfire queue.
 /// </summary>
 public class MessageProcessor(
-    IBackgroundTaskQueue backgroundTaskQueue,
     IRawDefaultHandler rawHandler,
+    IBackgroundJobClient backgroundJobs,
     ILogger<MessageProcessor> logger) : IMessageProcessor
 {
-    private readonly IBackgroundTaskQueue _backgroundTaskQueue = backgroundTaskQueue;
     private readonly IRawDefaultHandler _rawHandler = rawHandler;
+    private readonly IBackgroundJobClient _backgroundJobs = backgroundJobs;
     private readonly ILogger<MessageProcessor> _logger = logger;
 
     /// <summary>
@@ -27,16 +27,15 @@ public class MessageProcessor(
     /// </summary>
     public async Task<bool> ProcessAndAcknowledgeAsync(Message message, CancellationToken ct)
     {
-        if (!message.MessageAttributes.TryGetValue("MessageType", out var attr))
+        if (message.MessageAttributes == null || !message.MessageAttributes.TryGetValue("MessageType", out var attr))
         {
-            _logger.LogWarning("[MessageProcessor] Message {MessageId} missing 'MessageType' attribute. Skipping.", message.MessageId);
+            _logger.LogWarning("[MessageProcessor] Message {MessageId} missing 'MessageType' attribute or attributes collection is null. Skipping.", message.MessageId);
             return true; // ACK to remove garbage from queue
         }
 
         var messageType = attr.StringValue;
         var correlationId = message.MessageAttributes.GetValueOrDefault("CorrelationId")?.StringValue ?? "N/A";
 
-        // Structured Logging for traceability
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["MessageId"] = message.MessageId,
@@ -50,40 +49,39 @@ public class MessageProcessor(
             {
                 case string msgType when msgType.Equals(EventTypes.MarketPriceAlert, StringComparison.OrdinalIgnoreCase):
                     var pricePayload = JsonSerializer.Deserialize<MarketPriceAlertPayload>(message.Body, JsonOptions.Default);
-                    if (pricePayload != null)
+                    if (pricePayload is null)
                     {
-                        BackgroundJob.Enqueue<IPriceAlertHandler>(h => h.HandleAsync(pricePayload, CancellationToken.None));
-                        return true; // Enqueued to Hangfire (Persistent) -> Safe to ACK
+                        _logger.LogError("[MessageProcessor] MarketPriceAlert body could not deserialize. ACKing poison message. MessageId={MessageId}", message.MessageId);
+                        return true;
                     }
-                    break;
+                    _backgroundJobs.Enqueue<IPriceAlertHandler>(h => h.HandleAsync(pricePayload, CancellationToken.None));
+                    return true;
 
                 case string msgType when msgType.Equals(EventTypes.StockLowAlert, StringComparison.OrdinalIgnoreCase):
                     var stockLowPayload = JsonSerializer.Deserialize<StockLowAlertPayload>(message.Body, JsonOptions.Default);
-                    if (stockLowPayload != null)
+                    if (stockLowPayload is null)
                     {
-                        BackgroundJob.Enqueue<IStockLowHandler>(h => h.HandleAsync(stockLowPayload, CancellationToken.None));
+                        _logger.LogError("[MessageProcessor] StockLowAlert body could not deserialize. ACKing poison message. MessageId={MessageId}", message.MessageId);
                         return true;
                     }
-                    break;
+                    _backgroundJobs.Enqueue<IStockLowHandler>(h => h.HandleAsync(stockLowPayload, CancellationToken.None));
+                    return true;
 
                 case string msgType when msgType.Equals(EventTypes.CompanyNewsAlert, StringComparison.OrdinalIgnoreCase):
                     var newsPayload = JsonSerializer.Deserialize<CompanyNewsAlertPayload>(message.Body, JsonOptions.Default);
-                    if (newsPayload != null)
+                    if (newsPayload is null)
                     {
-                        BackgroundJob.Enqueue<INewsHandler>(h => h.HandleAsync(newsPayload, CancellationToken.None));
+                        _logger.LogError("[MessageProcessor] CompanyNewsAlert body could not deserialize. ACKing poison message. MessageId={MessageId}", message.MessageId);
                         return true;
                     }
-                    break;
+                    _backgroundJobs.Enqueue<INewsHandler>(h => h.HandleAsync(newsPayload, CancellationToken.None));
+                    return true;
 
                 default:
-                    // Route to In-Memory Queue for processing by QueuedHostedService
-                    _logger.LogInformation("[MessageProcessor] Routing unknown message to In-Memory Queue.");
-
-                    // Since this is in-memory, we technically shouldn't ACK SQS until IT IS PROCESSED.
-                    // But to keep it simple and consistent with the user's dual-flow requirement:
-                    await _backgroundTaskQueue.QueueBackgroundWorkItemAsync(async (token) =>
-                        await _rawHandler.HandleAsync(message, token));
-
+                    // Route unknown messages to Hangfire for durability (not in-memory queue which
+                    // loses messages on process crash before completion).
+                    _logger.LogInformation("[MessageProcessor] Unknown MessageType={MessageType}. Routing to Hangfire default queue.", messageType);
+                    await _rawHandler.HandleAsync(message, ct);
                     return true;
             }
         }
@@ -97,11 +95,9 @@ public class MessageProcessor(
             _logger.LogError(ex, "[MessageProcessor] Unexpected error routing message.");
             return false; // Do NOT ACK, allow redelivery
         }
-
-        return false;
     }
 
-    // Explicit implementation for the original interface to avoid breaking build if interface not updated yet
-    async Task IMessageProcessor.ProcessMessageAsync(Message message, CancellationToken ct)
-        => await ProcessAndAcknowledgeAsync(message, ct);
+    // IMessageProcessor now declares ProcessAndAcknowledgeAsync — no dual-signature smell.
+    Task IMessageProcessor.ProcessMessageAsync(Message message, CancellationToken ct)
+        => ProcessAndAcknowledgeAsync(message, ct);
 }

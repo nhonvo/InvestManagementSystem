@@ -1,6 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.SQS;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.PostgreSql;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Interfaces;
@@ -184,21 +185,24 @@ try
 
     builder.Services.AddScoped<IProcessQueueJob, ProcessQueueJob>();
     builder.Services.AddHostedService<NativeSqsWorker>();
-    // PollSqsJob (Path A) is NOT registered in the container
-
-    builder.Services.AddScoped<PollSqsJob>();
-    // NativeSqsWorker (Path B) is NOT registered in the container
+    // PollSqsJob (Path A) is scheduled via Hangfire — NOT registered as a HostedService.
+    // NativeSqsWorker (Path B) is running as a HostedService above.
 
 
     var app = builder.Build();
 
-    // Hangfire UI
+    // Hangfire UI — restricted to localhost in non-dev environments.
+    // In production, place behind an authenticated reverse-proxy or VPN instead.
+    var dashboardAuth = builder.Environment.IsDevelopment()
+        ? Array.Empty<IDashboardAuthorizationFilter>()
+        : new IDashboardAuthorizationFilter[] { new LocalRequestsOnlyAuthorizationFilter() };
+
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
         DashboardTitle = "Inventory Management Jobs",
         AppPath = null,
-        IgnoreAntiforgeryToken = true,
-        Authorization = []
+        IgnoreAntiforgeryToken = builder.Environment.IsDevelopment(),
+        Authorization = dashboardAuth
     });
 
     app.Run();

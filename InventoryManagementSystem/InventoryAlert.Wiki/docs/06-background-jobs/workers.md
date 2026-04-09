@@ -24,16 +24,28 @@ graph TD
 |---|---|---|
 | `FinnhubPricesSyncWorker` | Every 5 minutes | Fetches latest prices, updates DB, publishes `PriceSyncedEvent` |
 | `MarketStatusWorker` | Every 1 minute | Checks if market is open; blocks alert evaluation when closed |
+| `NewsCheckWorker` | Hourly | Scrapes company news from Finnhub to DynamoDB |
 
 ### FinnhubPricesSyncWorker — Step by Step
 
-1. Fetch all active `Product` records from PostgreSQL
-2. For each symbol: call `GET /quote?symbol={ticker}&token={API_KEY}` on Finnhub
-3. If `currentPrice` is valid (non-null, non-zero):
+1. Fetch all active `Product` records from PostgreSQL using **paged processing** (batch size: 50)
+2. For each symbol: call `GET /quote` on Finnhub
+3. If `currentPrice` is valid:
    - Update `Product.CurrentPrice`
    - Insert a `PriceHistory` row
    - Publish `PriceSyncedEvent` to SQS
-4. If `currentPrice` is invalid: log a warning and skip — **never throw**
+4. **Context Maintenance**: Call `_dbContext.ChangeTracker.Clear()` after each paged batch to ensure execution memory stays flat.
+5. If `currentPrice` is invalid: log a warning and skip — **never throw**
+
+### NewsCheckWorker — Step by Step
+
+1. Fetch all tracking symbols from DB.
+2. Call `GET /news` on Finnhub for the last 24-hour window.
+3. Deduplicate news entries using `FinnhubId` against existing DynamoDB records.
+4. If news count > 0:
+    - Perform **BatchSave** to DynamoDB (chunked by 25).
+    - Log completion metrics.
+5. Throttling: Uses `SemaphoreSlim(2)` to limit concurrent HTTP calls to Finnhub.
 
 ### Internal Queue (SQS)
 

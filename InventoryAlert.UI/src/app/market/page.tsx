@@ -6,7 +6,7 @@ import { fetchApi } from "@/lib/api";
 interface MarketNews {
   headline: string;
   source: string;
-  datetime: number;
+  dateTime: number;
   summary: string;
   category: string;
   url: string;
@@ -109,7 +109,7 @@ export default function MarketOverview() {
                      <div className="flex gap-3 text-[10px] items-center text-zinc-500 font-black uppercase tracking-widest">
                        <span className="text-blue-500">{item.source}</span>
                        <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                       <span>{new Date(item.datetime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                               <span>{new Date(item.dateTime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                      </div>
                    </div>
                  </a>
