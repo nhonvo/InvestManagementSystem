@@ -1,5 +1,5 @@
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Contracts.Common.Constants;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Contracts.Persistence.Interfaces;
 
 namespace InventoryAlert.Contracts.Persistence.Repositories;

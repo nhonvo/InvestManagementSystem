@@ -1,8 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
 using InventoryAlert.Api.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace InventoryAlert.Api.Web.Controllers;
 

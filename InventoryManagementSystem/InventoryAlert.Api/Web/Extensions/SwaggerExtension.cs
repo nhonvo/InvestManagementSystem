@@ -1,6 +1,6 @@
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Configuration;
 using InventoryAlert.Api.Web.Filters;
+using InventoryAlert.Contracts.Common.Constants;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 

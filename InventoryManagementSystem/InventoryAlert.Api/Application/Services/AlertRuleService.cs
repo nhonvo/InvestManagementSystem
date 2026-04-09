@@ -1,10 +1,10 @@
 using System.Text.Json;
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Contracts.Persistence.Interfaces;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Events;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 
 namespace InventoryAlert.Api.Application.Services;
 

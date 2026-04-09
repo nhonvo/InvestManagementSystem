@@ -1,6 +1,5 @@
-using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Entities;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryAlert.Contracts.Persistence.Repositories;

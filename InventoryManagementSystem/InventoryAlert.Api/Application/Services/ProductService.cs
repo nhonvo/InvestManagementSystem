@@ -1,14 +1,13 @@
 using FluentValidation;
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Mappings;
-using InventoryAlert.Contracts.Common.Constants;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
-using Microsoft.Extensions.Caching.Memory;
+using InventoryAlert.Contracts.Common.Constants;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Contracts.Entities;
-using Microsoft.Extensions.Logging;
+using InventoryAlert.Contracts.Persistence.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace InventoryAlert.Api.Application.Services;
 
@@ -166,7 +165,7 @@ public class ProductService(
                 Timestamp = DateTime.UtcNow,
                 Reference = "Manual API Update"
             }, cancellationToken);
-            
+
             result = updated.ToResponse();
         }, cancellationToken);
 

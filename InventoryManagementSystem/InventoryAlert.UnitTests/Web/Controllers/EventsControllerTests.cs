@@ -2,7 +2,6 @@ using FluentAssertions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Controllers;
-using InventoryAlert.Contracts.Events.Payloads;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;

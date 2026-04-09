@@ -11,8 +11,8 @@ public static class DatabaseSeeder
 {
 
     public static async Task SeedAsync(InventoryDbContext db, ILogger logger, CancellationToken ct = default)
-    {   
-        if ( await db.Users.AnyAsync(ct))
+    {
+        if (await db.Users.AnyAsync(ct))
         {
             logger.LogInformation("[Seeder] Users table already populated. Skipping seed.");
             return;
@@ -22,7 +22,7 @@ public static class DatabaseSeeder
 
         await db.Users.AddRangeAsync(
         [
-                new() {  
+                new() {
                     Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                     Username = "admin",
                     Email = "admin@example.com",

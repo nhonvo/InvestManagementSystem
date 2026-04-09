@@ -1,17 +1,17 @@
 using FluentAssertions;
 using FluentValidation;
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Contracts.Common.Exceptions;
+using InventoryAlert.Contracts.Configuration;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.UnitTests.Helpers;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using InventoryAlert.Contracts.Configuration;
 
 namespace InventoryAlert.UnitTests.Application.Services;
 
@@ -293,7 +293,7 @@ public class ProductServiceTests
 
         result.StockCount.Should().Be(99);
         _productRepository.Verify(r => r.UpdateAsync(It.Is<Product>(p => p.StockCount == 99)), Times.Once);
-        _stockTxRepo.Verify(r => r.AddAsync(It.Is<InventoryAlert.Contracts.Entities.StockTransaction>(t => 
+        _stockTxRepo.Verify(r => r.AddAsync(It.Is<InventoryAlert.Contracts.Entities.StockTransaction>(t =>
             t.ProductId == 1 && t.Quantity == 89 && t.UserId == "test-user"), Ct), Times.Once);
         _unitOfWork.Verify(u => u.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), Ct), Times.Once);
     }

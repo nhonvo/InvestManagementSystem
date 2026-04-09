@@ -1,6 +1,5 @@
 using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Worker.Application.IntegrationHandlers;
 using Microsoft.Extensions.Logging;
 using Moq;

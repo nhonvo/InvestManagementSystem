@@ -18,7 +18,6 @@ using InventoryAlert.Worker.Infrastructure.MessageConsumers;
 using InventoryAlert.Worker.Infrastructure.Messaging;
 using InventoryAlert.Worker.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using RestSharp;
 using Serilog;
 using Serilog.Events;

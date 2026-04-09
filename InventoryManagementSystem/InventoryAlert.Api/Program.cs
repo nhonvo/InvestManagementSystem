@@ -18,7 +18,7 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var bootstrapSettings = configuration.Get<AppSettings>() 
+var bootstrapSettings = configuration.Get<AppSettings>()
     ?? throw new InvalidOperationException("AppSettings configuration is missing.");
 
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────

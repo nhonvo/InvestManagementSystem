@@ -1,9 +1,9 @@
+using System.Security.Claims;
 using Asp.Versioning;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace InventoryAlert.Api.Web.Controllers;
 
@@ -77,7 +77,7 @@ public class ProductsController(IProductService productService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteProduct([FromRoute] int id, CancellationToken cancellationToken)
     {
-      var result = await _productService.DeleteProductAsync(id, cancellationToken);
+        var result = await _productService.DeleteProductAsync(id, cancellationToken);
         return Ok(result);
     }
 

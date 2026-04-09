@@ -1,7 +1,7 @@
 using System.Net;
 using FluentAssertions;
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Web.Middleware;
+using InventoryAlert.Contracts.Common.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;

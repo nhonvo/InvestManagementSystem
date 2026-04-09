@@ -1,8 +1,8 @@
 using System.Text.Json;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Configuration;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using StackExchange.Redis;
 
 namespace InventoryAlert.Api.Application.Services;
@@ -160,7 +160,7 @@ public class StockDataService(
             return JsonSerializer.Deserialize<List<string>>((string)cached!, _json) ?? [];
 
         var peers = await _finnhub.GetPeersAsync(symbol, ct);
-        
+
         if (peers.Count == 0) return peers;
 
         try

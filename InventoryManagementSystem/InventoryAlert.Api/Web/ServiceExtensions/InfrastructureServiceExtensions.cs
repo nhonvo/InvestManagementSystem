@@ -1,18 +1,17 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
 using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Infrastructure.External;
 using InventoryAlert.Api.Infrastructure.Messaging;
 using InventoryAlert.Api.Infrastructure.Notifications;
 using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Serilog;
 using RestSharp;
+using Serilog;
 using StackExchange.Redis;
 
 namespace InventoryAlert.Api.Web.ServiceExtensions;

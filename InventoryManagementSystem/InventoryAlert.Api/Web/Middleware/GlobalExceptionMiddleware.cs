@@ -1,7 +1,7 @@
 using System.Net;
-using InventoryAlert.Contracts.Common.Exceptions;
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Models;
+using InventoryAlert.Contracts.Common.Constants;
+using InventoryAlert.Contracts.Common.Exceptions;
 
 namespace InventoryAlert.Api.Web.Middleware;
 

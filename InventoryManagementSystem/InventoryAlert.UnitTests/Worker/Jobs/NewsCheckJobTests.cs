@@ -1,9 +1,7 @@
-using InventoryAlert.Contracts.Events.Payloads;
 using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.UnitTests.Helpers;
-using InventoryAlert.Worker.Application.Interfaces.Handlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
 using InventoryAlert.Worker.Infrastructure.Jobs;
 using Microsoft.EntityFrameworkCore;

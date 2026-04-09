@@ -1,8 +1,8 @@
 using FluentAssertions;
-using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.Api.Application.DTOs;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Web.Controllers;
+using InventoryAlert.Contracts.Common.Exceptions;
 using InventoryAlert.UnitTests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

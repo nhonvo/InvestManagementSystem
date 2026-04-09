@@ -1,12 +1,9 @@
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Contracts.Persistence;
 using InventoryAlert.Contracts.Persistence.Entities;
 using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.UnitTests.Helpers;
 using InventoryAlert.Worker.Application.IntegrationHandlers;
 using InventoryAlert.Worker.Infrastructure.External.Finnhub;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

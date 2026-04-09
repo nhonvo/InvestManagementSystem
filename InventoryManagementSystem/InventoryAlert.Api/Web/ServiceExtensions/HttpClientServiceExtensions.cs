@@ -1,5 +1,5 @@
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Contracts.Common.Constants;
 
 namespace InventoryAlert.Api.Web.ServiceExtensions;
 

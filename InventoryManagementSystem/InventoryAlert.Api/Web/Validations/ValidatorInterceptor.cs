@@ -1,8 +1,8 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using FluentValidation.Results;
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Models;
+using InventoryAlert.Contracts.Common.Constants;
 using Microsoft.AspNetCore.Mvc;
 using ValidationException = InventoryAlert.Contracts.Common.Exceptions.ValidationException;
 

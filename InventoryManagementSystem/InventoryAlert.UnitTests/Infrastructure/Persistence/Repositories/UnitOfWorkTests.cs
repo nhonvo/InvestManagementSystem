@@ -1,7 +1,7 @@
 using FluentAssertions;
 using InventoryAlert.Contracts.Common.Exceptions;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;

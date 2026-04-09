@@ -1,6 +1,6 @@
 using FluentAssertions;
-using InventoryAlert.Contracts.Persistence.Repositories;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 

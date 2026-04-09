@@ -1,9 +1,9 @@
 using FluentAssertions;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Entities;
 using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Contracts.Persistence.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -34,7 +34,7 @@ public class WatchlistServiceTests
         _redis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(redisDb.Object);
 
         _uow.Setup(x => x.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>(async (action, ct) => 
+            .Returns<Func<Task>, CancellationToken>(async (action, ct) =>
             {
                 await action();
                 await _db.SaveChangesAsync(ct);

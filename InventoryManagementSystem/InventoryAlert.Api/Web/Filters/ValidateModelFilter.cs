@@ -1,5 +1,5 @@
-using InventoryAlert.Contracts.Common.Constants;
 using InventoryAlert.Api.Web.Models;
+using InventoryAlert.Contracts.Common.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

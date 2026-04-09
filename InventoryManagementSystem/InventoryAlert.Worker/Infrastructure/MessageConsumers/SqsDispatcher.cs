@@ -4,8 +4,6 @@ using Amazon.SQS.Model;
 using InventoryAlert.Contracts.Configuration;
 using InventoryAlert.Contracts.Events;
 using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Contracts.Persistence.Entities;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using InventoryAlert.Api.Application.Interfaces;
 using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Contracts.Persistence.Interfaces;
 using InventoryAlert.Contracts.Events;
 using Microsoft.Extensions.Logging;
 using Moq;
