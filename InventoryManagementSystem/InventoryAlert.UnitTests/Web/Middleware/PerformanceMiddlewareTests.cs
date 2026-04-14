@@ -1,4 +1,4 @@
-using InventoryAlert.Api.Web.Middleware;
+using InventoryAlert.Api.Middleware;
 using InventoryAlert.UnitTests.Infrastructure.External;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -48,3 +48,4 @@ public class PerformanceMiddlewareTests
         _logger.VerifyLog(LogLevel.Warning, Times.Once());
     }
 }
+

@@ -1,32 +1,32 @@
 using Amazon.SQS.Model;
-using InventoryAlert.Contracts.Configuration;
+using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Worker.Configuration;
-using InventoryAlert.Worker.Infrastructure.MessageConsumers;
 using InventoryAlert.Worker.Interfaces;
+using InventoryAlert.Worker.ScheduledJobs;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Worker.MessageConsumers;
 
-public class PollSqsJobTests
+public class SqsScheduledPollerTests
 {
     private readonly Mock<ISqsHelper> _sqsMock = new();
-    private readonly Mock<ISqsDispatcher> _dispatcherMock = new();
-    private readonly Mock<ILogger<PollSqsJob>> _loggerMock = new();
+    private readonly Mock<IProcessQueueJob> _processQueueJobMock = new();
+    private readonly Mock<ILogger<SqsScheduledPollerJob>> _loggerMock = new();
     private readonly WorkerSettings _settings;
-    private readonly PollSqsJob _sut;
+    private readonly SqsScheduledPollerJob _sut;
 
-    public PollSqsJobTests()
+    public SqsScheduledPollerTests()
     {
         _settings = new WorkerSettings
         {
             Aws = new SharedAwsSettings { SqsQueueUrl = "http://queue" }
         };
 
-        _sut = new PollSqsJob(
+        _sut = new SqsScheduledPollerJob(
             _sqsMock.Object,
-            _dispatcherMock.Object,
+            _processQueueJobMock.Object,
             _settings,
             _loggerMock.Object);
     }
@@ -43,7 +43,7 @@ public class PollSqsJobTests
         await _sut.ExecuteAsync(CancellationToken.None);
 
         // Assert
-        _dispatcherMock.Verify(d => d.ProcessBatchAsync(messages, It.IsAny<CancellationToken>()), Times.Once);
+        _processQueueJobMock.Verify(d => d.ProcessBatchAsync(messages, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -57,6 +57,10 @@ public class PollSqsJobTests
         await _sut.ExecuteAsync(CancellationToken.None);
 
         // Assert
-        _dispatcherMock.Verify(d => d.ProcessBatchAsync(It.IsAny<IEnumerable<Message>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _processQueueJobMock.Verify(d => d.ProcessBatchAsync(It.IsAny<IEnumerable<Message>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
+
+
+
+

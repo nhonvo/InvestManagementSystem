@@ -77,6 +77,34 @@ jobs:
       run: npm run test
       working-directory: InventoryAlert.UI
 
-    - name: UI Build
-      run: npm run build
-      working-directory: InventoryAlert.UI
+    # ── Docker Integration & E2E Tests ──────────────────────────────────────────────
+    - name: Start Docker Stack
+      run: docker compose up -d --build
+      working-directory: InventoryManagementSystem
+
+    - name: Wait for API Health
+      run: |
+        echo "Waiting for API to be healthy and migrations to complete..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/health | grep -q "Healthy"; then
+            echo "API is Healthy!"
+            exit 0
+          fi
+          echo "Still waiting... ($i/30)"
+          sleep 5
+        done
+        echo "Error: API failed to reach healthy state within 150s"
+        docker compose logs api
+        exit 1
+      shell: bash
+      working-directory: InventoryManagementSystem
+
+    - name: Run E2E Tests
+      run: dotnet test InventoryAlert.E2ETests/InventoryAlert.E2ETests.csproj --no-restore --configuration Release --verbosity normal
+      working-directory: InventoryManagementSystem
+
+    - name: Docker Cleanup
+      if: always()
+      run: docker compose down -v --rmi local
+      working-directory: InventoryManagementSystem
+

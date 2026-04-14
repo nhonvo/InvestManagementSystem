@@ -28,8 +28,9 @@ graph TD
     end
 
     subgraph CoreLogic ["Core Processing Engine"]
-        DISP --> |DispatchAsync| DDP[Redis StringSetAsync]
-        DDP --> |Success| PROC[MessageProcessor.cs]
+        DISP --> |DispatchAsync| DDP[Redis: Atomic Dedup]
+        DDP --> |Unique| CLD[Price Alert Cooldown]
+        CLD --> |Allow| PROC[MessageProcessor.cs]
         PROC --> |ProcessMessageAsync| HAND[Integration Handlers]
         HAND --> |HandleAsync| RES[(DynamoDB / DB)]
     end
@@ -58,31 +59,40 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant SQS as Amazon SQS
-    participant Loop as ProcessQueueJob.ExecuteAsync
-    participant Help as SqsHelper.ReceiveMessagesAsync
-    participant Disp as SqsDispatcher.DispatchAsync
-    participant Redis as Redis Cache
-    participant Proc as MessageProcessor.ProcessMessageAsync
-    participant Final as IntegrationHandler.HandleAsync
+    participant Job as Job / Poller
+    participant Help as SqsHelper
+    participant Disp as SqsDispatcher
+    participant Redis as Redis / Cache
+    participant Proc as MessageProcessor
+    participant Final as IntegrationHandler
 
-    Loop->>Help: ReceiveMessagesAsync(queueUrl)
+    Job->>Help: ReceiveMessagesAsync(queueUrl)
     Help->>SQS: SDK: ReceiveMessageAsync
-    SQS-->>Help: List of Messages
-    Help-->>Loop: List<Message>
+    SQS-->>Help: List<Message>
+    Help-->>Job: List<Message>
     
+    Job->>Disp: ProcessBatchAsync(messages)
     loop Each Message in Batch
-        Loop->>Disp: DispatchAsync(message)
-        Disp->>Redis: StringSetAsync(dedupKey)
-        Redis-->>Disp: Success / Duplicate
+        Disp->>Disp: TryDeserializeEnvelope
         
-        alt Message is Unique
-            Disp->>Proc: ProcessMessageAsync(message)
-            Proc->>Final: HandleAsync(payload)
-            Final-->>Proc: Complete
-            Proc-->>Disp: Handled
-            Disp->>Disp: WriteTelemetryAsync (DynamoDB)
-        else Duplicate
-            Disp-->>Loop: Handled (Skipped)
+        alt Deserialize Success
+            Disp->>Redis: Atomic Dedup (StringSetAsync)
+            alt Is Unique
+                opt EventType == MarketPriceAlert
+                    Disp->>Redis: Cooldown Check (IsSupressedAsync)
+                end
+                
+                alt Not Supressed
+                    Disp->>Proc: ProcessMessageAsync(message)
+                    Proc->>Final: HandleAsync(payload)
+                    Final-->>Proc: Complete
+                    Proc-->>Disp: Handled
+                    Disp->>Redis: Set Key Expiration (48h)
+                    Disp->>SQS: DeleteMessageAsync (on success)
+                end
+            end
+        else Bad JSON
+            Disp-->>SQS: DeleteMessageAsync (Ack & Drop)
         end
     end
 ```
@@ -94,7 +104,7 @@ sequenceDiagram
 | **NativeSqsWorker.cs** | `ExecuteAsync` | Initiates the native polling implementation during app startup. |
 | **ProcessQueueJob.cs** | `ExecuteAsync` | Runs an infinite `while(!ct.IsCancellationRequested)` loop for SQS. |
 | **SqsHelper.cs** | `ReceiveMessagesAsync` | Low-level AWS SDK call to fetch messages from an SQS URL. |
-| **SqsDispatcher.cs** | `DispatchAsync` | Core middleware for de-duplication, telemetery, and early return logic. |
+| **SqsDispatcher.cs** | `Batch / Dispatch` | Orchestrates batch processing, de-duplication, and cooldown logic. |
 | **MessageProcessor.cs** | `ProcessMessageAsync`| Logic for routing a raw SQS body to a typed C# event handler. |
 | **JobSchedulerService.cs**| `StartAsync` | One-time registration of recurring Hangfire jobs into persistent storage. |
 | **QueuedHostedService.cs** | `ExecuteAsync` | Continuous consumer of the internal `IBackgroundTaskQueue`. |

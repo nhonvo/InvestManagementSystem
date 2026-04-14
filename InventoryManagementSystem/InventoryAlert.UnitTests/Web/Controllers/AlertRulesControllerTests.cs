@@ -1,8 +1,9 @@
 using System.Security.Claims;
 using FluentAssertions;
-using InventoryAlert.Api.Application.DTOs;
-using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Web.Controllers;
+using InventoryAlert.Api.Controllers;
+using InventoryAlert.Domain.DTOs;
+using InventoryAlert.Domain.Entities.Postgres;
+using InventoryAlert.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -34,39 +35,50 @@ public class AlertRulesControllerTests
     public async Task GetAlerts_Returns200_WithItems()
     {
         var items = new List<AlertRuleResponse> {
-            new(Guid.NewGuid(), "user-1", "AAPL", "Price", "Below", 150m, "telegram", true, null, DateTime.UtcNow)
+            new(Guid.NewGuid(), "AAPL", AlertCondition.PriceBelow, 150m, true, true, null)
         };
-        _service.Setup(s => s.GetUserAlertsAsync("user-1", Ct)).ReturnsAsync(items);
+        _service.Setup(s => s.GetByUserIdAsync("user-1", Ct)).ReturnsAsync(items);
 
         var result = await _sut.GetAlerts(Ct);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.StatusCode.Should().Be(StatusCodes.Status200OK);
+        var ok = (result.Result as OkObjectResult);
+        ok.Should().NotBeNull();
+        ok!.StatusCode.Should().Be(StatusCodes.Status200OK);
         ok.Value.Should().BeEquivalentTo(items);
     }
 
     [Fact]
-    public async Task CreateAlert_Returns201_WhenSuccessful()
+    public async Task Create_Returns201_WhenSuccessful()
     {
-        var request = new AlertRuleRequest("AAPL", "Price", "Below", 150m, "telegram");
-        var response = new AlertRuleResponse(Guid.NewGuid(), "user-1", "AAPL", "Price", "Below", 150m, "telegram", true, null, DateTime.UtcNow);
-        _service.Setup(s => s.CreateAlertAsync("user-1", request, Ct)).ReturnsAsync(response);
+        var request = new AlertRuleRequest("AAPL", AlertCondition.PriceBelow, 150m, true);
+        var response = new AlertRuleResponse(Guid.NewGuid(), "AAPL", AlertCondition.PriceBelow, 150m, true, true, null);
+        _service.Setup(s => s.CreateAsync(request, "user-1", Ct)).ReturnsAsync(response);
 
-        var result = await _sut.CreateAlert(request, Ct);
+        var result = await _sut.Create(request, Ct);
 
-        var created = result.Should().BeOfType<CreatedAtActionResult>().Subject;
-        created.StatusCode.Should().Be(StatusCodes.Status201Created);
+        var created = (result.Result as CreatedAtActionResult);
+        created.Should().NotBeNull();
+        created!.StatusCode.Should().Be(StatusCodes.Status201Created);
         created.Value.Should().BeEquivalentTo(response);
     }
 
     [Fact]
-    public async Task DeleteAlert_Returns204_WhenSuccessful()
+    public async Task Update_ReturnsOk_WhenSuccessful()
     {
-        var ruleId = Guid.NewGuid();
-        _service.Setup(s => s.DeleteAlertAsync("user-1", ruleId, Ct)).Returns(Task.CompletedTask);
+        // Arrange
+        var id = Guid.NewGuid();
+        var request = new AlertRuleRequest("NEW", AlertCondition.PriceBelow, 150m, true);
+        var response = new AlertRuleResponse(id, "NEW", AlertCondition.PriceBelow, 150m, true, true, null);
+        _service.Setup(s => s.UpdateAsync(id, request, "user-1", Ct)).ReturnsAsync(response);
 
-        var result = await _sut.DeleteAlert(ruleId, Ct);
+        // Act
+        var result = await _sut.Update(id, request, Ct);
 
-        result.Should().BeOfType<NoContentResult>();
+        // Assert
+        var ok = result.Result as OkObjectResult;
+        ok.Should().NotBeNull();
+        ok!.StatusCode.Should().Be(StatusCodes.Status200OK);
+        ok.Value.Should().BeEquivalentTo(response);
     }
 }
+

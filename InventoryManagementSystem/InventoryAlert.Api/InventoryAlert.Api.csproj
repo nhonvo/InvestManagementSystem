@@ -40,7 +40,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InventoryAlert.Contracts\InventoryAlert.Contracts.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Infrastructure\InventoryAlert.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

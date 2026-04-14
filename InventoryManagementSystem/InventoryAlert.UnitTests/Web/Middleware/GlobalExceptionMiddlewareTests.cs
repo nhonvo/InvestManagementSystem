@@ -1,7 +1,7 @@
 using System.Net;
 using FluentAssertions;
-using InventoryAlert.Api.Web.Middleware;
-using InventoryAlert.Contracts.Common.Exceptions;
+using InventoryAlert.Api.Middleware;
+using InventoryAlert.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -76,7 +76,7 @@ public class GlobalExceptionMiddlewareTests
         // Arrange
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
-        var exception = new InventoryAlert.Contracts.Common.Exceptions.ValidationException("Validation failed");
+        var exception = new InventoryAlert.Domain.Common.Exceptions.ValidationException("Validation failed");
         RequestDelegate next = (_) => throw exception;
 
         // Act
@@ -112,3 +112,4 @@ public class GlobalExceptionMiddlewareTests
         responseBody.Should().Contain("An error has occurred.");
     }
 }
+

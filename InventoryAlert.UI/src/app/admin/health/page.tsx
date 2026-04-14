@@ -56,16 +56,16 @@ export default function AdminHealth() {
     <div className="max-w-7xl mx-auto flex flex-col gap-10 h-full">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 py-2">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase">System Integrity</h1>
+          <h1 className="text-5xl font-semibold tracking-tight uppercase">System Integrity</h1>
           <p className="text-zinc-500 font-medium mt-2 text-lg">Real-time infrastructure health and performance orchestration.</p>
         </div>
         <div className="flex items-center gap-6">
            <div className="text-right">
-             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Integrity Score</p>
-             <p className="text-3xl font-black text-white">{health?.status === 'Healthy' ? '99.9' : '94.2'}<span className="text-zinc-600 text-sm ml-1">%</span></p>
+             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Integrity Score</p>
+             <p className="text-3xl font-semibold text-white">{health?.status === 'Healthy' ? '99.9' : '94.2'}<span className="text-zinc-600 text-sm ml-1">%</span></p>
            </div>
            <div className="w-px h-10 bg-white/5"></div>
-           <div className={`px-4 py-2 rounded-2xl border font-black text-[10px] tracking-widest transition-all ${health?.status === 'Healthy' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+           <div className={`px-4 py-2 rounded-2xl border font-semibold text-xs tracking-wider transition-all ${health?.status === 'Healthy' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
              SYSTEM: {health?.status?.toUpperCase() || 'OFFLINE'}
            </div>
         </div>
@@ -83,9 +83,9 @@ export default function AdminHealth() {
                 </div>
                 <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${getStatusColor(check.status)}`}></span>
               </div>
-              <h3 className="font-black text-zinc-300 uppercase tracking-widest text-[10px] mb-1">{check.name}</h3>
-              <p className={`text-xl font-black mb-4 ${getStatusColor(check.status)}`}>{check.status}</p>
-              <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase tracking-tight">
+              <h3 className="font-semibold text-zinc-300 uppercase tracking-wider text-xs mb-1">{check.name}</h3>
+              <p className={`text-xl font-semibold mb-4 ${getStatusColor(check.status)}`}>{check.status}</p>
+              <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-tight">
                 <span>Latency</span>
                 <span className="text-white">{check.duration.split('.')[0]}ms</span>
               </div>
@@ -101,8 +101,8 @@ export default function AdminHealth() {
                 {[1,2,3].map(i => <div key={i} className="w-1 h-3 bg-emerald-500/40 rounded-full"></div>)}
               </div>
            </div>
-           <h3 className="font-black text-zinc-400 uppercase tracking-widest text-[10px] mb-1">Throughput</h3>
-           <p className="text-xl font-black text-white mb-4">1.2k <span className="text-xs text-zinc-600">req/s</span></p>
+           <h3 className="font-semibold text-zinc-400 uppercase tracking-wider text-xs mb-1">Throughput</h3>
+           <p className="text-xl font-semibold text-white mb-4">1.2k <span className="text-xs text-zinc-600">req/s</span></p>
            <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
              <div className="bg-blue-500 h-full w-[65%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
            </div>
@@ -113,7 +113,7 @@ export default function AdminHealth() {
         <div className="lg:col-span-2 bg-zinc-900 border border-white/5 rounded-3xl flex flex-col overflow-hidden shadow-2xl relative group">
            <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
            <div className="p-8 border-b border-white/5 bg-black/20 flex items-center justify-between">
-              <h3 className="font-black text-xl tracking-tight uppercase">Performance Metrics</h3>
+              <h3 className="font-semibold text-xl tracking-tight uppercase">Performance Metrics</h3>
               <div className="flex gap-3">
                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -124,14 +124,14 @@ export default function AdminHealth() {
               <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400 mb-6 animate-pulse">
                 📊
               </div>
-              <h4 className="font-black text-white text-lg mb-2">Advanced Analytics</h4>
+              <h4 className="font-semibold text-white text-lg mb-2">Advanced Analytics</h4>
               <p className="text-zinc-500 text-sm max-w-sm font-medium">Historical performance and resource distribution visualization is currently being processed by the worker hub.</p>
            </div>
         </div>
 
         <div className="space-y-6">
            <div className="bg-zinc-900 border border-white/5 rounded-3xl p-8 shadow-2xl">
-              <h3 className="font-black text-xl mb-8 tracking-tight uppercase">System Logs</h3>
+              <h3 className="font-semibold text-xl mb-8 tracking-tight uppercase">System Logs</h3>
               <div className="space-y-6">
                  {[
                    { level: 'CRIT', msg: 'Finnhub rate limit approaching', time: '1m ago' },
@@ -139,12 +139,12 @@ export default function AdminHealth() {
                    { level: 'INFO', msg: 'System integrity scan complete', time: '1h ago' },
                  ].map((log, i) => (
                    <div key={i} className="flex gap-4 group">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded h-fit ${log.level === 'CRIT' ? 'bg-rose-500/10 text-rose-400' : log.level === 'WARN' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded h-fit ${log.level === 'CRIT' ? 'bg-rose-500/10 text-rose-400' : log.level === 'WARN' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
                         {log.level}
                       </span>
                       <div className="flex-1">
                         <p className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors leading-tight">{log.msg}</p>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{log.time}</p>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mt-1">{log.time}</p>
                       </div>
                    </div>
                  ))}
@@ -153,11 +153,11 @@ export default function AdminHealth() {
            
            <div className="bg-linear-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 shadow-2xl shadow-blue-900/20 group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-3xl group-hover:bg-white/20 transition-all"></div>
-              <h3 className="font-black text-white text-xl mb-2 tracking-tight uppercase relative z-10">Backup Status</h3>
+              <h3 className="font-semibold text-white text-xl mb-2 tracking-tight uppercase relative z-10">Backup Status</h3>
               <p className="text-blue-100 text-sm font-medium mb-6 relative z-10 opacity-80">Last full system snapshot captured successfully.</p>
               <div className="flex items-end justify-between relative z-10">
-                 <p className="text-4xl font-black text-white">100<span className="text-xl">%</span></p>
-                 <button className="px-6 py-2 bg-white text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform">Verify</button>
+                 <p className="text-4xl font-semibold text-white">100<span className="text-xl">%</span></p>
+                 <button className="px-6 py-2 bg-white text-blue-600 rounded-2xl text-xs font-semibold uppercase tracking-wider hover:scale-105 transition-transform">Verify</button>
               </div>
            </div>
         </div>

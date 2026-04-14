@@ -2,27 +2,31 @@ using System.Text.Json;
 using Amazon.SQS.Model;
 using FluentAssertions;
 using Hangfire;
-using InventoryAlert.Contracts.Events;
-using InventoryAlert.Contracts.Events.Payloads;
-using InventoryAlert.Worker.Application;
-using InventoryAlert.Worker.Application.Interfaces.Handlers;
+using InventoryAlert.Domain.Events;
+using InventoryAlert.Domain.Events.Payloads;
+using InventoryAlert.Worker.IntegrationEvents.Routing;
+using InventoryAlert.Worker.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Worker;
 
-public class MessageProcessorTests
+public class IntegrationMessageRouterTests
 {
     private readonly Mock<IRawDefaultHandler> _rawHandlerMock = new();
     private readonly Mock<IBackgroundJobClient> _jobClientMock = new();
-    private readonly Mock<ILogger<MessageProcessor>> _loggerMock = new();
-    private readonly MessageProcessor _sut;
+    private readonly Mock<IBackgroundTaskQueue> _taskQueueMock = new();
+    private readonly Mock<ILogger<IntegrationMessageRouter>> _loggerMock = new();
+    private readonly IntegrationMessageRouter _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
-    public MessageProcessorTests()
+    public IntegrationMessageRouterTests()
     {
-        _sut = new MessageProcessor(_rawHandlerMock.Object, _jobClientMock.Object, _loggerMock.Object);
+        _sut = new IntegrationMessageRouter(
+            _rawHandlerMock.Object,
+            _jobClientMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -56,21 +60,21 @@ public class MessageProcessorTests
         var result = await _sut.ProcessAndAcknowledgeAsync(message, Ct);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public async Task ProcessAndAcknowledgeAsync_ReturnsTrue_ForPriceAlert()
+    public async Task ProcessAndAcknowledgeAsync_ReturnsTrue_ForStockLowAlert()
     {
         // Arrange
-        var payload = new MarketPriceAlertPayload { Symbol = "AAPL" };
+        var payload = new LowHoldingsAlertPayload(Guid.NewGuid(), "AAPL", 10, 5);
         var message = new Message
         {
             MessageId = "1",
-            Body = JsonSerializer.Serialize(payload),
+            Body = JsonSerializer.Serialize(payload, InventoryAlert.Domain.Configuration.JsonOptions.Default),
             MessageAttributes = new Dictionary<string, MessageAttributeValue>
             {
-                { "MessageType", new MessageAttributeValue { StringValue = EventTypes.MarketPriceAlert } }
+                { "MessageType", new MessageAttributeValue { StringValue = EventTypes.StockLowAlert } }
             }
         };
 
@@ -79,27 +83,5 @@ public class MessageProcessorTests
 
         // Assert
         result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ProcessAndAcknowledgeAsync_ReturnsTrue_ForUnknownType_ByRoutingToRawHandler()
-    {
-        // Arrange
-        var message = new Message
-        {
-            MessageId = "1",
-            Body = "{}",
-            MessageAttributes = new Dictionary<string, MessageAttributeValue>
-            {
-                { "MessageType", new MessageAttributeValue { StringValue = "UnknownType" } }
-            }
-        };
-
-        // Act
-        var result = await _sut.ProcessAndAcknowledgeAsync(message, Ct);
-
-        // Assert
-        result.Should().BeTrue();
-        _rawHandlerMock.Verify(h => h.HandleAsync(message, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

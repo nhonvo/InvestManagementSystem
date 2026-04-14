@@ -1,11 +1,11 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.Api", "InventoryAlert.Api\InventoryAlert.Api.csproj", "{63416F88-38A8-495E-91B8-A732B61A515E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.Contracts", "InventoryAlert.Contracts\InventoryAlert.Contracts.csproj", "{13A11965-CD20-49F3-934C-9234E2B20670}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.Domain", "InventoryAlert.Domain\InventoryAlert.Domain.csproj", "{13A11965-CD20-49F3-934C-9234E2B20670}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.Worker", "InventoryAlert.Worker\InventoryAlert.Worker.csproj", "{BE715D9F-CC6A-4931-893E-C0E413ADD3BD}"
 EndProject
@@ -26,6 +26,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		SolutionFolder\moto-init\init-dynamodb.sh = SolutionFolder\moto-init\init-dynamodb.sh
 		SolutionFolder\moto-init\init-sqs.sh = SolutionFolder\moto-init\init-sqs.sh
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.Infrastructure", "InventoryAlert.Infrastructure\InventoryAlert.Infrastructure.csproj", "{86727EA4-9945-4FD4-8A93-C31883C5EA5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InventoryAlert.E2ETests", "InventoryAlert.E2ETests\InventoryAlert.E2ETests.csproj", "{5E783740-3A81-4C1A-AB33-617CDED7E7AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -121,6 +125,30 @@ Global
 		{51B44AE9-AC73-4B5D-8B25-672C921A704D}.Release|x64.Build.0 = Release|Any CPU
 		{51B44AE9-AC73-4B5D-8B25-672C921A704D}.Release|x86.ActiveCfg = Release|Any CPU
 		{51B44AE9-AC73-4B5D-8B25-672C921A704D}.Release|x86.Build.0 = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|x64.Build.0 = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Debug|x86.Build.0 = Debug|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|x64.ActiveCfg = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|x64.Build.0 = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|x86.ActiveCfg = Release|Any CPU
+		{86727EA4-9945-4FD4-8A93-C31883C5EA5F}.Release|x86.Build.0 = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|x64.Build.0 = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Debug|x86.Build.0 = Debug|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|x64.ActiveCfg = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|x64.Build.0 = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|x86.ActiveCfg = Release|Any CPU
+		{5E783740-3A81-4C1A-AB33-617CDED7E7AD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

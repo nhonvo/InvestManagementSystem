@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using FluentAssertions;
-using InventoryAlert.Api.Application.DTOs;
-using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Web.Controllers;
+using InventoryAlert.Api.Controllers;
+using InventoryAlert.Domain.DTOs;
+using InventoryAlert.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -12,57 +12,74 @@ namespace InventoryAlert.UnitTests.Web.Controllers;
 
 public class WatchlistControllerTests
 {
-    private readonly Mock<IWatchlistService> _service = new();
+    private readonly Mock<IWatchlistService> _watchlistService = new();
     private readonly WatchlistController _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
+    private const string UserId = "00000000-0000-0000-0000-000000000001";
 
     public WatchlistControllerTests()
     {
-        _sut = new WatchlistController(_service.Object);
+        _sut = new WatchlistController(_watchlistService.Object);
 
-        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] {
-            new(ClaimTypes.NameIdentifier, "user-1"),
-        }, "mock"));
-
-        _sut.ControllerContext = new ControllerContext()
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            HttpContext = new DefaultHttpContext() { User = user }
+            new Claim(ClaimTypes.NameIdentifier, UserId)
+        }));
+
+        _sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
         };
     }
 
     [Fact]
-    public async Task GetWatchlist_Returns200_WithItems()
+    public async Task GetWatchlist_ReturnsOk_WithItems()
     {
-        var items = new List<WatchlistItemResponse> {
-            new("AAPL", "Apple", "NASDAQ", "Stock", 150m, 1m, 0.5m, DateTime.UtcNow)
+        // Arrange
+        var items = new List<PortfolioPositionResponse>
+        {
+            new(1, "AAPL", "Apple", "NASDAQ", null, 0, 0, 150m, 0, 0, 0, 0.5, 1m, 0.5m, "Tech")
         };
-        _service.Setup(s => s.GetUserWatchlistAsync("user-1", Ct)).ReturnsAsync(items);
+        _watchlistService.Setup(s => s.GetWatchlistAsync(UserId, Ct)).ReturnsAsync(items);
 
+        // Act
         var result = await _sut.GetWatchlist(Ct);
 
-        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.StatusCode.Should().Be(StatusCodes.Status200OK);
-        ok.Value.Should().BeEquivalentTo(items);
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        okResult.Should().NotBeNull();
+        okResult!.Value.Should().Be(items);
     }
 
     [Fact]
-    public async Task AddToWatchlist_Returns204_WhenSuccessful()
+    public async Task AddToWatchlist_ReturnsCreatedAt_WithResponse()
     {
-        _service.Setup(s => s.AddToWatchlistAsync("user-1", "AAPL", Ct)).Returns(Task.CompletedTask);
+        // Arrange
+        var symbol = "AAPL";
+        var expectedRes = new PortfolioPositionResponse(1, symbol, "Apple", "NASDAQ", null, 0, 0, 150m, 0, 0, 0, 0.5, 1m, 0.5m, "Tech");
+        _watchlistService.Setup(s => s.AddToWatchlistAsync(symbol, UserId, Ct)).ReturnsAsync(expectedRes);
 
-        var result = await _sut.AddToWatchlist("AAPL", Ct);
+        // Act
+        var result = await _sut.AddToWatchlist(symbol, Ct);
 
-        result.Should().BeOfType<NoContentResult>();
+        // Assert
+        var crResult = result.Result as CreatedAtActionResult;
+        crResult.Should().NotBeNull();
+        crResult!.ActionName.Should().Be(nameof(WatchlistController.GetWatchlistItem));
+        crResult.Value.Should().Be(expectedRes);
     }
 
     [Fact]
-    public async Task RemoveFromWatchlist_Returns204_WhenSuccessful()
+    public async Task RemoveFromWatchlist_ReturnsOk()
     {
-        _service.Setup(s => s.RemoveFromWatchlistAsync("user-1", "AAPL", Ct)).Returns(Task.CompletedTask);
+        // Arrange
+        var symbol = "AAPL";
 
-        var result = await _sut.RemoveFromWatchlist("AAPL", Ct);
+        // Act
+        var result = await _sut.RemoveFromWatchlist(symbol, Ct);
 
-        result.Should().BeOfType<NoContentResult>()
-            .Which.StatusCode.Should().Be(StatusCodes.Status204NoContent);
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _watchlistService.Verify(s => s.RemoveFromWatchlistAsync(symbol, UserId, Ct), Times.Once);
     }
 }

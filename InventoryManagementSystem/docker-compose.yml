@@ -1,13 +1,21 @@
-services:
+# ==========================================================
+# Inventory Management System — Production Stack
+# ==========================================================
+networks:
+  inventory-net:
+    driver: bridge
 
-  # ==========================================================
-  # API — REST API + Event Publisher
-  # ==========================================================
+volumes:
+  pgdata:
+  redisdata:
+
+services:
+  # ── API: REST + Event Publisher ────────────────────────
   api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: inventory_api
+      dockerfile: InventoryAlert.Api/Dockerfile
+    container_name: inventory-api
     ports:
       - "8080:8080"
     environment:
@@ -20,109 +28,98 @@ services:
         condition: service_healthy
       moto-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
-  # ==========================================================
-  # Worker — Hangfire + SQS Consumer
-  # ==========================================================
+  # ── Worker: Hangfire + SQS Consumer ────────────────────
   worker:
     build:
       context: .
       dockerfile: InventoryAlert.Worker/Dockerfile
-    container_name: inventory_worker
+    container_name: inventory-worker
     ports:
-      - "8081:8080"
+      - "8081:8080" # Hangfire Dashboard exposure
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      - DOTNET_ENVIRONMENT=Docker
-      # AWS SDK reads these from OS env — cannot be in appsettings.json
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
-      # .NET config (Database, Redis, Aws endpoints) → appsettings.Docker.json
     depends_on:
       db:
         condition: service_healthy
+      api:
+        condition: service_healthy
       redis:
-        condition: service_started
-      moto-init:
-        condition: service_completed_successfully
+        condition: service_healthy
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
-  # ==========================================================
-  # PostgreSQL — Primary datastore
-  # ==========================================================
+  # ── PostgreSQL: Domain Storage ─────────────────────────
   db:
     image: postgres:17-alpine
-    container_name: inventory_db
+    container_name: inventory-db
     environment:
-      POSTGRES_DB: InventoryAlertDb
+      POSTGRES_DB: finance_alert_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"   # Expose on 5433 to avoid conflict with local postgres
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d InventoryAlertDb"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finance_alert_db"]
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
-  # ==========================================================
-  # Redis — Job scheduling state + message dedup cache
-  # ==========================================================
+  # ── Redis: Job State + Cache ──────────────────────────
   redis:
     image: redis:7.2-alpine
-    container_name: inventory_cache
+    container_name: inventory-cache
+    volumes:
+      - redisdata:/data
     ports:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
+      interval: 5s
       retries: 5
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
-  # ==========================================================
-  # Moto — Mock AWS SNS + SQS
-  # ==========================================================
+  # ── Moto: AWS Mock (S3/SQS/Dynamo) ─────────────────────
   moto:
     image: motoserver/moto:5.1.22
-    container_name: inventory_moto
+    container_name: inventory-moto
     ports:
       - "5000:5000"
     environment:
       - MOTO_HOST=0.0.0.0
       - MOTO_PORT=5000
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
-    command: ["-H", "0.0.0.0", "-p", "5000"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5000 || exit 1"]
       interval: 5s
-      timeout: 3s
+      timeout: 5s
       retries: 10
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
-  # ==========================================================
-  # Moto Init — Create SNS topic + SQS queues (runs once)
-  # ==========================================================
+  # ── Moto Init: Infra Provisioning ──────────────────────
   moto-init:
-    image: amazon/aws-cli:2.3.4
-    container_name: inventory_moto_init
+    image: amazon/aws-cli:latest
+    container_name: inventory-moto-init
     depends_on:
       moto:
         condition: service_healthy
@@ -133,47 +130,35 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ENDPOINT_URL=http://moto:5000
-    entrypoint: ["/bin/bash", "-c", "/moto-init/init-all.sh"]
+    entrypoint: ["/bin/sh", "-c", "sh /moto-init/init-all.sh"]
     networks:
-      - app-network
+      - inventory-net
 
-  # ==========================================================
-  # Next.js UI Frontend
-  # ==========================================================
+  # ── UI: Next.js Frontend ──────────────────────────────
   ui:
     build:
       context: ../InventoryAlert.UI
       args:
         - NEXT_PUBLIC_API_URL=http://localhost:8080
-    container_name: inventory_ui
+    container_name: inventory-ui
     ports:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
-      - NEXTAUTH_SECRET=dev-secret
-      - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       - api
     networks:
-      - app-network
+      - inventory-net
 
-  # ==========================================================
-  # Seq — Centralized Logging
-  # ==========================================================
+  # ── Seq: Logging Dashboard ─────────────────────────────
   seq:
     image: datalust/seq:latest
-    container_name: inventory_seq
+    container_name: inventory-seq
     environment:
       - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
     ports:
-      - "5341:80"        # UI on port 5341 (standard local Seq port)
+      - "5341:80"
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
-
-volumes:
-  pgdata:
-
-networks:
-  app-network:
-    driver: bridge

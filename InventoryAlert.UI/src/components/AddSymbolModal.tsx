@@ -13,6 +13,7 @@ export function AddSymbolModal({ isOpen, onClose, onSuccess }: AddSymbolModalPro
   const [symbol, setSymbol] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   if (!isOpen) return null
 
@@ -27,9 +28,13 @@ export function AddSymbolModal({ isOpen, onClose, onSuccess }: AddSymbolModalPro
       await fetchApi(`/api/v1/watchlist/${symbol.trim()}`, {
         method: 'POST'
       })
-      setSymbol('')
-      onSuccess()
-      onClose()
+      setSuccess(true)
+      setTimeout(() => {
+        setSymbol('')
+        onSuccess()
+        onClose()
+        setSuccess(false)
+      }, 1500)
     } catch (err: any) {
       setError(err.message || 'Failed to add symbol')
     } finally {
@@ -52,7 +57,7 @@ export function AddSymbolModal({ isOpen, onClose, onSuccess }: AddSymbolModalPro
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="symbol" className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">
+            <label htmlFor="symbol" className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 px-1">
               Stock Ticker
             </label>
             <input
@@ -82,10 +87,10 @@ export function AddSymbolModal({ isOpen, onClose, onSuccess }: AddSymbolModalPro
             </button>
             <button
               type="submit"
-              disabled={loading || !symbol.trim()}
-              className="flex-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl py-4 font-bold text-sm shadow-xl shadow-blue-500/20 transition-all active:scale-95 px-4"
+              disabled={loading || !symbol.trim() || success}
+              className={`flex-3 rounded-2xl py-4 font-bold text-sm shadow-xl transition-all active:scale-95 px-4 ${success ? 'bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'} text-white disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {loading ? 'Adding...' : 'Add to Watchlist'}
+              {loading ? 'Adding...' : success ? '✓ Added' : 'Add to Watchlist'}
             </button>
           </div>
         </form>

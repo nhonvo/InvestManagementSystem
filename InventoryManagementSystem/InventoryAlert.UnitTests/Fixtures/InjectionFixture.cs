@@ -1,4 +1,4 @@
-using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Domain.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -24,15 +24,19 @@ public class InjectionFixture : IDisposable
             {
                 ["Database:ConnectionString"] = "Host=localhost;Database=test",
                 ["Jwt:Key"] = "SuperSecretTestKeyThatIsLongEnough123456789",
+                ["Jwt:Issuer"] = "TestIssuer",
+                ["Jwt:Audience"] = "TestAudience",
                 ["Auth:Username"] = "admin",
                 ["Auth:Password"] = "password"
             })
             .Build();
 
         var settings = configuration.Get<AppSettings>() ?? new AppSettings();
+        var apiSettings = configuration.Get<InventoryAlert.Api.Configuration.ApiSettings>() ?? new InventoryAlert.Api.Configuration.ApiSettings();
 
         // Register configuration and app settings
         services.AddSingleton(settings);
+        services.AddSingleton(apiSettings);
         services.AddSingleton<IConfiguration>(configuration);
 
         // Register other services as needed for unit/integration tests
@@ -49,3 +53,5 @@ public class InjectionFixture : IDisposable
         }
     }
 }
+
+

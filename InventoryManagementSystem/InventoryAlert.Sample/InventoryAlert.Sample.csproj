@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\InventoryAlert.Contracts\InventoryAlert.Contracts.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

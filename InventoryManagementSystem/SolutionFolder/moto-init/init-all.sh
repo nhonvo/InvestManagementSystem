@@ -1,5 +1,5 @@
-#!/bin/bash
-set -ex
+#!/bin/sh
+set -e
 
 # AWS_ENDPOINT_URL is injected via docker-compose environment
 ACCOUNT_ID="123456789012"
@@ -7,6 +7,17 @@ REGION="us-east-1"
 ENDPOINT_URL="${AWS_ENDPOINT_URL:-http://moto:5000}"
 
 echo "=== InventoryAlert Moto Init (Combined) ==="
+
+# Wait for Moto to be responsive
+echo "Waiting for Moto at $ENDPOINT_URL..."
+for i in $(seq 1 30); do
+    if aws sqs list-queues --endpoint-url "$ENDPOINT_URL" --region "$REGION" > /dev/null 2>&1; then
+        echo "Moto is ready!"
+        break
+    fi
+    echo "Moto not ready yet (attempt $i/30)..."
+    sleep 2
+done
 
 # --------------------------------------------------
 # 1. SQS initialization
@@ -104,41 +115,41 @@ aws dynamodb update-time-to-live \
 
 # Create news table
 aws dynamodb create-table \
-    --table-name inventory-news \
+    --table-name inventoryalert-company-news \
     --attribute-definitions \
-        AttributeName=TickerSymbol,AttributeType=S \
-        AttributeName=PublishedAt,AttributeType=S \
+        AttributeName=PK,AttributeType=S \
+        AttributeName=SK,AttributeType=S \
     --key-schema \
-    AttributeName=TickerSymbol,KeyType=HASH \
-    AttributeName=PublishedAt,KeyType=RANGE \
+    AttributeName=PK,KeyType=HASH \
+    AttributeName=SK,KeyType=RANGE \
     --billing-mode PAY_PER_REQUEST \
     --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "Table 'inventory-news' might already exist"
+    --region "$REGION" || echo "Table 'inventoryalert-company-news' might already exist"
 
 aws dynamodb update-time-to-live \
-    --table-name inventory-news \
+    --table-name inventoryalert-company-news \
     --time-to-live-specification "Enabled=true, AttributeName=TTL" \
     --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "TTL for 'inventory-news' might already be enabled"
+    --region "$REGION" || echo "TTL for 'inventoryalert-company-news' might already be enabled"
 
-# inventory-market-news
+# inventoryalert-market-news
 aws dynamodb create-table \
-  --table-name inventory-market-news \
+  --table-name inventoryalert-market-news \
   --attribute-definitions \
-    AttributeName=Category,AttributeType=S \
-    AttributeName=PublishedAt,AttributeType=S \
+    AttributeName=PK,AttributeType=S \
+    AttributeName=SK,AttributeType=S \
   --key-schema \
-    AttributeName=Category,KeyType=HASH \
-    AttributeName=PublishedAt,KeyType=RANGE \
+    AttributeName=PK,KeyType=HASH \
+    AttributeName=SK,KeyType=RANGE \
   --billing-mode PAY_PER_REQUEST \
   --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "Table 'inventory-market-news' might already exist"
+  --region "$REGION" || echo "Table 'inventoryalert-market-news' might already exist"
 
 aws dynamodb update-time-to-live \
-  --table-name inventory-market-news \
+  --table-name inventoryalert-market-news \
   --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
   --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "TTL for 'inventory-market-news' might already be enabled"
+  --region "$REGION" || echo "TTL for 'inventoryalert-market-news' might already be enabled"
 
 # inventory-price-history
 aws dynamodb create-table \

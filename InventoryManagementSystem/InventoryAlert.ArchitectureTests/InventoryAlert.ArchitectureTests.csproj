@@ -22,7 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryAlert.Api\InventoryAlert.Api.csproj" />
     <ProjectReference Include="..\InventoryAlert.Worker\InventoryAlert.Worker.csproj" />
-    <ProjectReference Include="..\InventoryAlert.Contracts\InventoryAlert.Contracts.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
   </ItemGroup>
 
 </Project>
