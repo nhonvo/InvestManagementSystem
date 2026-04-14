@@ -78,6 +78,7 @@ Located in `IntegrationEvents/Handlers`. Operating under CQRS Command-Query prin
 | **MarketPriceAlertHandler** | `inventoryalert.pricing.price-drop.v1` | Price fetch → cache update → `PriceHistory` insert → full `AlertRule` evaluate for symbol |
 | **LowHoldingsHandler** | `inventoryalert.inventory.stock-low.v1` | Queries `Trade` ledger by `(UserId, TickerSymbol)` → checks `AlertRule[LowHoldingsCount]` |
 | **CompanyNewsAlertHandler** | `inventoryalert.news.headline.v1` | Immediate sync of ticker news → DynamoDB `CompanyNews` |
+| **SyncCompanyNewsHandler** | `inventoryalert.news.company-sync-requested.v1` | Manual UI-triggered sync of specific ticker news |
 | **SyncMarketNewsHandler** | `inventoryalert.news.sync-requested.v1` | On-demand UI command to refresh general Market News feed |
 | **DefaultHandler** | `*` (unmatched) | Log + acknowledge. Prevents poison-message queue blockage. |
 

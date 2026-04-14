@@ -92,7 +92,7 @@ public class DynamoDbGenericRepository<T>(IAmazonDynamoDB dynamoDbClient, ILogge
     {
         try
         {
-            return await _context.QueryAsync<T>(hashKey, (DynamoDBOperationConfig)null!).GetRemainingAsync(ct);
+            return await _context.QueryAsync<T>(hashKey).GetRemainingAsync(ct);
         }
         catch (Exception ex)
         {

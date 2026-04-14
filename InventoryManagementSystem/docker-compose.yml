@@ -135,20 +135,20 @@ services:
       - inventory-net
 
   # ── UI: Next.js Frontend ──────────────────────────────
-  ui:
-    build:
-      context: ../InventoryAlert.UI
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8080
-    container_name: inventory-ui
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
-    depends_on:
-      - api
-    networks:
-      - inventory-net
+  # ui:
+  #   build:
+  #     context: ../InventoryAlert.UI
+  #     args:
+  #       - NEXT_PUBLIC_API_URL=http://localhost:8080
+  #   container_name: inventory-ui
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NEXT_PUBLIC_API_URL=http://localhost:8080
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - inventory-net
 
   # ── Seq: Logging Dashboard ─────────────────────────────
   seq:

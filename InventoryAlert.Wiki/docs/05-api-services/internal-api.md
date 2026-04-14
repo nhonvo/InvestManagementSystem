@@ -107,7 +107,7 @@ Exchange-level and calendar data.
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/status` | JWT | Current open/closed status of major exchanges (US, LSE, HKEX). |
-| GET | `/news` | JWT | Global financial news feed by category (general/forex/crypto/merger). |
+| GET | `/news` | JWT | Global financial news feed by category (market pulse). |
 | GET | `/holiday` | JWT | Upcoming and past market holidays by exchange. |
 | GET | `/calendar/earnings` | JWT | Upcoming earnings release calendar (1-month window). |
 | GET | `/calendar/ipo` | JWT | Upcoming and recent IPOs. |
