@@ -23,7 +23,7 @@ public class MarketController(IStockDataService stockDataService) : ControllerBa
     [HttpGet("news")]
     public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNews([FromQuery] string category = "general", [FromQuery] int page = 1, CancellationToken ct = default)
     {
-        var res = await _stockDataService.GetMarketNewsAsync(category, page, ct);
+        var res = await _stockDataService.GetMarketNewsAsync(category, page, ct: ct);
         return Ok(res);
     }
 

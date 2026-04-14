@@ -143,22 +143,25 @@ public class StockDataService(
 
     // ── News ──────────────────────────────────────────────────────────────────
 
-    public async Task<IEnumerable<NewsResponse>> GetCompanyNewsAsync(string symbol, DateOnly from, DateOnly to, CancellationToken ct = default)
+    public async Task<IEnumerable<NewsResponse>> GetCompanyNewsAsync(string symbol, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var entries = await _companyNewsRepo.GetLatestBySymbolAsync(symbol.ToUpperInvariant(), 20, ct);
-        return entries.Select(e => new NewsResponse(
-            e.NewsId, e.Headline, e.Summary, e.Source, e.Url,
-            DateTimeOffset.FromUnixTimeSeconds(e.Timestamp).UtcDateTime,
-            e.ImageUrl, "company"));
+        var entries = await _companyNewsRepo.GetLatestBySymbolAsync(symbol.ToUpperInvariant(), page * pageSize, ct);
+        return entries
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(e => new NewsResponse(
+                e.NewsId, e.Headline, e.Summary, e.Source, e.Url,
+                DateTimeOffset.FromUnixTimeSeconds(e.Timestamp).UtcDateTime,
+                e.ImageUrl, "company"));
     }
 
-    public async Task<IEnumerable<NewsResponse>> GetMarketNewsAsync(string category, int page, CancellationToken ct = default)
+    public async Task<IEnumerable<NewsResponse>> GetMarketNewsAsync(string category, int page, int pageSize = 20, CancellationToken ct = default)
     {
         var entries = await _marketNewsRepo.QueryAsync($"CATEGORY#{category.ToUpperInvariant()}", ct);
         return entries
             .OrderByDescending(x => x.PublishedAt)
-            .Skip((page - 1) * 20)
-            .Take(20)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(e => new NewsResponse(
                 e.NewsId, e.Headline, e.Summary, e.Source, e.Url,
                 DateTime.TryParse(e.PublishedAt, out var dt) ? dt : DateTime.UtcNow,
@@ -236,28 +239,38 @@ public class StockDataService(
 
     private async Task<StockListing?> EnsureListingAsync(string symbol, CancellationToken ct)
     {
-        var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
+        var normalizedSymbol = symbol.ToUpperInvariant();
+        var listing = await _unitOfWork.StockListings.FindBySymbolAsync(normalizedSymbol, ct);
         if (listing != null) return listing;
 
         // Discovery Flow: Symbol not in DB, fetch from Finnhub Profile
-        var profile = await _finnhub.GetProfileAsync(symbol, ct);
+        var profile = await _finnhub.GetProfileAsync(normalizedSymbol, ct);
         if (profile == null) return null;
 
         listing = new StockListing
         {
-            TickerSymbol = symbol,
-            Name = profile.Name ?? symbol,
-            Exchange = profile.Exchange,
-            Currency = profile.Currency,
-            Country = profile.Country,
-            Industry = profile.Industry,
-            Logo = profile.Logo,
-            WebUrl = profile.WebUrl
+            TickerSymbol = normalizedSymbol.Length > 10 ? normalizedSymbol[..10] : normalizedSymbol,
+            Name = profile.Name?.Length > 200 ? profile.Name[..200] : (profile.Name ?? normalizedSymbol),
+            Exchange = profile.Exchange?.Length > 50 ? profile.Exchange[..50] : profile.Exchange,
+            Currency = profile.Currency?.Length > 10 ? profile.Currency[..10] : profile.Currency,
+            Country = profile.Country?.Length > 10 ? profile.Country[..10] : profile.Country,
+            Industry = profile.Industry?.Length > 100 ? profile.Industry[..100] : profile.Industry,
+            Logo = profile.Logo?.Length > 1000 ? profile.Logo[..1000] : profile.Logo,
+            WebUrl = profile.WebUrl?.Length > 1000 ? profile.WebUrl[..1000] : profile.WebUrl
         };
 
-        await _unitOfWork.StockListings.AddAsync(listing, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-        _logger.LogInformation("[Discovery] Persisted metadata for new symbol {Symbol}", symbol);
+        try
+        {
+            await _unitOfWork.StockListings.AddAsync(listing, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            _logger.LogInformation("[Discovery] Persisted metadata for new symbol {Symbol}", normalizedSymbol);
+        }
+        catch (Exception ex)
+        {
+            // Handle Race Condition: If another thread added it between our Find and Add
+            _logger.LogWarning(ex, "[Discovery] Failed to persist {Symbol}. Likely already exists or validation error.", normalizedSymbol);
+            return await _unitOfWork.StockListings.FindBySymbolAsync(normalizedSymbol, ct);
+        }
 
         return listing;
     }

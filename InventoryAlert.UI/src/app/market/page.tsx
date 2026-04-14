@@ -42,6 +42,7 @@ export default function MarketOverview() {
   const [earningsCalendar, setEarningsCalendar] = useState<EarningsCalendar[]>([]);
   const [loading, setLoading] = useState(true);
   const [newsCategory, setNewsCategory] = useState<string>("general");
+  const [newsPage, setNewsPage] = useState<number>(1);
   const [syncingNews, setSyncingNews] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -79,7 +80,7 @@ export default function MarketOverview() {
       monthAhead.setDate(now.getDate() + 30);
 
       const [newsData, statusData, earningsData] = await Promise.all([
-        fetchApi(`/api/v1/market/news?category=${category}&page=1`),
+        fetchApi(`/api/v1/market/news?category=${category}&page=${newsPage}`),
         fetchApi("/api/v1/market/status"),
         // Spec §5.4: GET /market/calendar/earnings — free tier limited to 1-month
         fetchApi(
@@ -99,6 +100,11 @@ export default function MarketOverview() {
 
   useEffect(() => {
     loadMarketData(newsCategory);
+  }, [newsCategory, newsPage]);
+
+  // Reset page when category changes
+  useEffect(() => {
+    setNewsPage(1);
   }, [newsCategory]);
 
   // Primary US market status
@@ -274,6 +280,27 @@ export default function MarketOverview() {
               ))
             )}
           </div>
+          
+          {/* Pagination */}
+          {news.length > 0 && (
+            <div className="p-6 border-t border-white/5 bg-black/10 flex items-center justify-between">
+              <button
+                onClick={() => setNewsPage(p => Math.max(1, p - 1))}
+                disabled={newsPage === 1}
+                className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Previous
+              </button>
+              <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Page {newsPage}</span>
+              <button
+                onClick={() => setNewsPage(p => p + 1)}
+                disabled={news.length < 20}
+                className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right panel: Earnings Calendar + Exchange Status sidebar */}
