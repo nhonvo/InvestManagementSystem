@@ -99,9 +99,9 @@ public class StocksController(IStockDataService stockDataService, IUnitOfWork un
         return res != null ? Ok(res) : NotFound();
     }
     [HttpGet("{symbol}/news")]
-    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNews(string symbol, [FromQuery] int page = 1, CancellationToken ct = default)
+    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNews(string symbol, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        var res = await _stockDataService.GetCompanyNewsAsync(symbol, page, 10, ct);
+        var res = await _stockDataService.GetCompanyNewsAsync(symbol, page, pageSize, ct);
         return Ok(res);
     }
 

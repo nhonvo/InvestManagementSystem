@@ -80,7 +80,7 @@ export default function MarketOverview() {
       monthAhead.setDate(now.getDate() + 30);
 
       const [newsData, statusData, earningsData] = await Promise.all([
-        fetchApi(`/api/v1/market/news?category=${category}&page=${newsPage}`),
+        fetchApi(`/api/v1/market/news?category=${category}&page=${newsPage}&pageSize=10`),
         fetchApi("/api/v1/market/status"),
         // Spec §5.4: GET /market/calendar/earnings — free tier limited to 1-month
         fetchApi(
@@ -294,7 +294,7 @@ export default function MarketOverview() {
               <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Page {newsPage}</span>
               <button
                 onClick={() => setNewsPage(p => p + 1)}
-                disabled={news.length < 20}
+                disabled={news.length < 10}
                 className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 Next

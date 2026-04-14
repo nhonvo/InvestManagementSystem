@@ -183,7 +183,7 @@ export default function StockDetailPage() {
         .catch(console.error);
     }
     if (activeTab === "News") {
-      fetchApi(`/api/v1/stocks/${symbol}/news?page=${newsPage}`)
+      fetchApi(`/api/v1/stocks/${symbol}/news?page=${newsPage}&pageSize=10`)
         .then((data) => setNews(data || []))
         .catch(console.error);
     }
