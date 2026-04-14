@@ -24,7 +24,7 @@ public class SqsHelper : ISqsHelper
                 QueueUrl = queueUrl,
                 MaxNumberOfMessages = maxMessages,
                 WaitTimeSeconds = 20,
-                AttributeNames = ["ApproximateReceiveCount", "SentTimestamp"]
+                MessageSystemAttributeNames = ["ApproximateReceiveCount", "SentTimestamp"]
             };
 
             var response = await _sqsClient.ReceiveMessageAsync(request, ct);

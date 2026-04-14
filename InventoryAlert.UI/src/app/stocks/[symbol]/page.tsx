@@ -93,7 +93,7 @@ type Tab = typeof TABS[number];
 export default function StockDetailPage() {
   const { symbol: rawSymbol } = useParams();
   // L2 fix: always uppercase the symbol for API calls
-  const symbol = (rawSymbol as string).toUpperCase();
+  const symbol = ((rawSymbol as string) || "").toUpperCase();
 
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [profile, setProfile] = useState<StockProfile | null>(null);

@@ -11,7 +11,7 @@ public static class HealthCheckExtensions
         var healthCheckBuilder = services.AddHealthChecks();
 
         // Database check (Npgsql)
-        healthCheckBuilder.AddNpgsql(configuration.Database.DefaultConnection, tags: ["api", "db"]);
+        healthCheckBuilder.AddNpgSql(configuration.Database.DefaultConnection, tags: new[] { "api", "db" });
 
 
 
