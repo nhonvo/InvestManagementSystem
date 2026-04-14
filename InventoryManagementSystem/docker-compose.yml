@@ -20,6 +20,10 @@ services:
         condition: service_healthy
       moto-init:
         condition: service_completed_successfully
+
+      wiremock:
+        condition: service_healthy
+
     networks:
       - app-network
     restart: unless-stopped
@@ -156,6 +160,28 @@ services:
       - api
     networks:
       - app-network
+
+  # ==========================================================
+  # WireMock
+  # ==========================================================
+  wiremock:
+    image: wiremock/wiremock:latest
+    container_name: inventory_wiremock
+    ports:
+      - "9091:8080"
+    volumes:
+      - ./InventoryAlert.IntegrationTests/Wiremock:/home/wiremock
+    command:
+      - "--global-response-templating"
+      - "--verbose"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/__admin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+    restart: unless-stopped
 
   # ==========================================================
   # Seq — Centralized Logging
