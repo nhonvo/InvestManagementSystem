@@ -183,9 +183,9 @@ try
         app.UseSwaggerWithUI();
     }
 
+    app.ConfigureHealthCheck();
     app.UseAuthentication();
     app.UseAuthorization();
-    app.ConfigureHealthCheck();
     app.MapControllers();
     app.Run();
 }
