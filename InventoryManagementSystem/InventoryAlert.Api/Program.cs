@@ -1,12 +1,13 @@
-using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Web.Configuration;
-using InventoryAlert.Api.Web.Extensions;
-using InventoryAlert.Api.Web.Middleware;
-using InventoryAlert.Api.Web.ServiceExtensions;
-using InventoryAlert.Contracts.Persistence;
+using InventoryAlert.Api.Configuration;
+using InventoryAlert.Api.Extensions;
+using InventoryAlert.Api.Middleware;
+using InventoryAlert.Api.ServiceExtensions;
+using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Infrastructure.Persistence.Postgres;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Polly;
 using Serilog;
 using Serilog.Events;
 
@@ -18,7 +19,7 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var bootstrapSettings = configuration.Get<AppSettings>() 
+var bootstrapSettings = configuration.Get<ApiSettings>()
     ?? throw new InvalidOperationException("AppSettings configuration is missing.");
 
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────
@@ -44,11 +45,11 @@ try
 
     // ─── Clean Configuration Injection ────────────────────────────────────────
     // Re-bind to ensure consistency with the container's environment
-    var settings = builder.Configuration.Get<AppSettings>() ?? bootstrapSettings;
+    var settings = builder.Configuration.Get<ApiSettings>() ?? bootstrapSettings;
 
     builder.Services.AddSingleton(settings);
+    builder.Services.AddSingleton<AppSettings>(settings);
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddScoped<ICorrelationProvider, InventoryAlert.Api.Web.Infrastructure.CorrelationProvider>();
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
@@ -56,8 +57,26 @@ try
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowAll",
-            policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        // Dev: allow all origins for local tooling. Production: restrict to configured origins.
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
+        {
+            options.AddPolicy("AllowAll",
+                policy => policy
+                    .SetIsOriginAllowed(origin => true) // Echoes back the origin instead of '*' to allow credentials
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());
+        }
+        else
+        {
+            var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+            options.AddPolicy("AllowAll",
+                policy => policy
+                    .WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());
+        }
     });
 
     var jwtKey = settings.Jwt.Key;
@@ -65,7 +84,7 @@ try
     {
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
         {
-            jwtKey = "InventoryAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
+            jwtKey = "FinanceAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
             Log.Warning("Using temporary default JWT key. NOT FOR PRODUCTION.");
         }
         else
@@ -115,32 +134,34 @@ try
     builder.Services.AddResponseCaching();
 
     builder.Services
-        .AddApplicationServices()
-        .AddInfrastructure(settings);
+        .AddWebApiInfrastructure(settings);
 
 
     // ─── Build ────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // ─── Auto-migrate on startup ──────────────────────────────────────────────
-    try
+    // ─── Auto-migrate on startup (Dev/Docker only) ──────────────────────────
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
     {
-        using var scope = app.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
-        app.Logger.LogInformation("Applying database migrations...");
-        dbContext.Database.Migrate();
-        app.Logger.LogInformation("Database migration complete.");
+        var retryPolicy = Policy
+            .Handle<Exception>()
+            .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (exception, timeSpan, retryCount, context) =>
+                {
+                    app.Logger.LogWarning("Database migration failed. Retry {RetryCount} in {RetryDelaySeconds}s. Error: {ErrorMessage}", retryCount, timeSpan.TotalSeconds, exception.Message);
+                });
 
-        if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
+        await retryPolicy.ExecuteAsync(async () =>
         {
-            await InventoryAlert.Api.Infrastructure.Persistence.DatabaseSeeder.SeedAsync(
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            app.Logger.LogInformation("Applying database migrations...");
+            await dbContext.Database.MigrateAsync();
+            app.Logger.LogInformation("Database migration complete.");
+
+            await InventoryAlert.Infrastructure.Persistence.Postgres.DatabaseSeeder.SeedAsync(
                 dbContext, app.Logger);
-        }
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogCritical(ex, "Error occurred during database migration");
-        throw;
+        });
     }
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────
@@ -151,18 +172,16 @@ try
     app.UseResponseCompression();
     app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
 
+    app.UseHttpsRedirection();
     app.UseRouting();
     app.UseCors("AllowAll");
 
-    // Cache must be injected AFTER Routing/Cors to hit variations safely securely.
     app.UseResponseCaching();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
     {
         app.UseSwaggerWithUI();
     }
-
-    app.UseHttpsRedirection();
 
     app.UseAuthentication();
     app.UseAuthorization();
@@ -180,3 +199,4 @@ finally
 }
 
 public partial class Program { }
+

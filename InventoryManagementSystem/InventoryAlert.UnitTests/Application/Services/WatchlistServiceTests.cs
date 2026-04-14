@@ -1,128 +1,99 @@
 using FluentAssertions;
-using InventoryAlert.Api.Application.Interfaces;
-using InventoryAlert.Api.Application.Services;
-using InventoryAlert.Contracts.Persistence.Interfaces;
-using InventoryAlert.Contracts.Entities;
-using InventoryAlert.Contracts.Persistence;
-using Microsoft.EntityFrameworkCore;
+using InventoryAlert.Api.Services;
+using InventoryAlert.Domain.DTOs;
+using InventoryAlert.Domain.Entities.Postgres;
+using InventoryAlert.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
-using StackExchange.Redis;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Application.Services;
 
 public class WatchlistServiceTests
 {
-    private readonly Mock<IEventPublisher> _eventPublisher = new();
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly Mock<IFinnhubClient> _finnhub = new();
-    private readonly Mock<IConnectionMultiplexer> _redis = new();
+    private readonly Mock<IStockDataService> _stockData = new();
     private readonly Mock<ILogger<WatchlistService>> _logger = new();
-    private readonly InventoryDbContext _db;
     private readonly WatchlistService _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
+    private const string UserId = "00000000-0000-0000-0000-000000000001";
+    private static readonly Guid UserGuid = Guid.Parse(UserId);
 
     public WatchlistServiceTests()
     {
-        var options = new DbContextOptionsBuilder<InventoryDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        _db = new InventoryDbContext(options);
-
-        var redisDb = new Mock<IDatabase>();
-        _redis.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(redisDb.Object);
-
-        _uow.Setup(x => x.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>(async (action, ct) => 
-            {
-                await action();
-                await _db.SaveChangesAsync(ct);
-            });
-
-        var mockWatchlistRepo = new Mock<IWatchlistRepository>();
-        mockWatchlistRepo.Setup(x => x.GetByUserIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string, CancellationToken>(async (uid, ct) => (IEnumerable<Watchlist>)await _db.Watchlists.Where(w => w.UserId == uid).Include(w => w.Product).ToListAsync(ct));
-        mockWatchlistRepo.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string, string, CancellationToken>((uid, sym, ct) => _db.Watchlists.AnyAsync(w => w.UserId == uid && w.Symbol == sym, ct));
-        mockWatchlistRepo.Setup(x => x.AddAsync(It.IsAny<Watchlist>(), It.IsAny<CancellationToken>()))
-            .Callback<Watchlist, CancellationToken>((w, _) => _db.Watchlists.Add(w))
-            .ReturnsAsync((Watchlist w, CancellationToken _) => w);
-        mockWatchlistRepo.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string, string, CancellationToken>((uid, sym, ct) => _db.Watchlists.FirstOrDefaultAsync(w => w.UserId == uid && w.Symbol == sym, ct));
-        mockWatchlistRepo.Setup(x => x.DeleteAsync(It.IsAny<Watchlist>()))
-            .Callback<Watchlist>(w => _db.Watchlists.Remove(w))
-            .ReturnsAsync((Watchlist w) => w);
-
-        _uow.Setup(x => x.Watchlists).Returns(mockWatchlistRepo.Object);
-
-        _sut = new WatchlistService(_uow.Object, _finnhub.Object, _redis.Object, _eventPublisher.Object, _logger.Object);
+        _sut = new WatchlistService(_uow.Object, _stockData.Object, _logger.Object);
     }
 
     [Fact]
-    public async Task GetUserWatchlist_ReturnsEmpty_WhenNoItemsExist()
+    public async Task GetWatchlist_ReturnsPositions_WithZeroHoldings()
     {
-        var result = await _sut.GetUserWatchlistAsync("user-1", Ct);
-        result.Should().BeEmpty();
+        // Arrange
+        var items = new List<WatchlistItem>
+        {
+            new() { TickerSymbol = "AAPL", UserId = UserGuid },
+            new() { TickerSymbol = "MSFT", UserId = UserGuid }
+        };
+        _uow.Setup(u => u.WatchlistItems.GetByUserIdAsync(UserId, Ct)).ReturnsAsync(items);
+        _uow.Setup(u => u.StockListings.FindBySymbolAsync("AAPL", Ct)).ReturnsAsync(new StockListing { Id = 1, TickerSymbol = "AAPL", Name = "Apple" });
+        _uow.Setup(u => u.StockListings.FindBySymbolAsync("MSFT", Ct)).ReturnsAsync(new StockListing { Id = 2, TickerSymbol = "MSFT", Name = "Microsoft" });
+        _stockData.Setup(s => s.GetQuoteAsync(It.IsAny<string>(), Ct))
+            .ReturnsAsync(new StockQuoteResponse("TEST", 150m, 1m, 0.5, 155m, 145m, 148m, 147m, DateTime.UtcNow));
+
+        // Act
+        var result = await _sut.GetWatchlistAsync(UserId, Ct);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.All(r => r.HoldingsCount == 0).Should().BeTrue();
     }
 
     [Fact]
-    public async Task GetUserWatchlist_ReturnsUserSpecificItems()
+    public async Task AddToWatchlist_ChecksListingFallback()
     {
-        _db.Products.AddRange(
-            new Product { TickerSymbol = "AAPL", Name = "Apple" },
-            new Product { TickerSymbol = "TSLA", Name = "Tesla" }
-        );
-        _db.Watchlists.AddRange(
-            new Watchlist { UserId = "user-1", Symbol = "AAPL" },
-            new Watchlist { UserId = "user-2", Symbol = "TSLA" }
-        );
-        await _db.SaveChangesAsync(Ct);
+        // Arrange
+        var symbol = "GOOGL";
+        _uow.Setup(u => u.WatchlistItems.GetByUserAndSymbolAsync(UserId, symbol, Ct)).ReturnsAsync((WatchlistItem?)null);
+        _uow.Setup(u => u.StockListings.FindBySymbolAsync(symbol, Ct)).ReturnsAsync((StockListing?)null);
+        _stockData.Setup(s => s.GetProfileAsync(symbol, Ct)).ReturnsAsync(new StockProfileResponse(symbol, "Google", "NASDAQ", "USD", "US", "Tech", 1000m, null, null, null));
+        _uow.Setup(u => u.StockListings.FindBySymbolAsync(symbol, Ct)).ReturnsAsync(new StockListing { Id = 3, TickerSymbol = symbol, Name = "Google" });
 
-        var result = await _sut.GetUserWatchlistAsync("user-1", Ct);
+        // Act
+        var result = await _sut.AddToWatchlistAsync(symbol, UserId, Ct);
 
-        result.Should().HaveCount(1);
-        result[0].Symbol.Should().Be("AAPL");
+        // Assert
+        result.Symbol.Should().Be(symbol);
+        _uow.Verify(u => u.WatchlistItems.AddAsync(It.Is<WatchlistItem>(w => w.TickerSymbol == symbol), Ct), Times.Once);
+        _uow.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
 
     [Fact]
-    public async Task AddToWatchlist_AddsItem_WhenNotExists()
+    public async Task RemoveFromWatchlist_CallsDelete_WhenItemExists()
     {
-        _finnhub.Setup(x => x.SearchSymbolsAsync("AAPL", Ct))
-            .ReturnsAsync(new FinnhubSymbolSearch { Result = new List<FinnhubSymbolItem> { new FinnhubSymbolItem { Symbol = "AAPL" } } });
+        // Arrange
+        var symbol = "AAPL";
+        var item = new WatchlistItem { TickerSymbol = symbol, UserId = UserGuid };
+        _uow.Setup(u => u.WatchlistItems.GetByUserAndSymbolAsync(UserId, symbol, Ct)).ReturnsAsync(item);
 
-        await _sut.AddToWatchlistAsync("user-1", "AAPL", Ct);
+        // Act
+        await _sut.RemoveFromWatchlistAsync(symbol, UserId, Ct);
 
-        var exists = await _db.Watchlists.AnyAsync(w => w.UserId == "user-1" && w.Symbol == "AAPL");
-        exists.Should().BeTrue();
-
-        _eventPublisher.Verify(p => p.PublishAsync(It.Is<InventoryAlert.Contracts.Events.EventEnvelope>(e => e.EventType == InventoryAlert.Contracts.Events.EventTypes.SymbolAdded), Ct), Times.Once);
+        // Assert
+        _uow.Verify(u => u.WatchlistItems.DeleteAsync(item, Ct), Times.Once);
+        _uow.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
 
     [Fact]
-    public async Task AddToWatchlist_Skips_WhenAlreadyExists()
+    public async Task AddToWatchlist_Throws_IfAlreadyExists()
     {
-        _finnhub.Setup(x => x.SearchSymbolsAsync("AAPL", Ct))
-            .ReturnsAsync(new FinnhubSymbolSearch { Result = new List<FinnhubSymbolItem> { new FinnhubSymbolItem { Symbol = "AAPL" } } });
+        // Arrange
+        var symbol = "AAPL";
+        _uow.Setup(u => u.WatchlistItems.GetByUserAndSymbolAsync(UserId, symbol, Ct)).ReturnsAsync(new WatchlistItem());
 
-        _db.Watchlists.Add(new Watchlist { UserId = "user-1", Symbol = "AAPL" });
-        await _db.SaveChangesAsync(Ct);
+        // Act
+        var act = () => _sut.AddToWatchlistAsync(symbol, UserId, Ct);
 
-        await _sut.AddToWatchlistAsync("user-1", "AAPL", Ct);
-
-        _db.Watchlists.Count().Should().Be(1);
-        _eventPublisher.Verify(p => p.PublishAsync(It.IsAny<InventoryAlert.Contracts.Events.EventEnvelope>(), Ct), Times.Never);
-    }
-
-    [Fact]
-    public async Task RemoveFromWatchlist_RemovesItem_WhenExists()
-    {
-        _db.Watchlists.Add(new Watchlist { UserId = "user-1", Symbol = "AAPL" });
-        await _db.SaveChangesAsync(Ct);
-
-        await _sut.RemoveFromWatchlistAsync("user-1", "AAPL", Ct);
-
-        _db.Watchlists.Count().Should().Be(0);
-        _eventPublisher.Verify(p => p.PublishAsync(It.Is<InventoryAlert.Contracts.Events.EventEnvelope>(e => e.EventType == InventoryAlert.Contracts.Events.EventTypes.SymbolRemoved), Ct), Times.Once);
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Symbol '{symbol}' is already on your watchlist.");
     }
 }

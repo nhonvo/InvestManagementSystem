@@ -1,9 +1,9 @@
 using System.Net;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
-using InventoryAlert.Api.Infrastructure.Messaging;
-using InventoryAlert.Api.Web.Configuration;
-using InventoryAlert.Contracts.Events;
+using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Events;
+using InventoryAlert.Infrastructure.Messaging;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -54,3 +54,5 @@ public class SnsEventPublisherTests
         ), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
+
+

@@ -1,29 +1,40 @@
-# Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# === Stage 1: Build ===
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
-# Copy solution, CPVM, and projects for restore
-COPY InventoryManagementSystem.sln ./
-COPY Directory.Packages.props ./
-COPY InventoryAlert.Contracts/InventoryAlert.Contracts.csproj ./InventoryAlert.Contracts/
-COPY InventoryAlert.Worker/InventoryAlert.Worker.csproj ./InventoryAlert.Worker/
+# Copy solution and project files for layer-cached restore
+COPY ["InventoryManagementSystem.sln", "./"]
+COPY ["Directory.Packages.props", "./"]
+COPY ["InventoryAlert.Domain/InventoryAlert.Domain.csproj", "InventoryAlert.Domain/"]
+COPY ["InventoryAlert.Infrastructure/InventoryAlert.Infrastructure.csproj", "InventoryAlert.Infrastructure/"]
+COPY ["InventoryAlert.Worker/InventoryAlert.Worker.csproj", "InventoryAlert.Worker/"]
+
+# Restore dependencies
 RUN dotnet restore "InventoryAlert.Worker/InventoryAlert.Worker.csproj"
 
-# Copy all source and publish
+# Copy full source and publish
 COPY . .
 RUN dotnet publish "InventoryAlert.Worker/InventoryAlert.Worker.csproj" \
     -c Release \
     --no-restore \
     -o /app/publish
 
-# Stage 2: Runtime (minimal image)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
-RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
-
+# === Stage 2: Runtime ===
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
+
+# Install dependencies (gcompat for native libs usage)
+RUN apk add --no-cache icu-libs curl gcompat
+
+# Configure runtime for Alpine (Globalization)
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV ASPNETCORE_ENVIRONMENT=Docker
+
 COPY --from=build /app/publish .
 
-EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+# Run as non-root user
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "InventoryAlert.Worker.dll"]
+
+LABEL description="Hangfire & SQS Processing Worker"

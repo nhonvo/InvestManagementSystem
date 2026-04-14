@@ -1,54 +1,53 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Link from "next/link";
-import UserNav from "@/components/UserNav";
+import type { Metadata } from 'next'
+import './globals.css'
+import ThemeProvider from '@/components/ThemeProvider'
+import NavbarWrapper from '@/components/NavbarWrapper'
 
-const inter = Inter({ subsets: ["latin"] });
-// ... rest matches
+// System font stack — avoids network requests during Docker builds
+const fontStyle = {
+  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+}
+
+export const metadata: Metadata = {
+  title: 'InventoryAlert | Modern Market Intelligence',
+  description: 'Real-time stock monitoring and market news for professional traders.',
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body 
-        className={`${inter.className} bg-[#050505] text-white min-h-screen flex flex-col selection:bg-blue-500/30 antialiased`}
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Prevent flash of unstyled theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.add(t);}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body
+        className="bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-white min-h-screen flex flex-col selection:bg-blue-500/30 antialiased transition-colors duration-300"
         style={{
+          ...fontStyle,
           backgroundImage: `
-            radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.03) 0, transparent 50%)
+            radial-gradient(circle at 15% 50%, rgba(59,130,246,0.10) 0%, transparent 40%),
+            radial-gradient(circle at 85% 30%, rgba(139,92,246,0.10) 0%, transparent 40%),
+            radial-gradient(circle at 50% 80%, rgba(16,185,129,0.07) 0%, transparent 50%)
           `,
           backgroundAttachment: 'fixed',
         }}
       >
-        <header className="sticky top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-xl flex items-center justify-between px-8 py-4">
-          <div className="flex items-center gap-10">
-            <Link href="/" className="group">
-              <h1 className="text-2xl font-black tracking-tighter text-white group-hover:scale-105 transition-transform">
-                INVENTORY<span className="text-blue-500">ALERT</span>
-              </h1>
-            </Link>
-            <nav className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-              <Link href="/" className="hover:text-white transition-colors">Dashboard</Link>
-              <Link href="/market" className="hover:text-white transition-colors">Market</Link>
-              <Link href="/alerts" className="hover:text-white transition-colors">Alerts</Link>
-              <Link href="/admin/events" className="hover:text-white transition-colors font-bold text-zinc-600">Events</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest border border-white/5 rounded-full px-4 py-1.5 bg-zinc-900/50 text-emerald-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-              Market Open
-            </div>
-            <UserNav />
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-8 lg:p-12">
-          {children}
-        </main>
+        <ThemeProvider>
+          {/* NavbarWrapper is a client component that owns searchOpen state */}
+          <NavbarWrapper />
+          <main className="flex-1 overflow-auto max-w-screen-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

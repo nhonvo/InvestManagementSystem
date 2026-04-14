@@ -26,7 +26,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      await fetchApi('/api/auth/register', {
+      await fetchApi('/api/v1/auth/register', {
         method: 'POST',
         body: JSON.stringify({ username, email, password, confirmPassword }),
       })
@@ -42,7 +42,7 @@ export default function RegisterPage() {
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
       <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900 border border-white/10 rounded-2xl shadow-xl">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">Create Account</h2>
+          <h2 className="text-3xl font-bold text-white tracking-tight">Create Account</h2>
           <p className="mt-2 text-zinc-400">Join InventoryAlert today</p>
         </div>
         

@@ -1,8 +1,7 @@
 using System.Net;
 using FluentAssertions;
-using InventoryAlert.Api.Infrastructure.External;
-using InventoryAlert.Api.Web.Configuration;
-using InventoryAlert.Contracts.Configuration;
+using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Infrastructure.External.Finnhub;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
@@ -133,7 +132,11 @@ public class FinnhubClientTests
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network failure"))
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.ServiceUnavailable,
+                Content = new StringContent("Service Unavailable")
+            })
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
@@ -172,3 +175,6 @@ public static class LoggerExtensions
             times);
     }
 }
+
+
+

@@ -58,10 +58,11 @@ dotnet add package Motor.Extensions.Hosting.CloudEvents //TODO: LATER
 Note: Run these from the project root using `--project`:
 ```bash
 # Create a migration
-dotnet ef migrations add InitialCreate --project InventoryAlert.Api --output-dir Infrastructure/Persistence/Migrations
+dotnet ef migrations add test --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api --context InventoryDbContext
 
-# Apply migrations
-dotnet ef database update --project InventoryAlert.Api
+dotnet ef migrations remove --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api --context InventoryDbContext
+
+dotnet ef database update --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api --context InventoryDbContext
 ```
 
 ## 🛠️ 5. Build, Run, and Test

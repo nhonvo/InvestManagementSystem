@@ -1,5 +1,6 @@
 using FluentAssertions;
-using InventoryAlert.Api.Web.Configuration;
+using InventoryAlert.Api.Configuration;
+using InventoryAlert.Domain.Configuration;
 using InventoryAlert.UnitTests.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -14,12 +15,12 @@ public class ConfigurationTests(InjectionFixture fixture) : IClassFixture<Inject
     public void AppSettings_ShouldBeCorrectlyPopulated_FromFixture()
     {
         // Act
-        var settings = _fixture.ServiceProvider.GetRequiredService<AppSettings>();
+        var settings = _fixture.ServiceProvider.GetRequiredService<ApiSettings>();
 
         // Assert
         settings.Should().NotBeNull();
-        settings.Auth.Username.Should().Be("admin");
-        settings.Jwt.Issuer.Should().Be("InventoryAlert.Api");
+        settings.Jwt.Issuer.Should().Be("TestIssuer");
+        settings.Jwt.Audience.Should().Be("TestAudience");
     }
 
     [Fact]
@@ -33,3 +34,5 @@ public class ConfigurationTests(InjectionFixture fixture) : IClassFixture<Inject
         firstInstance.Should().BeSameAs(secondInstance);
     }
 }
+
+

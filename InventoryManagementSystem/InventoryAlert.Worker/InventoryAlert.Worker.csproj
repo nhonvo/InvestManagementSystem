@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Application\**" />
+    <Compile Remove="Startup\**" />
+    <Content Remove="Application\**" />
+    <Content Remove="Startup\**" />
+    <EmbeddedResource Remove="Application\**" />
+    <EmbeddedResource Remove="Startup\**" />
+    <None Remove="Application\**" />
+    <None Remove="Startup\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.DynamoDBv2" />
     <PackageReference Include="AWSSDK.SQS" />
     <PackageReference Include="Hangfire.AspNetCore" />
@@ -27,10 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InventoryAlert.Contracts\InventoryAlert.Contracts.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Startup\BackgroundProcess\" />
+    <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Infrastructure\InventoryAlert.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

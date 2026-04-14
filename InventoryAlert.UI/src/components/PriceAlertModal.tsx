@@ -10,11 +10,13 @@ interface PriceAlertModalProps {
   currentPrice: number
 }
 
-export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: PriceAlertModalProps) {
-  const [threshold, setThreshold] = useState(currentPrice.toString())
-  const [operator, setOperator] = useState('gt')
+export function PriceAlertModal({ isOpen, onClose, symbol = "SYMBOL", currentPrice = 0 }: PriceAlertModalProps) {
+  const [threshold, setThreshold] = useState(currentPrice?.toString() ?? "0")
+  const [condition, setCondition] = useState('PriceAbove')
+  const [triggerOnce, setTriggerOnce] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   if (!isOpen) return null
 
@@ -24,18 +26,20 @@ export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: Price
     setError('')
 
     try {
-      await fetchApi('/api/v1/alerts', {
+      await fetchApi('/api/v1/alertrules', {
         method: 'POST',
         body: JSON.stringify({
-          symbol: symbol.toUpperCase(),
-          field: 'price',
-          operator,
-          threshold: parseFloat(threshold),
-          notifyChannel: 'telegram'
+          tickerSymbol: symbol.toUpperCase(),
+          condition: condition,
+          targetValue: parseFloat(threshold),
+          triggerOnce: triggerOnce
         })
       })
-      alert('Alert set successfully!')
-      onClose()
+      setSuccess(true)
+      setTimeout(() => {
+        onClose()
+        setSuccess(false)
+      }, 2000)
     } catch (err: any) {
       setError(err.message || 'Failed to set alert')
     } finally {
@@ -60,22 +64,36 @@ export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: Price
           <div className="flex gap-2 p-1 bg-black rounded-2xl border border-white/5">
             <button
               type="button"
-              onClick={() => setOperator('gt')}
-              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${operator === 'gt' ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-white"}`}
+              onClick={() => setCondition('PriceAbove')}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${condition === 'PriceAbove' ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-white"}`}
             >
               Above
             </button>
             <button
               type="button"
-              onClick={() => setOperator('lt')}
-              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${operator === 'lt' ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-white"}`}
+              onClick={() => setCondition('PriceBelow')}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${condition === 'PriceBelow' ? "bg-zinc-800 text-white shadow-lg" : "text-zinc-500 hover:text-white"}`}
             >
               Below
             </button>
           </div>
 
+          <div className="flex items-center justify-between p-4 bg-black rounded-2xl border border-white/5">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Trigger Once</span>
+              <span className="text-xs text-zinc-500">Deactivate after firing</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTriggerOnce(!triggerOnce)}
+              className={`w-12 h-6 rounded-full transition-all relative ${triggerOnce ? 'bg-blue-600' : 'bg-zinc-800'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${triggerOnce ? 'right-1' : 'left-1'}`}></div>
+            </button>
+          </div>
+
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 px-1">
               Target Price ($)
             </label>
             <input
@@ -85,7 +103,7 @@ export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: Price
               onChange={(e) => setThreshold(e.target.value)}
               className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white outline-hidden focus:border-blue-500/50 transition-all font-mono text-xl"
             />
-            <p className="text-[10px] text-zinc-500 mt-2 px-1 italic">Current Price: ${currentPrice.toFixed(2)}</p>
+            <p className="text-xs text-zinc-500 mt-2 px-1 italic">Current Price: ${currentPrice?.toFixed(2) ?? "0.00"}</p>
           </div>
 
           {error && (
@@ -104,10 +122,10 @@ export function PriceAlertModal({ isOpen, onClose, symbol, currentPrice }: Price
             </button>
             <button
               type="submit"
-              disabled={loading || !threshold}
-              className="flex-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl py-4 font-bold text-sm shadow-xl shadow-blue-500/20 transition-all active:scale-95"
+              disabled={loading || !threshold || success}
+              className={`flex-2 rounded-2xl py-4 font-bold text-sm shadow-xl transition-all active:scale-95 ${success ? 'bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'} text-white disabled:opacity-50`}
             >
-              {loading ? 'Setting...' : 'Set Alert'}
+              {loading ? 'Setting...' : success ? '✓ Alert Live' : 'Set Alert'}
             </button>
           </div>
         </form>

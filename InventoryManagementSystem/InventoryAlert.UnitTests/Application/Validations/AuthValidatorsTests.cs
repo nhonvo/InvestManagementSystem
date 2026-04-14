@@ -1,6 +1,6 @@
 using FluentValidation.TestHelper;
-using InventoryAlert.Api.Application.DTOs;
-using InventoryAlert.Api.Application.Validations;
+using InventoryAlert.Domain.DTOs;
+using InventoryAlert.Domain.Validators;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Application.Validations;
@@ -46,6 +46,7 @@ public class AuthValidatorsTests
     {
         var model = new RegisterRequest(username, password, email);
         var result = _registerValidator.TestValidate(model);
-        result.ShouldHaveAnyValidationError();
+        Assert.False(result.IsValid);
     }
 }
+

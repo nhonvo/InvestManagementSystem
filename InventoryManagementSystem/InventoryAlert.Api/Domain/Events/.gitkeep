@@ -1,5 +1,0 @@
-// Domain Events placeholder.
-// Future domain events (e.g., ProductPriceDropped, StockLevelLow) will live here.
-//
-// Example structure:
-//   public record ProductPriceDropped(int ProductId, string Symbol, decimal DropPercent);

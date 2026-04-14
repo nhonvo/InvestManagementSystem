@@ -1,5 +1,5 @@
 using FluentAssertions;
-using InventoryAlert.Api.Web.Middleware;
+using InventoryAlert.Api.Middleware;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
@@ -43,3 +43,4 @@ public class CorrelationIdMiddlewareTests
         context.Items["X-Correlation-Id"].Should().Be(existingId);
     }
 }
+

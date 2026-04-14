@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
-using InventoryAlert.Contracts.Configuration;
-using InventoryAlert.Contracts.Events;
-using InventoryAlert.Contracts.Events.Payloads;
+using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Events;
+using InventoryAlert.Domain.Events.Payloads;
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 var apiBaseUrl = args.FirstOrDefault() ?? "http://localhost:8080";
@@ -45,7 +45,6 @@ while (true)
             await PublishViaApiAsync(httpClient, EventTypes.MarketPriceAlert,
                 new MarketPriceAlertPayload
                 {
-                    ProductId = 1,
                     Symbol = "AAPL"
                 }, ct);
             break;
@@ -94,7 +93,6 @@ static async Task PublishDirectToSnsAsync(IAmazonSimpleNotificationService sns, 
 {
     var payload = new MarketPriceAlertPayload
     {
-        ProductId = 2,
         Symbol = "GOOGL"
     };
 
@@ -136,7 +134,6 @@ static async Task StressTestAsync(IAmazonSimpleNotificationService sns, string t
         string payloadJson = eventType == EventTypes.MarketPriceAlert
             ? JsonSerializer.Serialize(new MarketPriceAlertPayload
             {
-                ProductId = i,
                 Symbol = symbol
             }, JsonOptions.Default)
             : JsonSerializer.Serialize(new CompanyNewsAlertPayload
