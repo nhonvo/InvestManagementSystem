@@ -47,6 +47,28 @@ jobs:
         # Display summary in GitHub Action UI
         echo "## Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
         cat ./coverage/report/Summary.md >> $GITHUB_STEP_SUMMARY
+
+    # ── Docker Integration & API Tests ───────────────────────────────────────────────
+    - name: Start Docker Stack
+      run: docker compose up -d --build
+      working-directory: InventoryManagementSystem
+
+    - name: Wait for API Health
+      run: |
+        echo "Waiting for API to be healthy and migrations to complete..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/health | grep -q "Healthy"; then
+            echo "API is Healthy!"
+            exit 0
+          fi
+          echo "Still waiting... ($i/30)"
+          sleep 5
+        done
+        echo "Error: API failed to reach healthy state within 150s"
+        docker compose logs api
+        exit 1
+      shell: bash
+      working-directory: InventoryManagementSystem
           
     - name: Integration Test
       run: dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
@@ -78,26 +100,6 @@ jobs:
       working-directory: InventoryAlert.UI
 
     # ── Docker Integration & E2E Tests ──────────────────────────────────────────────
-    - name: Start Docker Stack
-      run: docker compose up -d --build
-      working-directory: InventoryManagementSystem
-
-    - name: Wait for API Health
-      run: |
-        echo "Waiting for API to be healthy and migrations to complete..."
-        for i in {1..30}; do
-          if curl -s http://localhost:8080/health | grep -q "Healthy"; then
-            echo "API is Healthy!"
-            exit 0
-          fi
-          echo "Still waiting... ($i/30)"
-          sleep 5
-        done
-        echo "Error: API failed to reach healthy state within 150s"
-        docker compose logs api
-        exit 1
-      shell: bash
-      working-directory: InventoryManagementSystem
 
     - name: Run E2E Tests
       run: dotnet test InventoryAlert.E2ETests/InventoryAlert.E2ETests.csproj --no-restore --configuration Release --verbosity normal
