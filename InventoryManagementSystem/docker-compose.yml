@@ -173,7 +173,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - app-network
+      - inventory-net
     restart: unless-stopped
 
   # ── Seq: Logging Dashboard ─────────────────────────────
