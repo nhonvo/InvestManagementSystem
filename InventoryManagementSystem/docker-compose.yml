@@ -30,9 +30,9 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
+      interval: 1s
+      timeout: 100000s
+      retries: 3
       start_period: 30s
     networks:
       - inventory-net
