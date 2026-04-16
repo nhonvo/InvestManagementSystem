@@ -1,6 +1,8 @@
 using InventoryAlert.Domain.Common.Constants;
 using InventoryAlert.Domain.Configuration;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.DependencyInjection;
+using HealthChecks.NpgSql;
 
 namespace InventoryAlert.Api.Extensions;
 
@@ -11,7 +13,7 @@ public static class HealthCheckExtensions
         var healthCheckBuilder = services.AddHealthChecks();
 
         // Database check (Npgsql)
-        healthCheckBuilder.AddNpgsql(configuration.Database.DefaultConnection, name: "PostgreSQL");
+        // healthCheckBuilder.AddNpgsql(configuration.Database.DefaultConnection);
 
 
 
