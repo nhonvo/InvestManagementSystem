@@ -172,7 +172,10 @@ try
     app.UseResponseCompression();
     app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
 
-    app.UseHttpsRedirection();
+    if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Docker"))
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseRouting();
     app.UseCors("AllowAll");
 

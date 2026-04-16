@@ -28,12 +28,12 @@ services:
         condition: service_healthy
       moto-init:
         condition: service_completed_successfully
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-    #   interval: 1s
-    #   timeout: 100000s
-    #   retries: 3
-    #   start_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     networks:
       - inventory-net
     restart: unless-stopped

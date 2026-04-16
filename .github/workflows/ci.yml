@@ -86,7 +86,7 @@ jobs:
       run: |
         echo "Waiting for API to be healthy and migrations to complete..."
         for i in {1..30}; do
-          if curl -s http://localhost:8080/health | grep -q "Healthy"; then
+          if curl -s http://127.0.0.1:8080/health | grep -q '"status":"Healthy"'; then
             echo "API is Healthy!"
             exit 0
           fi
