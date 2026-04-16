@@ -84,6 +84,16 @@ Located in `IntegrationEvents/Handlers`. Operating under CQRS Command-Query prin
 
 ---
 
+## Health Monitoring
+
+The worker is equipped with health check endpoints exposed via HTTP (port `8080` internally, `8081` in Docker Compose):
+
+- **Liveness & Readiness**: `GET /health`
+- **Dependency Checks**: Verified connectivity to PostgreSQL on startup.
+- **Docker Integration**: Configured with `interval: 10s` and `retries: 5` to ensure background services stay responsive.
+
+---
+
 ## Protective Redundancy
 
 1. **Failure Tolerance**: Handlers inherit a retry/timeout policy — absolute limit of **5 failure iterations** before the message is acknowledged and dropped.
