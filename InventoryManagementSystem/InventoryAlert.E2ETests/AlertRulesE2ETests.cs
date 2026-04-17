@@ -52,6 +52,11 @@ public class AlertRulesE2ETests : BaseE2ETest
     {
         // 1. Arrange
         await EnsureAuthenticatedAsync();
+
+        // Ensure symbol is in catalog
+        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
+        await Client.ExecuteAsync(seedReq);
+
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
         var createRes = await Client.ExecuteAsync<AlertRuleResponse>(createReq);
@@ -74,9 +79,15 @@ public class AlertRulesE2ETests : BaseE2ETest
     {
         // 1. Arrange
         await EnsureAuthenticatedAsync();
+
+        // Ensure symbol is in catalog
+        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
+        await Client.ExecuteAsync(seedReq);
+
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
         var createRes = await Client.ExecuteAsync<AlertRuleResponse>(createReq);
+        createRes.StatusCode.Should().Be(HttpStatusCode.Created);
         var alertId = createRes.Data!.Id;
 
         // 2. Act
@@ -94,9 +105,15 @@ public class AlertRulesE2ETests : BaseE2ETest
     {
         // 1. Arrange
         await EnsureAuthenticatedAsync();
+
+        // Ensure symbol is in catalog
+        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
+        await Client.ExecuteAsync(seedReq);
+
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
         var createRes = await Client.ExecuteAsync<AlertRuleResponse>(createReq);
+        createRes.StatusCode.Should().Be(HttpStatusCode.Created);
         var alertId = createRes.Data!.Id;
 
         // 2. Act

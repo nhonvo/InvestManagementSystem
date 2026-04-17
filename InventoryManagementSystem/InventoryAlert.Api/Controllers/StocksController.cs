@@ -98,13 +98,10 @@ public class StocksController(IStockDataService stockDataService, IUnitOfWork un
         var res = await _stockDataService.GetPeersAsync(symbol, ct);
         return res != null ? Ok(res) : NotFound();
     }
-// todo: check it it get nothing
     [HttpGet("{symbol}/news")]
-    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNews(string symbol, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNews(string symbol, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        var fromDate = from ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-1));
-        var toDate = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var res = await _stockDataService.GetCompanyNewsAsync(symbol, fromDate, toDate, ct);
+        var res = await _stockDataService.GetCompanyNewsAsync(symbol, page, pageSize, ct);
         return Ok(res);
     }
 

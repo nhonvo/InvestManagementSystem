@@ -93,7 +93,7 @@ type Tab = typeof TABS[number];
 export default function StockDetailPage() {
   const { symbol: rawSymbol } = useParams();
   // L2 fix: always uppercase the symbol for API calls
-  const symbol = (rawSymbol as string).toUpperCase();
+  const symbol = ((rawSymbol as string) || "").toUpperCase();
 
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [profile, setProfile] = useState<StockProfile | null>(null);
@@ -106,6 +106,7 @@ export default function StockDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
+  const [newsPage, setNewsPage] = useState(1);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [updatingWatchlist, setUpdatingWatchlist] = useState(false);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -181,8 +182,8 @@ export default function StockDetailPage() {
         .then((data) => setInsiders(data || []))
         .catch(console.error);
     }
-    if (activeTab === "News" && news.length === 0) {
-      fetchApi(`/api/v1/stocks/${symbol}/news`)
+    if (activeTab === "News") {
+      fetchApi(`/api/v1/stocks/${symbol}/news?page=${newsPage}&pageSize=10`)
         .then((data) => setNews(data || []))
         .catch(console.error);
     }
@@ -484,7 +485,7 @@ export default function StockDetailPage() {
                     <p className="text-zinc-500 italic">No news available for {symbol}.</p>
                   ) : (
                   <div className="space-y-4">
-                    {news.slice(0, 10).map((item) => (
+                    {news.map((item) => (
                       <a
                         key={item.id}
                         href={item.url}
@@ -512,6 +513,25 @@ export default function StockDetailPage() {
                         </div>
                       </a>
                     ))}
+                    
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <button
+                        onClick={() => setNewsPage(p => Math.max(1, p - 1))}
+                        disabled={newsPage === 1}
+                        className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Page {newsPage}</span>
+                      <button
+                        onClick={() => setNewsPage(p => p + 1)}
+                        disabled={news.length < 10}
+                        className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
