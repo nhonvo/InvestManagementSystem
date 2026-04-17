@@ -23,9 +23,6 @@
     <None Update="appsettings.test.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestData\*\*.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
     <ProjectReference Include="..\InventoryAlert.Api\InventoryAlert.Api.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Worker\InventoryAlert.Worker.csproj" />
   </ItemGroup>
 
 </Project>

@@ -87,4 +87,16 @@ public class AuthApiTest : BaseIntegrationTest
         // Assert
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task Logout_ShouldReturnUnauthorized_WhenCalledWithInvalidToken()
+    {
+        // Arrange
+
+        // Act
+        var logoutResponse = await _client.LogoutAsync("invalid");
+
+        // Assert
+        logoutResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

@@ -31,7 +31,20 @@ public class InjectionFixture : IDisposable
             Timeout = TimeSpan.FromSeconds(settings.ApiSettings.TimeoutSeconds)
         };
         services.AddSingleton(new RestClient(options, configureSerialization: s => s.UseNewtonsoftJson()));
-        // services.AddTransient<AuthClient>();
+
+        var wiremockOptions = new RestClientOptions(settings.WiremockSettings.AdminUrl)
+        {
+            Timeout = TimeSpan.FromSeconds(settings.WiremockSettings.TimeoutSeconds)
+        };
+        var wiremockRestClient = new RestClient(wiremockOptions, configureSerialization: s => s.UseNewtonsoftJson());
+        services.AddSingleton(new WiremockAdminClient(wiremockRestClient));
+
+         var mockFinnhubOptions = new RestClientOptions(settings.WiremockSettings.BaseUrl)
+        {
+            Timeout = TimeSpan.FromSeconds(settings.WiremockSettings.TimeoutSeconds)
+        };
+        var mockFinnhubRestClient = new RestClient(mockFinnhubOptions, configureSerialization: s => s.UseNewtonsoftJson());
+        services.AddSingleton(new MockFinnhubClient(mockFinnhubRestClient));
 
         ServiceProvider = services.BuildServiceProvider();
     }

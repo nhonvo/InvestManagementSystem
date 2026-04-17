@@ -1,7 +1,17 @@
 {
   "request": {
     "method": "GET",
-    "url": "/quote"
+    "urlPath": "/quote",
+    "headers": {
+      "X-Finnhub-Token": {
+        "matches": ".+"
+      }
+    },
+    "queryParameters": {
+      "symbol": {
+        "matches": ".+"
+      }
+    }
   },
   "response": {
     "status": 200,
