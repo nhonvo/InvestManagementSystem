@@ -10,11 +10,12 @@ using InventoryAlert.Worker.IntegrationEvents.Routing;
 using InventoryAlert.Worker.Interfaces;
 using InventoryAlert.Worker.ScheduledJobs;
 using InventoryAlert.Worker.Utilities;
+using InventoryAlert.Worker.Extensions;
 using Serilog;
 using Serilog.Events;
 
 var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
+    .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json")
     .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", true)
     .AddEnvironmentVariables()
@@ -42,6 +43,7 @@ try
     builder.Services.AddSingleton<InventoryAlert.Domain.Configuration.AppSettings>(settings);
 
     builder.Services.AddInfrastructure(settings);
+    builder.Services.SetupHealthCheck(settings);
 
     builder.Services.AddHangfire(config =>
         config.UsePostgreSqlStorage(opts =>
@@ -87,6 +89,7 @@ try
         Authorization = new[] { new DevDashboardAuthorizationFilter() }
     });
 
+    app.ConfigureHealthCheck();
     app.Run();
 }
 catch (Exception ex)

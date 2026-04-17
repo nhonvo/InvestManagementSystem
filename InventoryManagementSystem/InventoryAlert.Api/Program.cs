@@ -13,14 +13,16 @@ using Serilog.Events;
 
 // ─── Early Configuration Binding for Bootstrap ───────────────────────────────
 var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json")
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true)
     .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
     .AddEnvironmentVariables()
     .Build();
 
+
 var bootstrapSettings = configuration.Get<ApiSettings>()
     ?? throw new InvalidOperationException("AppSettings configuration is missing.");
+
 
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
@@ -129,8 +131,6 @@ try
     builder.Services.SetupMvc();
     builder.Services.AddCompressionCustom();
     builder.Services.SetupHealthCheck(settings);
-
-    builder.Services.AddHealthChecks();
     builder.Services.AddResponseCaching();
 
     builder.Services
