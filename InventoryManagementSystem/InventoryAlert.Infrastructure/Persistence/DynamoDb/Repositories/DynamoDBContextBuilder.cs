@@ -15,6 +15,8 @@ public class DynamoDBContextBuilder
 
     public IDynamoDBContext Build()
     {
+#pragma warning disable CS0618
         return new DynamoDBContext(_clientFactory());
+#pragma warning restore CS0618
     }
 }

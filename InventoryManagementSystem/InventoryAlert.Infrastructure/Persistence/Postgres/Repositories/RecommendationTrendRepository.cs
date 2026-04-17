@@ -29,6 +29,7 @@ public class RecommendationTrendRepository(AppDbContext context) : IRecommendati
             }
             else
             {
+                item.Id = existing.Id;
                 context.Entry(existing).CurrentValues.SetValues(item);
             }
         }

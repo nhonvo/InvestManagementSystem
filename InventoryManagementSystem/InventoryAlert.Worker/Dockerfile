@@ -29,12 +29,14 @@ RUN apk add --no-cache icu-libs curl gcompat
 # Configure runtime for Alpine (Globalization)
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 ENV ASPNETCORE_ENVIRONMENT=Docker
+ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=build /app/publish .
 
 # Run as non-root user
 USER $APP_UID
 
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "InventoryAlert.Worker.dll"]
 
 LABEL description="Hangfire & SQS Processing Worker"

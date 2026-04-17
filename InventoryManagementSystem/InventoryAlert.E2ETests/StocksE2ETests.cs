@@ -59,5 +59,11 @@ public class StocksE2ETests : BaseE2ETest
         var earnReq = CreateAuthenticatedRequest($"api/v1/stocks/{symbol}/earnings", Method.Get);
         var earnRes = await Client.ExecuteAsync<IEnumerable<EarningsSurpriseResponse>>(earnReq);
         earnRes.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // 4. News
+        var newsReq = CreateAuthenticatedRequest($"api/v1/stocks/{symbol}/news", Method.Get);
+        var newsRes = await Client.ExecuteAsync<IEnumerable<NewsResponse>>(newsReq);
+        newsRes.StatusCode.Should().Be(HttpStatusCode.OK);
+        newsRes.Data.Should().NotBeNull();
     }
 }
