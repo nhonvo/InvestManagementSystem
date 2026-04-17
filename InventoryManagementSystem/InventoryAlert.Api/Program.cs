@@ -13,7 +13,7 @@ using Serilog.Events;
 
 // ─── Early Configuration Binding for Bootstrap ───────────────────────────────
 var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
+    .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json")
     .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
     .AddEnvironmentVariables()
