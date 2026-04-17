@@ -78,23 +78,36 @@ jobs:
       working-directory: InventoryAlert.UI
 
     # ── Docker Integration & E2E Tests ──────────────────────────────────────────────
-    - name: Start Docker Stack
-      run: docker compose up -d --build
+    - name: Seed Configuration Files (CI)
+      run: |
+        cp InventoryAlert.Api/appsettings.Example.json InventoryAlert.Api/appsettings.json
+        cp InventoryAlert.Worker/appsettings.Example.json InventoryAlert.Worker/appsettings.json
       working-directory: InventoryManagementSystem
 
-    - name: Wait for API Health
+    - name: Start Docker Stack
+      id: start-docker
       run: |
-        echo "Waiting for API to be healthy and migrations to complete..."
+        docker compose up -d --build || (echo "Docker Compose failed to start" && docker ps -a && docker compose logs api && docker compose logs db && exit 1)
+      working-directory: InventoryManagementSystem
+
+    - name: Wait for Services Health (API & Worker)
+      run: |
+        echo "Waiting for API & Worker to be healthy..."
         for i in {1..30}; do
-          if curl -s http://localhost:8080/health | grep -q "Healthy"; then
-            echo "API is Healthy!"
+          API_HEALTH=$(curl -s http://127.0.0.1:8080/health | grep -q '"status":"Healthy"' && echo "UP" || echo "DOWN")
+          WORKER_HEALTH=$(curl -s http://127.0.0.1:8081/health | grep -q '"status":"Healthy"' && echo "UP" || echo "DOWN")
+          
+          echo "[$i/30] API: $API_HEALTH | Worker: $WORKER_HEALTH"
+          
+          if [ "$API_HEALTH" = "UP" ] && [ "$WORKER_HEALTH" = "UP" ]; then
+            echo "All services are Healthy!"
             exit 0
           fi
-          echo "Still waiting... ($i/30)"
           sleep 5
         done
-        echo "Error: API failed to reach healthy state within 150s"
+        echo "Error: Services failed to reach healthy state within 150s"
         docker compose logs api
+        docker compose logs worker
         exit 1
       shell: bash
       working-directory: InventoryManagementSystem

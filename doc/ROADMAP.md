@@ -173,6 +173,7 @@ Should we return the list of created products or just the count?
  - [x] Implement modern dark-themed UI with glassmorphism
  - [x] Routes: Market Explorer, Price Alerts, Portfolio, Symbol Details
  - [x] Integrated with `StocksController` via `StockDataService`
+ - [x] **UI Test stabilization** — Added Vitest unit and component tests to satisfy CI/CD
  - [ ] Replace static chart placeholders with functional **Recharts** implementations
  - [ ] Implement Next.js Route Handlers for secure API proxying
 
