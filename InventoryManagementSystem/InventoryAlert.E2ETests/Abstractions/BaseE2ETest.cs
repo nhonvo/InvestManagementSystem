@@ -11,7 +11,7 @@ namespace InventoryAlert.E2ETests.Abstractions;
 public abstract class BaseE2ETest : IDisposable
 {
     protected readonly RestClient Client;
-    protected readonly string BaseUrl = "http://localhost:8080";
+    protected readonly string BaseUrl = Environment.GetEnvironmentVariable("E2E_BASE_URL") ?? "http://localhost:8080";
     protected string? JwtToken;
 
     protected BaseE2ETest()
@@ -39,7 +39,8 @@ public abstract class BaseE2ETest : IDisposable
 
         var response = await Client.ExecuteAsync<AuthResponse>(request);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK, "Login should succeed for default admin");
+        response.StatusCode.Should().Be(HttpStatusCode.OK, 
+            $"Login should succeed for default admin. Response: {response.Content}");
         response.Data.Should().NotBeNull();
 
         JwtToken = response.Data!.AccessToken;

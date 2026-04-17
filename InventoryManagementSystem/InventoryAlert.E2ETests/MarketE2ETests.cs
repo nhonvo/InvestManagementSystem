@@ -57,4 +57,19 @@ public class MarketE2ETests : BaseE2ETest
             response.Data!.Symbol.Should().Be(symbol);
         }
     }
+
+    [Fact]
+    public async Task GetMarketNews_ShouldReturnOk()
+    {
+        // 1. Arrange
+        await EnsureAuthenticatedAsync();
+
+        // 2. Act
+        var request = CreateAuthenticatedRequest("api/v1/market/news?category=general&page=1", Method.Get);
+        var response = await Client.ExecuteAsync<IEnumerable<NewsResponse>>(request);
+
+        // 3. Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Should().NotBeNull();
+    }
 }

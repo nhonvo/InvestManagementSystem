@@ -4,25 +4,22 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using HealthChecks.NpgSql;
 
-namespace InventoryAlert.Api.Extensions;
+namespace InventoryAlert.Worker.Extensions;
 
 public static class HealthCheckExtensions
 {
     public static void SetupHealthCheck(this IServiceCollection services, AppSettings configuration)
     {
-        var healthCheckBuilder = services.AddHealthChecks();
-
-        // Database check (NpgSql)
-        healthCheckBuilder.AddNpgSql(
-            configuration.Database.DefaultConnection,
-            name: HealthCheck.DBHealthCheck,
-            tags: new[] { HealthCheck.InfrastructureCheck, "db", "api" });
-
+        services.AddHealthChecks()
+            .AddNpgSql(
+                configuration.Database.DefaultConnection,
+                name: HealthCheck.DBHealthCheck,
+                tags: new[] { HealthCheck.InfrastructureCheck, "db", "worker" });
     }
 
     public static void ConfigureHealthCheck(this WebApplication app)
     {
-        app.UseHealthChecks("/health", new HealthCheckOptions
+        app.MapHealthChecks("/health", new HealthCheckOptions
         {
             Predicate = _ => true,
             ResponseWriter = async (context, report) =>
@@ -43,16 +40,5 @@ public static class HealthCheckExtensions
                 await context.Response.WriteAsJsonAsync(response);
             }
         });
-
-        // Additional endpoint for external synthetic checks
-        app.UseHealthChecks("/synthetic-check", new HealthCheckOptions
-        {
-            Predicate = check =>
-                check.Tags.Contains(HealthCheck.InfrastructureCheck) ||
-                check.Tags.Contains(HealthCheck.ExternalServiceCheck) ||
-                check.Tags.Contains("api")
-        });
     }
 }
-
-

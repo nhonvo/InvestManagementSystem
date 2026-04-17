@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using InventoryAlert.Domain.Entities.Dynamodb;
 using InventoryAlert.Domain.Interfaces;
@@ -11,11 +12,15 @@ public class CompanyNewsDynamoRepository(IAmazonDynamoDB dynamoDbClient, ILogger
 {
     public async Task<IEnumerable<CompanyNewsDynamoEntry>> GetLatestBySymbolAsync(string symbol, int limit, CancellationToken ct)
     {
-        return await _context.FromQueryAsync<CompanyNewsDynamoEntry>(new QueryOperationConfig
+        var config = new DynamoDBOperationConfig
         {
-            Limit = limit,
-            BackwardSearch = true,
-            Filter = new QueryFilter("PK", QueryOperator.Equal, $"SYMBOL#{symbol}"),
-        }).GetRemainingAsync(ct);
+            BackwardQuery = true
+        };
+
+#pragma warning disable CS0618
+        var query = _context.QueryAsync<CompanyNewsDynamoEntry>($"SYMBOL#{symbol}", config);
+#pragma warning restore CS0618
+        var result = await query.GetNextSetAsync(ct);
+        return result.Take(limit);
     }
 }

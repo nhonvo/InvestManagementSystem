@@ -2,7 +2,8 @@
   "scan_folders": [
     ".agents",
     "doc",
-    "InventoryManagementSystem"
+    "InventoryManagementSystem",
+    "InventoryAlert.Wiki"
   ],
   "folder_boosts": {
     ".agents/rules": 4.0,
@@ -10,7 +11,8 @@
     ".agents/skills": 3.0,
     ".agents": 2.5,
     "doc/archive": 0.1,
-    "doc": 2.0
+    "doc": 2.0,
+    "InventoryAlert.Wiki/docs": 2.5
   },
   "synonyms": {
     "product": ["inventory", "item", "stock", "sku"],
@@ -50,6 +52,7 @@
     "infrastructure/persistence": ["inventoryalert-efcore", "postgresql-table-design"],
     "migration": ["inventoryalert-efcore", "postgresql-table-design"],
     "doc/": ["doc-generator"],
+    "InventoryAlert.Wiki/docs": ["doc-generator"],
     ".agents/workflows": ["find-skills"],
     ".agents/skills": ["skill-creator"]
   }
