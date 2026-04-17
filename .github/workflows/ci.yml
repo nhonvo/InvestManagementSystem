@@ -13,69 +13,69 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    # # ── .NET Setup (Api & Worker) ────────────────────────────────────────────────────────
-    # - name: Setup .NET
-    #   uses: actions/setup-dotnet@v4
-    #   with:
-    #     dotnet-version: '10.0.x'
+    # ── .NET Setup (Api & Worker) ────────────────────────────────────────────────────────
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
         
-    # - name: Restore dependencies (.NET)
-    #   run: dotnet restore InventoryManagementSystem/InventoryManagementSystem.sln
+    - name: Restore dependencies (.NET)
+      run: dotnet restore InventoryManagementSystem/InventoryManagementSystem.sln
       
-    # - name: Build (.NET)
-    #   run: dotnet build InventoryManagementSystem/InventoryManagementSystem.sln --no-restore --configuration Release
+    - name: Build (.NET)
+      run: dotnet build InventoryManagementSystem/InventoryManagementSystem.sln --no-restore --configuration Release
 
-    # - name: Architecture Test
-    #   run: dotnet test InventoryManagementSystem/InventoryAlert.ArchitectureTests/InventoryAlert.ArchitectureTests.csproj --no-restore --no-build --configuration Release --verbosity normal
+    - name: Architecture Test
+      run: dotnet test InventoryManagementSystem/InventoryAlert.ArchitectureTests/InventoryAlert.ArchitectureTests.csproj --no-restore --no-build --configuration Release --verbosity normal
       
-    # - name: Unit Test & Coverage
-    #   run: |
-    #     dotnet test InventoryManagementSystem/InventoryAlert.UnitTests/InventoryAlert.UnitTests.csproj \
-    #       --no-restore --no-build --configuration Release \
-    #       --verbosity normal \
-    #       --collect:"XPlat Code Coverage" \
-    #       --results-directory ./coverage
+    - name: Unit Test & Coverage
+      run: |
+        dotnet test InventoryManagementSystem/InventoryAlert.UnitTests/InventoryAlert.UnitTests.csproj \
+          --no-restore --no-build --configuration Release \
+          --verbosity normal \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage
           
-    # - name: Generate Coverage Report
-    #   run: |
-    #     dotnet tool install --global dotnet-reportgenerator-globaltool
-    #     reportgenerator \
-    #       -reports:./coverage/**/coverage.cobertura.xml \
-    #       -targetdir:./coverage/report \
-    #       -reporttypes:"Html;MarkdownSummary"
+    - name: Generate Coverage Report
+      run: |
+        dotnet tool install --global dotnet-reportgenerator-globaltool
+        reportgenerator \
+          -reports:./coverage/**/coverage.cobertura.xml \
+          -targetdir:./coverage/report \
+          -reporttypes:"Html;MarkdownSummary"
         
-    #     # Display summary in GitHub Action UI
-    #     echo "## Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
-    #     cat ./coverage/report/Summary.md >> $GITHUB_STEP_SUMMARY
+        # Display summary in GitHub Action UI
+        echo "## Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        cat ./coverage/report/Summary.md >> $GITHUB_STEP_SUMMARY
           
-    # - name: Integration Test
-    #   run: dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
+    - name: Integration Test
+      run: dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
 
-    # - name: Upload Coverage Report
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: code-coverage-report
-    #     path: ./coverage/report
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: ./coverage/report
 
-    # # ── Node.js Setup (UI) ─────────────────────────────────────────────────────────────
-    # - name: Setup Node.js
-    #   uses: actions/setup-node@v4
-    #   with:
-    #     node-version: '20'
-    #     cache: 'npm'
-    #     cache-dependency-path: InventoryAlert.UI/package-lock.json
+    # ── Node.js Setup (UI) ─────────────────────────────────────────────────────────────
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: InventoryAlert.UI/package-lock.json
 
-    # - name: Install UI dependencies
-    #   run: npm ci
-    #   working-directory: InventoryAlert.UI
+    - name: Install UI dependencies
+      run: npm ci
+      working-directory: InventoryAlert.UI
 
-    # - name: UI Lint
-    #   run: npm run lint
-    #   working-directory: InventoryAlert.UI
+    - name: UI Lint
+      run: npm run lint
+      working-directory: InventoryAlert.UI
 
-    # - name: UI Test
-    #   run: npm run test
-    #   working-directory: InventoryAlert.UI
+    - name: UI Test
+      run: npm run test
+      working-directory: InventoryAlert.UI
 
     # ── Docker Integration & E2E Tests ──────────────────────────────────────────────
     - name: Seed Configuration Files (CI)
