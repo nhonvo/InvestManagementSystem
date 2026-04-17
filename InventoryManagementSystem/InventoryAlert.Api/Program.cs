@@ -129,8 +129,6 @@ try
     builder.Services.SetupMvc();
     builder.Services.AddCompressionCustom();
     builder.Services.SetupHealthCheck(settings);
-
-    builder.Services.AddHealthChecks();
     builder.Services.AddResponseCaching();
 
     builder.Services

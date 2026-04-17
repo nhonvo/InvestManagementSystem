@@ -29,6 +29,7 @@ public class EarningsSurpriseRepository(AppDbContext context) : IEarningsSurpris
             }
             else
             {
+                item.Id = existing.Id;
                 context.Entry(existing).CurrentValues.SetValues(item);
             }
         }
