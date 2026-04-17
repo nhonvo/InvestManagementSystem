@@ -2,12 +2,15 @@ name: Deploy Wiki to GitHub Pages
 
 on:
   push:
-    branches:
-      branches: [ "main" ]
-    pull_request:
-      branches: [ "main" ]
+    branches: [ "main" ]
     paths:
       - 'InventoryAlert.Wiki/**'
+      - '.github/workflows/deploy-wiki.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'InventoryAlert.Wiki/**'
+      - '.github/workflows/deploy-wiki.yml'
   workflow_dispatch:
 
 permissions:
