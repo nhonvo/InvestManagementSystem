@@ -14,13 +14,29 @@ using Serilog.Events;
 // ─── Early Configuration Binding for Bootstrap ───────────────────────────────
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile("appsettings.json", optional: true)
     .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
     .AddEnvironmentVariables()
     .Build();
 
-var bootstrapSettings = configuration.Get<ApiSettings>()
-    ?? throw new InvalidOperationException("AppSettings configuration is missing.");
+var bootstrapSettings = configuration.Get<ApiSettings>();
+if (bootstrapSettings == null || bootstrapSettings.Database == null)
+{
+    Console.WriteLine("CRITICAL: ApiSettings could not be loaded from appsettings.json.");
+    Console.WriteLine($"BaseDirectory: {AppContext.BaseDirectory}");
+    Console.WriteLine($"Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
+    
+    if (Directory.Exists(AppContext.BaseDirectory))
+    {
+        Console.WriteLine("Files in BaseDirectory:");
+        foreach (var file in Directory.GetFiles(AppContext.BaseDirectory, "appsettings*.json"))
+        {
+            Console.WriteLine($" - {Path.GetFileName(file)}");
+        }
+    }
+    
+    throw new InvalidOperationException("AppSettings configuration is missing or invalid.");
+}
 
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()

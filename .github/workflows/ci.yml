@@ -78,6 +78,12 @@ jobs:
     #   working-directory: InventoryAlert.UI
 
     # ── Docker Integration & E2E Tests ──────────────────────────────────────────────
+    - name: Seed Configuration Files (CI)
+      run: |
+        cp InventoryAlert.Api/appsettings.Example.json InventoryAlert.Api/appsettings.json
+        cp InventoryAlert.Worker/appsettings.Example.json InventoryAlert.Worker/appsettings.json
+      working-directory: InventoryManagementSystem
+
     - name: Start Docker Stack
       id: start-docker
       run: |
