@@ -3,18 +3,19 @@ using FluentAssertions;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
+using InventoryAlert.IntegrationTests.TestUtils.Assertions;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
-public class MarketApiTest : BaseIntegrationTest
+public class WatchlistApiTest : BaseIntegrationTest
 {
     private readonly WatchlistClient _watchlistClient;
     private readonly AuthClient _authClient;
     
-    public MarketApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public WatchlistApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
         var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
         _watchlistClient = new WatchlistClient(restClient);
@@ -34,6 +35,7 @@ public class MarketApiTest : BaseIntegrationTest
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Data.Should().NotBeNull();
+        response.Data.Should().AllSatisfy(item => WatchlistItemAssertion.AssertAllFieldsNotNull(item));
     }
 
     [Fact]
@@ -63,6 +65,7 @@ public class MarketApiTest : BaseIntegrationTest
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Data.Should().NotBeNull();
+        WatchlistItemAssertion.AssertAllFieldsNotNull(response.Data);
         response.Data.Symbol.Should().Be(symbol);
     }
 
@@ -132,6 +135,54 @@ public class MarketApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task AddToWatchList_ShouldReturnNotFound_WhenSymbolDoesNotExist()
+    {
+        // Arrange
+        string symbol = "NON_EXIST_SYMBOL";
+
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
+
+        try
+        {
+            // Ensure the item is not already in the watchlist
+            await _watchlistClient.RemoveFromWatchlistAsync(accessToken, symbol);
+        }
+        catch { /* Ignore if it doesn't exist */ }
+
+        // Act
+        var response = await _watchlistClient.AddToWatchlistAsync(accessToken, symbol);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AddToWatchlist_ShouldReturnBadRequest_WhenItemIsAlreadyInWatchlist()
+    {
+        // Arrange
+        string symbol = "MSFT";
+
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
+
+        try
+        {
+            // Ensure the item is not already in the watchlist
+            await _watchlistClient.RemoveFromWatchlistAsync(accessToken, symbol);
+        }
+        catch { /* Ignore if it doesn't exist */ }
+
+        var firstResponse = await _watchlistClient.AddToWatchlistAsync(accessToken, symbol); // Add the first one
+
+        // Act
+        var secondResponse = await _watchlistClient.AddToWatchlistAsync(accessToken, symbol);
+
+        // Assert
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task RemoveFromWatchlist_ShouldRemoveItem_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -148,5 +199,34 @@ public class MarketApiTest : BaseIntegrationTest
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task RemoveFromWatchlist_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        // Arrange
+        string symbol = "GOOGL";
+
+        // Act
+        var response = await _watchlistClient.RemoveFromWatchlistAsync("invalid_token", symbol);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RemoveFromWatchlist_ShouldReturnNotFound_WhenItemIsNotInWatchlist()
+    {
+        // Arrange
+        string symbol = "GOOGL";
+
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
+
+        // Act
+        var response = await _watchlistClient.RemoveFromWatchlistAsync(accessToken, symbol);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

@@ -7,12 +7,12 @@ using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
-public class CheckWiremock
+public class CheckWiremockTest : IClassFixture<InjectionFixture>
 {
     private readonly MockFinnhubClient _client;
     private readonly ITestOutputHelper _output;
 
-    public CheckWiremock(InjectionFixture fixture, ITestOutputHelper output)
+    public CheckWiremockTest(InjectionFixture fixture, ITestOutputHelper output)
     {
         _client = fixture.ServiceProvider.GetRequiredService<MockFinnhubClient>();
         _output = output;

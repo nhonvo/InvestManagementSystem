@@ -20,20 +20,36 @@ public class StockApiTest : BaseIntegrationTest
         _authClient = new AuthClient(fixture.ServiceProvider.GetRequiredService<RestClient>());
     }
 
-    // [Fact]
-    // public async Task GetStocks_ShouldReturnStocks_WhenTokenIsValid()
-    // {
-    //     // Arrange
-    //     var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
-    //     var accessToken = loginResponse.Data!.AccessToken;
+    [Fact]
+    public async Task GetStocks_ShouldReturnStocks_WhenTokenIsValid()
+    {
+        // Arrange
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
 
-    //     // Act
-    //     var response = await _stockClient.GetStocksAsync(accessToken);
+        // Act
+        var response = await _stockClient.GetStocksAsync(accessToken);
 
-    //     // Assert
-    //     response.StatusCode.Should().Be(HttpStatusCode.OK);
-    //     response.Data.Should().NotBeNull();
-    // }
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SearchSymbol_ShouldReturnSymbols_WhenTokenIsValid()
+    {
+        // Arrange
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
+        var q = "string";
+
+        // Act
+        var response = await _stockClient.SearchStockAsync(accessToken, q);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Should().NotBeNull();
+    }
 
     [Fact]
     public async Task GetStockQuote_ShouldReturnStockQuote_WhenTokenIsValid()
@@ -44,7 +60,7 @@ public class StockApiTest : BaseIntegrationTest
 
         // Act
         var response = await _stockClient.GetStockQuoteAsync(accessToken, "AAPL");
-        _output.WriteLine($"Response: {response.Content}"); // Log the response content for debugging
+
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Data.Should().NotBeNull();
