@@ -68,6 +68,12 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
             errorCode = $"{ApplicationConstants.Name}.{ErrorRespondCode.BAD_REQUEST}";
             errorMessage = exception.Message;
         }
+        else if (exception is UnauthorizedAccessException)
+        {
+            statusCode = HttpStatusCode.Unauthorized;
+            errorCode = $"{ApplicationConstants.Name}.{ErrorRespondCode.UNAUTHORIZED}";
+            errorMessage = exception.Message;
+        }
 
         context.Response.StatusCode = (int)statusCode;
         var errorResponse = new ErrorResponse([new Error(errorCode, errorMessage)]);
