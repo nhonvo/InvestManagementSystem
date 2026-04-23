@@ -99,6 +99,9 @@ export default function StockDetailPage() {
   const [profile, setProfile] = useState<StockProfile | null>(null);
   const [metrics, setMetrics] = useState<StockMetrics | null>(null);
   const [earnings, setEarnings] = useState<EarningsSurprise[]>([]);
+  const [earningsLoading, setEarningsLoading] = useState(false);
+  const [earningsLoaded, setEarningsLoaded] = useState(false);
+  const [earningsError, setEarningsError] = useState<string>("");
   const [recommendations, setRecommendations] = useState<RecommendationTrend[]>([]);
   const [insiders, setInsiders] = useState<InsiderTransaction[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -163,14 +166,37 @@ export default function StockDetailPage() {
     loadData();
   }, [symbol]);
 
+  // Reset lazy-loaded tab caches when navigating to a new symbol.
+  useEffect(() => {
+    setEarnings([]);
+    setEarningsLoading(false);
+    setEarningsLoaded(false);
+    setEarningsError("");
+    setRecommendations([]);
+    setInsiders([]);
+    setNews([]);
+    setPeers([]);
+    setNewsPage(1);
+  }, [symbol]);
+
   // Lazy-load tab data on first activation
   useEffect(() => {
     if (!symbol) return;
 
-    if (activeTab === "Earnings" && earnings.length === 0) {
+    if (activeTab === "Earnings" && !earningsLoaded && !earningsLoading) {
+      setEarningsLoading(true);
+      setEarningsError("");
       fetchApi(`/api/v1/stocks/${symbol}/earnings`)
-        .then((data) => setEarnings(data || []))
-        .catch(console.error);
+        .then((data) => {
+          setEarnings(data || []);
+          setEarningsLoaded(true);
+        })
+        .catch((err) => {
+          console.error(err);
+          setEarningsError(err?.message || "Failed to load earnings.");
+          setEarningsLoaded(true);
+        })
+        .finally(() => setEarningsLoading(false));
     }
     if (activeTab === "Recommendations" && recommendations.length === 0) {
       fetchApi(`/api/v1/stocks/${symbol}/recommendation`)
@@ -336,7 +362,11 @@ export default function StockDetailPage() {
 
               {/* Earnings — spec §5.3 GET /earnings */}
               {activeTab === "Earnings" && (
-                earnings.length === 0 ? (
+                earningsLoading ? (
+                  <p className="text-zinc-500 italic">Loading earnings…</p>
+                ) : earningsError ? (
+                  <p className="text-rose-400 italic">{earningsError}</p>
+                ) : earningsLoaded && earnings.length === 0 ? (
                   <p className="text-zinc-500 italic">No earnings data available.</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -344,17 +374,29 @@ export default function StockDetailPage() {
                       <thead>
                         <tr className="text-xs font-semibold uppercase tracking-wider text-zinc-500 border-b border-white/5">
                           <th className="py-3 pr-6">Period</th>
+                          <th className="py-3 pr-6">Report Date</th>
                           <th className="py-3 pr-6 text-right">Actual EPS</th>
                           <th className="py-3 pr-6 text-right">Estimate EPS</th>
                           <th className="py-3 text-right">Surprise %</th>
+                          <th className="py-3 pl-6 text-right">Result</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
                         {earnings.map((e) => {
-                          const beat = (e.surprisePercent ?? 0) >= 0;
+                          const hasActual = e.actualEps != null;
+                          const hasEstimate = e.estimateEps != null;
+                          const result =
+                            hasActual && hasEstimate
+                              ? e.actualEps! > e.estimateEps!
+                                ? { label: "Beat", cls: "bg-emerald-500/10 text-emerald-400" }
+                                : e.actualEps! < e.estimateEps!
+                                  ? { label: "Miss", cls: "bg-rose-500/10 text-rose-400" }
+                                  : { label: "Meet", cls: "bg-zinc-500/10 text-zinc-300" }
+                              : null;
                           return (
                             <tr key={e.period} className="hover:bg-white/5 transition-colors">
                               <td className="py-4 pr-6 font-bold text-zinc-300">{e.period}</td>
+                              <td className="py-4 pr-6 font-medium text-zinc-400">{e.reportDate ?? "—"}</td>
                               <td className="py-4 pr-6 text-right font-semibold text-white">
                                 {e.actualEps != null ? `$${e.actualEps.toFixed(2)}` : "—"}
                               </td>
@@ -363,8 +405,15 @@ export default function StockDetailPage() {
                               </td>
                               <td className="py-4 text-right">
                                 {e.surprisePercent != null ? (
-                                  <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${beat ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
-                                    {beat ? "+" : ""}{e.surprisePercent.toFixed(2)}%
+                                  <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${(e.surprisePercent ?? 0) >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+                                    {(e.surprisePercent ?? 0) >= 0 ? "+" : ""}{e.surprisePercent.toFixed(2)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="py-4 pl-6 text-right">
+                                {result ? (
+                                  <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${result.cls}`}>
+                                    {result.label}
                                   </span>
                                 ) : "—"}
                               </td>

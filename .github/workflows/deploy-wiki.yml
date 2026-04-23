@@ -2,10 +2,11 @@ name: Deploy Wiki to GitHub Pages
 
 on:
   push:
-    branches:
-      branches: [ "main" ]
-    pull_request:
-      branches: [ "main" ]
+    branches: [ "main" ]
+    paths:
+      - 'InventoryAlert.Wiki/**'
+  pull_request:
+    branches: [ "main" ]
     paths:
       - 'InventoryAlert.Wiki/**'
   workflow_dispatch:
@@ -17,7 +18,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,6 +35,10 @@ jobs:
       - name: Build Docusaurus
         run: npm run build
         working-directory: InventoryAlert.Wiki
+
+      # This prevents GitHub from running Jekyll on the 'gh-pages' branch
+      - name: Create .nojekyll
+        run: touch InventoryAlert.Wiki/build/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
