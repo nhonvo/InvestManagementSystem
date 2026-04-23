@@ -69,6 +69,7 @@ try
     builder.Services.AddScoped<MarketPriceAlertHandler>();
     builder.Services.AddScoped<CompanyNewsAlertHandler>();
     builder.Services.AddScoped<SyncMarketNewsHandler>();
+    builder.Services.AddScoped<LowHoldingsHandler>();
 
     builder.Services.AddHostedService<JobSchedulerService>();
     builder.Services.AddHostedService<SqsListenerService>();

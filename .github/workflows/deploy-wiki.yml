@@ -9,6 +9,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'InventoryAlert.Wiki/**'
+      - '.github/workflows/deploy-wiki.yml'
   workflow_dispatch:
 
 permissions:

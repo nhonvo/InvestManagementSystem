@@ -869,3 +869,5 @@ coverage/html/InventoryAlert.Worker_SyncInsidersJob.html
 coverage/html/InventoryAlert.Worker_SyncMarketNewsHandler.html
 coverage/html/InventoryAlert.Worker_SyncMetricsJob.html
 coverage/html/InventoryAlert.Worker_SyncRecommendationsJob.html
+.agents/scripts/core/data/bm25_index.bin
+.agents/scripts/core/data/bm25_index.csv

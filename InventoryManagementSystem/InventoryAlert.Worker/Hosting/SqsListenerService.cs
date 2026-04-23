@@ -7,11 +7,11 @@ namespace InventoryAlert.Worker.Hosting;
 /// This matches the pattern of QueuedHostedService.cs.
 /// </summary>
 public class SqsListenerService(
-    IProcessQueueJob processQueueJob,
+    IServiceScopeFactory scopeFactory,
     WorkerSettings settings,
     ILogger<SqsListenerService> logger) : BackgroundService
 {
-    private readonly IProcessQueueJob _processQueueJob = processQueueJob;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly WorkerSettings _settings = settings;
     private readonly ILogger<SqsListenerService> _logger = logger;
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -24,8 +24,11 @@ public class SqsListenerService(
         _logger.LogInformation("[NativeSqsWorker] Starting native SQS polling loop...");
         try
         {
+            using var scope = _scopeFactory.CreateScope();
+            var processQueueJob = scope.ServiceProvider.GetRequiredService<IProcessQueueJob>();
+
             // Run the continuous while loop inside the job
-            await _processQueueJob.ExecuteAsync(ct);
+            await processQueueJob.ExecuteAsync(ct);
         }
         catch (OperationCanceledException)
         {

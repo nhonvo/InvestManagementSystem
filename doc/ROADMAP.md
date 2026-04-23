@@ -550,7 +550,15 @@ Protect against SQL injection, XSS, and CSRF. Use parameterized queries (EF Core
 - [x] Test `WatchlistService` (caching, deduplication)
 - [x] Test `AuthController` (Registration conflicts, async handlers)
 
-### 19. Async/Await Audit ✅
+### 19. E2E Test Stabilization ✅
+
+> **Source:** USER Request — _Stabilization baseline._
+
+- [x] Docker environment verified (Postgres + Redis + Moto + API)
+- [x] `BaseE2ETest` improved with configurable `BaseUrl` and detailed error logging
+- [x] 32 E2E tests verified passing against Docker-hosted API
+
+### 20. Async/Await Audit ✅
 
 > **Source:** `ProductController.cs:L70,L78`
 
