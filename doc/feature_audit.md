@@ -1,3 +1,12 @@
+---
+description: Audit checklist and current feature-state notes for InventoryAlert.
+type: reference
+status: active
+version: 1.0
+tags: [audit, documentation, inventoryalert]
+last_updated: 2026-04-23
+---
+
 # InventoryAlert Feature Audit & Consolidation Plan
 
 ## current Feature set
