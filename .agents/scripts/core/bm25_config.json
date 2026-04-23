@@ -3,7 +3,7 @@
     ".agents",
     "doc",
     "InventoryManagementSystem",
-    "InventoryAlert.Wiki"
+    "InventoryAlert.Wiki/docs"
   ],
   "folder_boosts": {
     ".agents/rules": 4.0,

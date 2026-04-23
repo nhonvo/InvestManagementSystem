@@ -134,7 +134,7 @@ Configure dynamic evaluation triggers executed globally by background workers.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/` | List all alert rules for the authenticated user. |
-| POST | `/` | Create a new alert rule (symbol must be in catalog). |
+| POST | `/` | Create a new alert rule (symbol is auto-resolved if missing from catalog). |
 | PUT | `/{ruleId}` | Full replacement of an existing rule. |
 | PATCH | `/{ruleId}/toggle` | Enable or disable without modifying rule parameters. |
 | DELETE | `/{ruleId}` | Permanently remove an alert rule. |
@@ -158,7 +158,7 @@ In-app notification delivery. UI polls every 30 seconds.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/` | Chronological notification feed. Pass `?OnlyUnread=true` for focused rendering. |
-| GET | `/unread-count` | Returns `{ Count: int }` for navbar bell badge. |
+| GET | `/unread-count` | Returns `int` for navbar bell badge. |
 | PATCH | `/{id}/read` | Mark one notification as acknowledged. |
 | PATCH | `/read-all` | Batch acknowledge all notifications. |
 | DELETE | `/{id}` | Permanently dismiss a notification. |
