@@ -33,7 +33,7 @@ public class AuthApiTest : BaseIntegrationTest
         loginResponse.Data.Should().NotBeNull();
         loginResponse.Data.AccessToken.Should().NotBeNullOrEmpty();
         _output.WriteLine($"Access Token: {loginResponse.Data.AccessToken}");
-        _output.WriteLine($"Cookies: {string.Join(", ", loginResponse.Cookies!.Select(c => $"{c.Name}={c.Value}"))}");
+        _output.WriteLine(loginResponse.Cookies[0].Value);
     }
 
     [Fact]
@@ -72,10 +72,10 @@ public class AuthApiTest : BaseIntegrationTest
         var password = _testUser.Password;
 
         var loginResponse = await _client.LoginAsync(username, password);
-        var refreshToken = loginResponse.Data!.AccessToken;
+        var accessToken = loginResponse.Data!.AccessToken;
 
         // Act
-        var refreshResponse = await _client.RefreshTokenAsync(refreshToken);
+        var refreshResponse = await _client.RefreshTokenAsync(accessToken);
 
         // Assert
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -87,10 +87,10 @@ public class AuthApiTest : BaseIntegrationTest
     public async Task RefreshToken_ShouldReturnUnauthorized_WhenRefreshTokenIsInvalid()
     {
         // Arrange
-        var refreshToken = "invalid_token";
+        var accessToken = "invalid_token";
 
         // Act
-        var refreshResponse = await _client.RefreshTokenAsync(refreshToken);
+        var refreshResponse = await _client.RefreshTokenAsync(accessToken);
 
         // Assert
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

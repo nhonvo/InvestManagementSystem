@@ -27,7 +27,8 @@ public class InjectionFixture : IDisposable
 
         var options = new RestClientOptions(settings.ApiSettings.BaseUrl)
         {
-            Timeout = TimeSpan.FromSeconds(settings.ApiSettings.TimeoutSeconds)
+            Timeout = TimeSpan.FromSeconds(settings.ApiSettings.TimeoutSeconds),
+            CookieContainer = new System.Net.CookieContainer()
         };
         services.AddSingleton(new RestClient(options, configureSerialization: s => s.UseNewtonsoftJson()));
 

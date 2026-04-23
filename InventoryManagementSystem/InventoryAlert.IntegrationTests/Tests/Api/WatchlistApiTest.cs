@@ -59,14 +59,23 @@ public class WatchlistApiTest : BaseIntegrationTest
         var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
         var accessToken = loginResponse.Data!.AccessToken;
 
-        // Act
-        var response = await _watchlistClient.GetSingleWatchlistItemAsync(accessToken, symbol);
+        await _watchlistClient.AddToWatchlistAsync(accessToken, symbol);
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Data.Should().NotBeNull();
-        WatchlistItemAssertion.AssertAllFieldsNotNull(response.Data);
-        response.Data.Symbol.Should().Be(symbol);
+        try
+        {
+            // Act
+            var response = await _watchlistClient.GetSingleWatchlistItemAsync(accessToken, symbol);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            response.Data.Should().NotBeNull();
+            WatchlistItemAssertion.AssertAllFieldsNotNull(response.Data);
+            response.Data.Symbol.Should().Be(symbol);
+        }
+        finally
+        {
+            await _watchlistClient.RemoveFromWatchlistAsync(accessToken, symbol);
+        }
     }
 
     [Fact]
