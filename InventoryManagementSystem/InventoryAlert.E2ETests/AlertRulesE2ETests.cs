@@ -10,23 +10,18 @@ namespace InventoryAlert.E2ETests;
 public class AlertRulesE2ETests : BaseE2ETest
 {
     [Fact]
-    public async Task CreateAlert_ShouldReturnCreated_WhenSymbolIsResolved()
+    public async Task CreateAlert_ShouldReturnCreated_WhenSymbolCanBeDiscovered()
     {
         // 1. Arrange
         await EnsureAuthenticatedAsync();
 
-        // 2. Pre-resolve NVDA in local cache
-        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
-        await Client.ExecuteAsync(seedReq);
-
-        // 3. Act
+        // 2. Act
         var request = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
-        // Corrected enum value
         request.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
 
         var response = await Client.ExecuteAsync<AlertRuleResponse>(request);
 
-        // 4. Assert
+        // 3. Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         response.Data.Should().NotBeNull();
         response.Data!.TickerSymbol.Should().Be("DIS");
@@ -53,10 +48,6 @@ public class AlertRulesE2ETests : BaseE2ETest
         // 1. Arrange
         await EnsureAuthenticatedAsync();
 
-        // Ensure symbol is in catalog
-        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
-        await Client.ExecuteAsync(seedReq);
-
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
         var createRes = await Client.ExecuteAsync<AlertRuleResponse>(createReq);
@@ -80,10 +71,6 @@ public class AlertRulesE2ETests : BaseE2ETest
         // 1. Arrange
         await EnsureAuthenticatedAsync();
 
-        // Ensure symbol is in catalog
-        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
-        await Client.ExecuteAsync(seedReq);
-
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
         var createRes = await Client.ExecuteAsync<AlertRuleResponse>(createReq);
@@ -105,10 +92,6 @@ public class AlertRulesE2ETests : BaseE2ETest
     {
         // 1. Arrange
         await EnsureAuthenticatedAsync();
-
-        // Ensure symbol is in catalog
-        var seedReq = CreateAuthenticatedRequest("api/v1/stocks/DIS/quote", Method.Get);
-        await Client.ExecuteAsync(seedReq);
 
         var createReq = CreateAuthenticatedRequest("api/v1/alertrules", Method.Post);
         createReq.AddJsonBody(new AlertRuleRequest("DIS", AlertCondition.PriceAbove, 200.00m, true));
