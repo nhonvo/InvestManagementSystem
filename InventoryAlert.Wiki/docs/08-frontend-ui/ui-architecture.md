@@ -81,7 +81,7 @@ InventoryAlert.UI/
 | Component | API | Description |
 |---|---|---|
 | `AlertRuleTable` | `GET /alertrules/` | Full list: Symbol, Condition, Target, Status, Last Triggered, Actions |
-| `AlertRuleForm` | `POST/PUT /alertrules/` | Symbol search → Condition dropdown → Target value → TriggerOnce |
+| `AlertRuleForm` | `POST/PUT /alertrules/` | Symbol input (search optional) → Condition dropdown → Target value → TriggerOnce |
 | `AlertToggle` | `PATCH /alertrules/{id}/toggle` | Inline toggle switch with optimistic UI |
 
 ---

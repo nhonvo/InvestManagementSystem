@@ -1,5 +1,6 @@
 using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,15 +15,35 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
 
     private const string RefreshTokenCookie = "refreshToken";
 
+    private static CookieOptions BuildRefreshCookieOptions(HttpContext httpContext, DateTime expiresAt)
+    {
+        // Important: SameSite=None cookies must also be Secure, otherwise modern browsers will reject them.
+        // For non-HTTPS local/dev calls, fall back to Lax + non-secure cookies.
+        var isHttps = httpContext.Request.IsHttps;
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isHttps,
+            SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+            Path = "/",
+            Expires = expiresAt
+        };
+    }
+
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var res = await _authService.LoginAsync(request, ct);
-        // In a full production system, set the refresh token here as an httpOnly cookie:
-        // Response.Cookies.Append(RefreshTokenCookie, refreshToken, new CookieOptions { HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict });
-        return Ok(res);
+        var tokens = await _authService.LoginAsync(request, ct);
+        Response.Cookies.Append(
+            RefreshTokenCookie,
+            tokens.RefreshToken,
+            BuildRefreshCookieOptions(HttpContext, tokens.RefreshExpiresAt));
+
+        return Ok(tokens.Auth);
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<RegistrationResponse>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
@@ -33,6 +54,7 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
     /// <summary>
     /// Exchange a valid httpOnly refresh token cookie for a new access JWT.
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("refresh")]
     public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken ct)
     {
@@ -40,8 +62,13 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
         if (string.IsNullOrEmpty(refreshToken))
             return Unauthorized(new { Message = "Refresh token is missing." });
 
-        var res = await _authService.RefreshAsync(refreshToken, ct);
-        return Ok(res);
+        var tokens = await _authService.RefreshAsync(refreshToken, ct);
+        Response.Cookies.Append(
+            RefreshTokenCookie,
+            tokens.RefreshToken,
+            BuildRefreshCookieOptions(HttpContext, tokens.RefreshExpiresAt));
+
+        return Ok(tokens.Auth);
     }
 
     /// <summary>
