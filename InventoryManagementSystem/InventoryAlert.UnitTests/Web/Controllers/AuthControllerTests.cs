@@ -30,8 +30,9 @@ public class AuthControllerTests
     {
         // Arrange
         var request = new LoginRequest("admin", "password123");
-        var expectedResponse = new AuthResponse("valid_token", DateTime.UtcNow.AddHours(1));
-        _authService.Setup(s => s.LoginAsync(request, Ct)).ReturnsAsync(expectedResponse);
+        var expectedAuth = new AuthResponse("valid_token", DateTime.UtcNow.AddHours(1));
+        var expectedPair = new AuthTokenPair(expectedAuth, "refresh_token", DateTime.UtcNow.AddDays(7));
+        _authService.Setup(s => s.LoginAsync(request, Ct)).ReturnsAsync(expectedPair);
 
         // Act
         var result = await _sut.Login(request, Ct);
@@ -39,7 +40,10 @@ public class AuthControllerTests
         // Assert
         var okResult = result.Result as OkObjectResult;
         okResult.Should().NotBeNull();
-        okResult!.Value.Should().Be(expectedResponse);
+        okResult!.Value.Should().Be(expectedAuth);
+
+        _sut.ControllerContext.HttpContext.Response.Headers.TryGetValue("Set-Cookie", out var setCookie).Should().BeTrue();
+        setCookie.ToString().Should().Contain("refreshToken=");
     }
 
     [Fact]
@@ -81,8 +85,9 @@ public class AuthControllerTests
     {
         // Arrange
         var token = "refresh_me";
-        var expectedRes = new AuthResponse("new_access", DateTime.UtcNow.AddHours(1));
-        _authService.Setup(s => s.RefreshAsync(token, Ct)).ReturnsAsync(expectedRes);
+        var expectedAuth = new AuthResponse("new_access", DateTime.UtcNow.AddHours(1));
+        var expectedPair = new AuthTokenPair(expectedAuth, "new_refresh", DateTime.UtcNow.AddDays(7));
+        _authService.Setup(s => s.RefreshAsync(token, Ct)).ReturnsAsync(expectedPair);
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers.Cookie = $"refreshToken={token}";
@@ -94,7 +99,8 @@ public class AuthControllerTests
         // Assert
         var ok = result.Result as OkObjectResult;
         ok.Should().NotBeNull();
-        ok!.Value.Should().Be(expectedRes);
+        ok!.Value.Should().Be(expectedAuth);
+        _sut.ControllerContext.HttpContext.Response.Headers.TryGetValue("Set-Cookie", out var setCookie).Should().BeTrue();
+        setCookie.ToString().Should().Contain("refreshToken=");
     }
 }
-

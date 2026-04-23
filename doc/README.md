@@ -1,22 +1,22 @@
-# InventoryAlert.Api Documentation Index
+---
+description: Working docs for the InventoryAlert solution (specs, plans, references).
+type: reference
+status: active
+version: 1.0
+tags: [documentation, bm25, inventoryalert]
+last_updated: 2026-04-23
+---
 
-This directory contains the technical documentation, design plans, and architectural reviews for the Inventory Management System.
+# InventoryAlert Documentation Index
+
+This folder contains working documentation for the `InventoryManagementSystem/` solution and related tooling.
 
 ## 🗺️ Roadmap & Strategy
 - [ROADMAP.md](ROADMAP.md) — Consolidated task list and project progress.
-- [Architectural_Review.md](Architectural_Review.md) — Deep dive into the Worker and Event-driven pipeline.
-- [DynamoDB_Migration_Plan.md](DynamoDB_Migration_Plan.md) — Strategy for migrating news and analytics to DynamoDB.
-
-## 🏗️ Design Plans
-Current active specifications for the next-generation architecture:
-- [01 — Application Redefinition](plan/01_APPLICATION_REDEFINITION.md)
-- [02 — API Endpoint Plan](plan/02_API_ENDPOINT_PLAN.md)
-- [03 — DynamoDB Table Design](plan/03_DYNAMODB_TABLE_DESIGN.md)
-- [04 — Jobs, Workers & Telegram Integration](plan/04_JOBS_WORKERS_TELEGRAM.md)
-- [05 — UI Plan (Next.js 15)](plan/05_UI_PLAN.md)
+- [feature_audit.md](feature_audit.md) — Current feature-set audit and consolidation notes.
+- [architecture_modernization.md](architecture_modernization.md) — Architecture modernization track and completed refactors.
 
 ## 🗄️ Archive
 - [archive/](archive/) — Legacy plans, setup commands, and hackathon-specific progress logs.
 
----
 > Run `/doc` to synchronize this index with new feature implementations.

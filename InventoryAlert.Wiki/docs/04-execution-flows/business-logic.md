@@ -1,4 +1,4 @@
-# Business Logic & Rules (v2)
+# Business Logic & Rules (v1)
 
 This document outlines the core domain logic governing the InventoryAlert.Api system.
 
