@@ -35,7 +35,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
       interval: 15s
-      timeout: 25s
+      timeout: 45s
       retries: 5
       start_period: 60s
     networks:
@@ -67,7 +67,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
       interval: 15s
-      timeout: 25s
+      timeout: 45s
       retries: 5
       start_period: 60s
     networks:
