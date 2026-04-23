@@ -1,4 +1,4 @@
-# Internal API Reference (v2)
+# Internal API Reference (v1)
 
 > Core REST endpoints exposed by `InventoryAlert.Api`. All routes are prefixed with `/api/v1` unless otherwise noted. JWT Bearer Token required unless marked `[Public]`.
 

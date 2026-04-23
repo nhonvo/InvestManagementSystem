@@ -1,3 +1,12 @@
+---
+description: Project roadmap (planned work, milestones, and priorities).
+type: plan
+status: active
+version: 1.0
+tags: [roadmap, planning, inventoryalert]
+last_updated: 2026-04-23
+---
+
 # 🗺️ Development Roadmap
 
 > Consolidated from all `TODO` comments across the codebase.
@@ -178,13 +187,13 @@ Should we return the list of created products or just the count?
  - [ ] Implement Next.js Route Handlers for secure API proxying
 
 
-### 13. Shared Project — `InventoryAlert.Contracts` ✅ (Already Exists)
+### 13. Shared Project — `InventoryAlert.Domain` ✅ (Already Exists)
 
-> **Note:** `InventoryAlert.Contracts` **already exists** as the shared project.
+> **Note:** `InventoryAlert.Domain` **already exists** as the shared project.
 > Both `InventoryAlert.Api` and `InventoryAlert.Worker` reference it via `<ProjectReference>` — **no new project needed**.
 > The tasks below are **enhancements** to the existing shared project.
 >
-> **Invariant:** `InventoryAlert.Contracts` is the single source of truth for every type that crosses a service boundary. No entity or payload may be defined in both `Api` and `Worker`.
+> **Invariant:** `InventoryAlert.Domain` is the single source of truth for every type that crosses a service boundary. No entity or payload may be defined in both `Api` and `Worker`.
 
 #### What the Shared Project Must Own
 
@@ -215,7 +224,7 @@ Should we return the list of created products or just the count?
 #### Reference Architecture
 
 ```text
-InventoryAlert.Contracts/  ← shared library, referenced by all
+InventoryAlert.Domain/  ← shared library, referenced by all
 ├── Entities/              ← EF-mapped domain entities
 ├── Events/
 │   ├── EventEnvelope.cs   ← envelope contract
@@ -373,13 +382,13 @@ Should we return the list of created products or just the count?
  - [ ] Implement Next.js Route Handlers for secure API proxying
 
 
-### 13. Shared Project — `InventoryAlert.Contracts` ✅ (Already Exists)
+### 13. Shared Project — `InventoryAlert.Domain` ✅ (Already Exists)
 
-> **Note:** `InventoryAlert.Contracts` **already exists** as the shared project.
+> **Note:** `InventoryAlert.Domain` **already exists** as the shared project.
 > Both `InventoryAlert.Api` and `InventoryAlert.Worker` reference it via `<ProjectReference>` — **no new project needed**.
 > The tasks below are **enhancements** to the existing shared project.
 >
-> **Invariant:** `InventoryAlert.Contracts` is the single source of truth for every type that crosses a service boundary. No entity or payload may be defined in both `Api` and `Worker`.
+> **Invariant:** `InventoryAlert.Domain` is the single source of truth for every type that crosses a service boundary. No entity or payload may be defined in both `Api` and `Worker`.
 
 #### What the Shared Project Must Own
 
@@ -410,7 +419,7 @@ Should we return the list of created products or just the count?
 #### Reference Architecture
 
 ```text
-InventoryAlert.Contracts/  ← shared library, referenced by all
+InventoryAlert.Domain/  ← shared library, referenced by all
 ├── Entities/              ← EF-mapped domain entities
 ├── Events/
 │   ├── EventEnvelope.cs   ← envelope contract
@@ -644,7 +653,7 @@ Implement AutoMapper to centralize mapping between domain models and DTOs. Reduc
 
 ### 16. Shared Contracts Enforcement
 
-- [x] All entities centralized in `InventoryAlert.Contracts` ✅
+- [x] All entities centralized in `InventoryAlert.Domain` ✅
 - [x] `global using` aliases in Api and Worker for backward compat ✅
 - [x] Add `ArchitectureTests` project (NetArchTest.Rules) to enforce zero-duplication at CI
 - [x] Move shared `AppSettings` config models to `Contracts.Configuration`

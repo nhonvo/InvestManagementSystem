@@ -3,7 +3,7 @@ slug: /
 sidebar_position: 1
 ---
 
-# 🚀 InventoryAlert Documentation (v2)
+# 🚀 InventoryAlert Documentation (v1)
 
 Welcome to the **InventoryAlert** System Wiki — the single source of truth for architecture, operational runbooks, and API contracts.
 
@@ -39,7 +39,7 @@ Deep dive into the data rules and execution sequences.
 
 How the system talks to the outside world and background workloads.
 
-- **[Internal API Reference](./05-api-services/internal-api.md)** — All v2 endpoints: Auth, Portfolio, Stocks, Market, Watchlist, AlertRules, Notifications, Events.
+- **[Internal API Reference](./05-api-services/internal-api.md)** — All v1 endpoints: Auth, Portfolio, Stocks, Market, Watchlist, AlertRules, Notifications, Events.
 - **[Event Handling](./05-api-services/event-handling.md)** — SQS topology, event type strings, deduplication pattern.
 - **[External Integrations](./05-api-services/external-integrations.md)** — Finnhub, SQS, DynamoDB, Redis integration details.
 - **[Background Workers](./06-background-jobs/workers.md)** — All 10 Hangfire jobs with cron schedules and Finnhub endpoints.

@@ -1,3 +1,12 @@
+---
+description: Architecture modernization notes and refactor plan for InventoryAlert.
+type: plan
+status: active
+version: 1.0
+tags: [architecture, modernization, plan]
+last_updated: 2026-04-23
+---
+
 # Architecture Modernization Track
 
 ## 🎯 Objectives
