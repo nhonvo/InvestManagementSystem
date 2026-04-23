@@ -80,9 +80,14 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
                 ValidateLifetime = false // refresh tokens may be slightly expired — we re-issue access
             }, out _);
 
-            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
-                throw new UnauthorizedAccessException("Invalid token subject.");
+            {
+                var claims = string.Join(", ", principal.Claims.Select(c => $"{c.Type}={c.Value}"));
+                throw new UnauthorizedAccessException($"Invalid token subject. Claims found: {claims}");
+            }
 
             var user = await _unitOfWork.Users.GetByIdAsync(userId, ct)
                 ?? throw new UnauthorizedAccessException("User no longer exists.");
