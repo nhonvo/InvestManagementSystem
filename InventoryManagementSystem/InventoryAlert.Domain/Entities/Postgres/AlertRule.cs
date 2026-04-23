@@ -16,11 +16,11 @@ public enum AlertCondition
     /// Trigger when price hits an exact target (±tolerance).
     /// </summary>
     PriceTargetReached,
-
     /// <summary>
     /// Trigger when unrealized loss % exceeds TargetValue.
     /// </summary>
     PercentDropFromCost,
+
 
     /// <summary>
     /// Trigger when user's share count drops below TargetValue.

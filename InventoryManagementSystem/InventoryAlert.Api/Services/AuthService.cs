@@ -89,7 +89,10 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
 
             var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
-                throw new UnauthorizedAccessException("Invalid token subject.");
+            {
+                var claims = string.Join(", ", principal.Claims.Select(c => $"{c.Type}={c.Value}"));
+                throw new UnauthorizedAccessException($"Invalid token subject. Claims found: {claims}");
+            }
 
             var user = await _unitOfWork.Users.GetByIdAsync(userId, ct)
                 ?? throw new UnauthorizedAccessException("User no longer exists.");

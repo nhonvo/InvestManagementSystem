@@ -1,6 +1,6 @@
 # Feature Breakdown
 
-> Catalog of all user-facing features in the InventoryAlert UI (v2).
+> Catalog of all user-facing features in the InventoryAlert UI (v1).
 
 ## Page & Feature Map
 
