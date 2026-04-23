@@ -16,7 +16,7 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ApiSettings _settings = settings;
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
+    public async Task<AuthTokenPair> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         var user = await _unitOfWork.Users.GetByUsernameAsync(request.Username, ct);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -25,9 +25,12 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
         }
 
         var expiresAt = DateTime.UtcNow.AddMinutes(_settings.Jwt.ExpiryMinutes > 0 ? _settings.Jwt.ExpiryMinutes : 60);
-        var token = GenerateJwtToken(user, expiresAt);
+        var token = GenerateAccessToken(user, expiresAt);
 
-        return new AuthResponse(token, expiresAt);
+        var refreshExpiresAt = DateTime.UtcNow.AddDays(_settings.Jwt.RefreshExpiryDays > 0 ? _settings.Jwt.RefreshExpiryDays : 7);
+        var refreshToken = GenerateRefreshToken(user, refreshExpiresAt);
+
+        return new AuthTokenPair(new AuthResponse(token, expiresAt), refreshToken, refreshExpiresAt);
     }
 
     public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
@@ -61,7 +64,7 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
         return Task.CompletedTask;
     }
 
-    public async Task<AuthResponse> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    public async Task<AuthTokenPair> RefreshAsync(string refreshToken, CancellationToken ct = default)
     {
         var handler = new JwtSecurityTokenHandler();
         var jwtSettings = _settings.Jwt;
@@ -73,16 +76,18 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-                ValidateIssuer = true,
+                ValidateIssuer = !string.IsNullOrWhiteSpace(jwtSettings.Issuer),
                 ValidIssuer = jwtSettings.Issuer,
-                ValidateAudience = true,
+                ValidateAudience = !string.IsNullOrWhiteSpace(jwtSettings.Audience),
                 ValidAudience = jwtSettings.Audience,
                 ValidateLifetime = false // refresh tokens may be slightly expired — we re-issue access
             }, out _);
 
-            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var tokenType = principal.FindFirst("typ")?.Value;
+            if (!string.Equals(tokenType, "refresh", StringComparison.Ordinal))
+                throw new UnauthorizedAccessException("Invalid refresh token type.");
 
+            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             {
                 var claims = string.Join(", ", principal.Claims.Select(c => $"{c.Type}={c.Value}"));
@@ -93,7 +98,12 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
                 ?? throw new UnauthorizedAccessException("User no longer exists.");
 
             var expiresAt = DateTime.UtcNow.AddMinutes(_settings.Jwt.ExpiryMinutes > 0 ? _settings.Jwt.ExpiryMinutes : 60);
-            return new AuthResponse(GenerateJwtToken(user, expiresAt), expiresAt);
+            var newAccess = GenerateAccessToken(user, expiresAt);
+
+            var refreshExpiresAt = DateTime.UtcNow.AddDays(_settings.Jwt.RefreshExpiryDays > 0 ? _settings.Jwt.RefreshExpiryDays : 7);
+            var newRefresh = GenerateRefreshToken(user, refreshExpiresAt);
+
+            return new AuthTokenPair(new AuthResponse(newAccess, expiresAt), newRefresh, refreshExpiresAt);
         }
         catch (Exception ex) when (ex is not UnauthorizedAccessException)
         {
@@ -101,7 +111,7 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
         }
     }
 
-    private string GenerateJwtToken(User user, DateTime expiresAt)
+    private string GenerateAccessToken(User user, DateTime expiresAt)
     {
         var jwtSettings = _settings.Jwt;
         var key = jwtSettings.Key ?? throw new UserFriendlyException(ErrorCode.Internal, ApplicationConstants.Messages.JwtKeyMissing);
@@ -115,6 +125,31 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            jwtSettings.Issuer,
+            jwtSettings.Audience,
+            claims,
+            expires: expiresAt,
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string GenerateRefreshToken(User user, DateTime expiresAt)
+    {
+        var jwtSettings = _settings.Jwt;
+        var key = jwtSettings.Key ?? throw new UserFriendlyException(ErrorCode.Internal, ApplicationConstants.Messages.JwtKeyMissing);
+
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("typ", "refresh")
         };
 
         var token = new JwtSecurityToken(
