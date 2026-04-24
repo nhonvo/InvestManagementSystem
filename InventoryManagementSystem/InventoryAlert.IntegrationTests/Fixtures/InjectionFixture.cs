@@ -1,4 +1,3 @@
-using System.Reflection;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Config;
 using Microsoft.Extensions.Configuration;
@@ -17,18 +16,11 @@ public class InjectionFixture : IDisposable
         var services = new ServiceCollection();
 
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
-            {
-                { "ApiSettings:BaseUrl", "http://localhost:8080/api/v1" },
-                { "ApiSettings:TimeoutSeconds", "30" },
-                { "WiremockSettings:BaseUrl", "http://localhost:9091" },
-                { "WiremockSettings:AdminUrl", "http://localhost:9091/__admin" },
-                { "TestUser:Username", "admin" },
-                { "TestUser:Password", "password" }
-            })
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.test.json", optional: false, reloadOnChange: true)
             .Build();
 
-        var settings = configuration.Get<AppSettings>() ?? throw new InvalidOperationException("AppSettings could not be loaded from embedded resource.");
+        var settings = configuration.Get<AppSettings>() ?? new AppSettings();
 
         services.AddSingleton(settings);
         services.AddSingleton<IConfiguration>(configuration);

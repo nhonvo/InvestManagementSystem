@@ -19,11 +19,16 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
-
+  <ItemGroup>
+    <None Update="appsettings.test.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
