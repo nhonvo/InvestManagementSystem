@@ -19,9 +19,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="appsettings.test.json" />
-  </ItemGroup>
+
 
   <ItemGroup>
     <Using Include="Xunit" />

@@ -16,17 +16,16 @@ public class InjectionFixture : IDisposable
     {
         var services = new ServiceCollection();
 
-        var assembly = typeof(InjectionFixture).Assembly;
-        var resourceName = "InventoryAlert.IntegrationTests.appsettings.test.json";
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-
-        if (stream == null)
-        {
-            throw new InvalidOperationException($"Could not find embedded resource '{resourceName}' in assembly '{assembly.FullName}'.");
-        }
-
         var configuration = new ConfigurationBuilder()
-            .AddJsonStream(stream)
+            .AddInMemoryCollection(new Dictionary<string, string>
+            {
+                { "ApiSettings:BaseUrl", "http://localhost:8080/api/v1" },
+                { "ApiSettings:TimeoutSeconds", "30" },
+                { "WiremockSettings:BaseUrl", "http://localhost:9091" },
+                { "WiremockSettings:AdminUrl", "http://localhost:9091/__admin" },
+                { "TestUser:Username", "admin" },
+                { "TestUser:Password", "password" }
+            })
             .Build();
 
         var settings = configuration.Get<AppSettings>() ?? throw new InvalidOperationException("AppSettings could not be loaded from embedded resource.");
