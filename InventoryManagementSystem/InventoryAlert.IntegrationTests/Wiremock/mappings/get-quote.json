@@ -1,0 +1,32 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/quote",
+    "headers": {
+      "X-Finnhub-Token": {
+        "matches": ".+"
+      }
+    },
+    "queryParameters": {
+      "symbol": {
+        "matches": ".+"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "c": 259.2,
+      "d": -1.28,
+      "dp": -0.4914,
+      "h": 260.18,
+      "l": 256.66,
+      "o": 259.73,
+      "pc": 260.48,
+      "t": 1776110400
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}
