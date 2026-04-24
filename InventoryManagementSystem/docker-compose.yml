@@ -34,9 +34,9 @@ services:
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
-      interval: 60s
-      timeout: 60s
-      retries: 10
+      interval: 15s
+      timeout: 10s
+      retries: 5
       start_period: 60s
     networks:
       - inventory-net
