@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appsettings.test.json">
+    <EmbeddedResource Include="appsettings.test.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+using System.Reflection;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Config;
 using Microsoft.Extensions.Configuration;
@@ -15,12 +16,15 @@ public class InjectionFixture : IDisposable
     {
         var services = new ServiceCollection();
 
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = "InventoryAlert.IntegrationTests.appsettings.test.json";
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.test.json", optional: false, reloadOnChange: true)
+            .AddJsonStream(stream)
             .Build();
 
-        var settings = configuration.Get<AppSettings>() ?? new AppSettings();
+        var settings = configuration.Get<AppSettings>() ?? throw new InvalidOperationException("AppSettings could not be loaded from embedded resource.");
 
         services.AddSingleton(settings);
         services.AddSingleton<IConfiguration>(configuration);
