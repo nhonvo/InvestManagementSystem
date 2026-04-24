@@ -17,11 +17,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "FAIL {Method} {Path} | {Message} | CID: {CorrelationId}",
-                context.Request.Method,
-                context.Request.Path,
-                ex.Message,
-                context.Items["X-Correlation-Id"] ?? "N/A");
+            _logger.LogError(ex, "An unhandled exception has occurred while executing the request. | CID: {CorrelationId}", context.Items["X-Correlation-Id"] ?? "N/A");
             await HandleExceptionAsync(context, ex);
         }
     }
