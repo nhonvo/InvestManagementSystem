@@ -83,17 +83,16 @@ public class WatchlistServiceTests
     }
 
     [Fact]
-    public async Task AddToWatchlist_Throws_IfAlreadyExists()
+    public async Task AddToWatchlist_ReturnsNull_IfAlreadyExists()
     {
         // Arrange
         var symbol = "AAPL";
         _uow.Setup(u => u.WatchlistItems.GetByUserAndSymbolAsync(UserId, symbol, Ct)).ReturnsAsync(new WatchlistItem());
 
         // Act
-        var act = () => _sut.AddToWatchlistAsync(symbol, UserId, Ct);
+        var result = await _sut.AddToWatchlistAsync(symbol, UserId, Ct);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage($"Symbol '{symbol}' is already on your watchlist.");
+        result.Should().BeNull();
     }
 }

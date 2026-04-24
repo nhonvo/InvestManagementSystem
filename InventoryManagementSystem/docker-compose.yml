@@ -28,6 +28,10 @@ services:
         condition: service_healthy
       moto-init:
         condition: service_completed_successfully
+
+      wiremock:
+        condition: service_healthy
+
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
       interval: 15s
@@ -159,6 +163,28 @@ services:
         condition: service_healthy
     networks:
       - inventory-net
+
+  # ==========================================================
+  # WireMock
+  # ==========================================================
+  wiremock:
+    image: wiremock/wiremock:latest
+    container_name: inventory_wiremock
+    ports:
+      - "9091:8080"
+    volumes:
+      - ./InventoryAlert.IntegrationTests/Wiremock:/home/wiremock
+    command:
+      - "--global-response-templating"
+      - "--verbose"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/__admin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - inventory-net
+    restart: unless-stopped
 
   # ── Seq: Logging Dashboard ─────────────────────────────
   seq:

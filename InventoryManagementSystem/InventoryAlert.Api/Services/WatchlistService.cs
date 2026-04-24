@@ -86,7 +86,19 @@ public class WatchlistService(
     private async Task<PortfolioPositionResponse?> BuildPositionResponseAsync(string symbol, CancellationToken ct)
     {
         var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
-        if (listing == null) return null;
+        if (listing == null)
+        {
+            var profile = await _stockDataService.GetProfileAsync(symbol, ct);
+            if (profile == null)
+            {
+                return null;
+            }
+            listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
+            if (listing == null)
+            {
+                return null;
+            }
+        }
 
         var quote = await _stockDataService.GetQuoteAsync(symbol, ct);
         var currentPrice = quote?.Price ?? 0;
