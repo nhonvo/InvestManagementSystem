@@ -36,12 +36,14 @@ public class WatchlistService(
         return await BuildPositionResponseAsync(symbol, ct);
     }
 
-    public async Task<PortfolioPositionResponse> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct)
+    public async Task<PortfolioPositionResponse?> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct)
     {
         // Guard: already on watchlist
         var existing = await _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, symbol, ct);
         if (existing != null)
-            throw new InvalidOperationException($"Symbol '{symbol}' is already on your watchlist.");
+        {
+            return null;
+        }
 
         // DB-first symbol resolution
         var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
@@ -84,7 +86,19 @@ public class WatchlistService(
     private async Task<PortfolioPositionResponse?> BuildPositionResponseAsync(string symbol, CancellationToken ct)
     {
         var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
-        if (listing == null) return null;
+        if (listing == null)
+        {
+            var profile = await _stockDataService.GetProfileAsync(symbol, ct);
+            if (profile == null)
+            {
+                return null;
+            }
+            listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
+            if (listing == null)
+            {
+                return null;
+            }
+        }
 
         var quote = await _stockDataService.GetQuoteAsync(symbol, ct);
         var currentPrice = quote?.Price ?? 0;

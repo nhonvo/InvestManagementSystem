@@ -8,6 +8,6 @@ public interface IAlertRuleService
     Task<AlertRuleResponse> CreateAsync(AlertRuleRequest request, string userId, CancellationToken ct);
     Task<AlertRuleResponse> UpdateAsync(Guid id, AlertRuleRequest request, string userId, CancellationToken ct);
     Task<AlertRuleResponse> ToggleAsync(Guid id, bool isActive, string userId, CancellationToken ct);
-    Task DeleteAsync(Guid id, string userId, CancellationToken ct);
+    Task<bool> DeleteAsync(Guid id, string userId, CancellationToken ct);
 }
 

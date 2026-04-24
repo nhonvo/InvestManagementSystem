@@ -29,6 +29,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
     <ProjectReference Include="..\InventoryAlert.Api\InventoryAlert.Api.csproj" />

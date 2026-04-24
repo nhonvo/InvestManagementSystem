@@ -5,6 +5,7 @@ using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
+using RestSharp.Serializers.NewtonsoftJson;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
@@ -68,14 +69,22 @@ public class AuthApiTest : BaseIntegrationTest
     public async Task RefreshToken_ShouldReturnNewAccessToken_WhenRefreshTokenIsValid()
     {
         // Arrange
+        var options = new RestClientOptions(_fixture.ServiceProvider.GetRequiredService<InventoryAlert.IntegrationTests.Config.AppSettings>().ApiSettings.BaseUrl)
+        {
+            CookieContainer = new System.Net.CookieContainer()
+        };
+        var client = new AuthClient(new RestClient(options, configureSerialization: s => s.UseNewtonsoftJson()));
+        
         var username = _testUser.Username;
         var password = _testUser.Password;
 
-        var loginResponse = await _client.LoginAsync(username, password);
-        var accessToken = loginResponse.Data!.AccessToken;
+        var loginResponse = await client.LoginAsync(username, password);
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var refreshTokenCookie = loginResponse.Cookies.FirstOrDefault(c => c.Name == "refreshToken");
+        refreshTokenCookie.Should().NotBeNull();
 
         // Act
-        var refreshResponse = await _client.RefreshTokenAsync(accessToken);
+        var refreshResponse = await client.RefreshTokenAsync(refreshTokenCookie.Value);
 
         // Assert
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);

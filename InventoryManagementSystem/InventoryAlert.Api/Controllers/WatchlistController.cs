@@ -37,6 +37,10 @@ public class WatchlistController(IWatchlistService watchlistService) : Controlle
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var res = await _watchlistService.AddToWatchlistAsync(symbol, userId, ct);
+        if (res == null)
+        {
+            return BadRequest(new { Message = $"Symbol '{symbol}' is already on your watchlist." });
+        }
         return CreatedAtAction(nameof(GetWatchlistItem), new { symbol = res.Symbol }, res);
     }
 

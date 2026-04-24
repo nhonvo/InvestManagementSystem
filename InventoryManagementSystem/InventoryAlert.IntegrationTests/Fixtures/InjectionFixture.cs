@@ -16,7 +16,7 @@ public class InjectionFixture : IDisposable
         var services = new ServiceCollection();
 
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
+            .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.test.json", optional: false, reloadOnChange: true)
             .Build();
 
