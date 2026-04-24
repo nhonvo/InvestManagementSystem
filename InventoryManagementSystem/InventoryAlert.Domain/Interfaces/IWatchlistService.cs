@@ -11,7 +11,7 @@ public interface IWatchlistService
     Task<PortfolioPositionResponse?> GetWatchlistItemAsync(string symbol, string userId, CancellationToken ct);
 
     /// <summary>Add a ticker to the user's watchlist. Resolves symbol via DB-first + Finnhub fallback.</summary>
-    Task<PortfolioPositionResponse> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct);
+    Task<PortfolioPositionResponse?> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct);
 
     /// <summary>Remove a ticker from the watchlist.</summary>
     Task RemoveFromWatchlistAsync(string symbol, string userId, CancellationToken ct);

@@ -87,7 +87,7 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
             if (!string.Equals(tokenType, "refresh", StringComparison.Ordinal))
                 throw new UnauthorizedAccessException("Invalid refresh token type.");
 
-            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
             {
                 var claims = string.Join(", ", principal.Claims.Select(c => $"{c.Type}={c.Value}"));

@@ -52,7 +52,11 @@ public class AlertRulesController(IAlertRuleService alertRuleService) : Controll
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        await _alertRuleService.DeleteAsync(id, userId, ct);
+        var success = await _alertRuleService.DeleteAsync(id, userId, ct);
+        if (!success)
+        {
+            return NotFound();
+        }
         return NoContent();
     }
 }

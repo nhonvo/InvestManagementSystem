@@ -74,14 +74,16 @@ public class AlertRuleService(IUnitOfWork unitOfWork, IStockDataService stockDat
         return MapToResponse(rule);
     }
 
-    public async Task DeleteAsync(Guid id, string userId, CancellationToken ct)
+    public async Task<bool> DeleteAsync(Guid id, string userId, CancellationToken ct)
     {
         var rule = await unitOfWork.AlertRules.GetByIdAsync(id, ct);
         if (rule != null && rule.UserId == Guid.Parse(userId))
         {
             await unitOfWork.AlertRules.DeleteAsync(rule, ct);
             await unitOfWork.SaveChangesAsync(ct);
+            return true;
         }
+        return false;
     }
 
     private static AlertRuleResponse MapToResponse(AlertRule rule) =>
