@@ -36,12 +36,14 @@ public class WatchlistService(
         return await BuildPositionResponseAsync(symbol, ct);
     }
 
-    public async Task<PortfolioPositionResponse> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct)
+    public async Task<PortfolioPositionResponse?> AddToWatchlistAsync(string symbol, string userId, CancellationToken ct)
     {
         // Guard: already on watchlist
         var existing = await _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, symbol, ct);
         if (existing != null)
-            throw new InvalidOperationException($"Symbol '{symbol}' is already on your watchlist.");
+        {
+            return null;
+        }
 
         // DB-first symbol resolution
         var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
