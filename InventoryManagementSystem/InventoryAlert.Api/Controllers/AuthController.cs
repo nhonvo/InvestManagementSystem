@@ -60,6 +60,19 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
     {
         var refreshToken = Request.Cookies[RefreshTokenCookie];
         if (string.IsNullOrEmpty(refreshToken))
+        {
+            // Fallback for testing purposes
+            if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+            {
+                var header = authHeader.ToString();
+                if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    refreshToken = header.Substring("Bearer ".Length).Trim();
+                }
+            }
+        }
+        
+        if (string.IsNullOrEmpty(refreshToken))
             return Unauthorized(new { Message = "Refresh token is missing." });
 
         var tokens = await _authService.RefreshAsync(refreshToken, ct);
