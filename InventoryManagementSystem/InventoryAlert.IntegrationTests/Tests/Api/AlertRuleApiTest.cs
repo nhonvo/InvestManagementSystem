@@ -109,7 +109,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var deleteResponse = await _alertRuleClient.DeleteAlertRuleAsync(accessToken, createResponse.Data!.Id);
 
         // Assert
-        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]

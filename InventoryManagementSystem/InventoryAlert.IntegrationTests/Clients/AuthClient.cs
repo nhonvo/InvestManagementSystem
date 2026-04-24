@@ -22,10 +22,10 @@ public class AuthClient(RestClient client) : BaseClient(client)
         return await _client.ExecutePostAsync<RegistrationResponse>(request);
     }
 
-    public async Task<RestResponse<AuthResponse>> RefreshTokenAsync(string accessToken)
+    public async Task<RestResponse<AuthResponse>> RefreshTokenAsync(string refreshToken)
     {
         var request = new RestRequest("/Auth/refresh");
-        request.AddHeader("Authorization", $"Bearer {accessToken}");
+        request.AddCookie("refreshToken", refreshToken);
 
         return await _client.ExecutePostAsync<AuthResponse>(request);
     }
