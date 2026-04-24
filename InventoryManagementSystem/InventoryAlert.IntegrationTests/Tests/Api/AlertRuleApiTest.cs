@@ -90,6 +90,26 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task CreateAlertRules_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        // Arrange
+        var accessToken = "invalid_token";
+
+        var tickerSymbol = "TSLA";
+        var condition = AlertCondition.PriceBelow;
+        var targetValue = 100M;
+        var triggerOnce = false;
+
+        var alertRule = new AlertRuleRequest(tickerSymbol, condition, targetValue, triggerOnce);
+
+        // Act
+        var response = await _alertRuleClient.CreateAlertRuleAsync(accessToken, alertRule);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task DeleteAlertRules_ShouldReturnOk_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -192,5 +212,22 @@ public class AlertRuleApiTest : BaseIntegrationTest
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ToggleAlertRule_ShouldReturnNotFound_WhenAlertRuleIsNotExist()
+    {
+        // Arrange
+        var loginResponse = await _authClient.LoginAsync(_testUser.Username, _testUser.Password);
+        var accessToken = loginResponse.Data!.AccessToken;
+
+        var id = Guid.NewGuid();
+        var isActive = false;
+
+        // Act
+        var response = await _alertRuleClient.ToggleAlertRuleAsync(accessToken, id, isActive);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
