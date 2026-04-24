@@ -16,10 +16,15 @@ public class InjectionFixture : IDisposable
     {
         var services = new ServiceCollection();
 
-        var assembly = Assembly.GetExecutingAssembly();
+        var assembly = typeof(InjectionFixture).Assembly;
         var resourceName = "InventoryAlert.IntegrationTests.appsettings.test.json";
         using var stream = assembly.GetManifestResourceStream(resourceName);
-        
+
+        if (stream == null)
+        {
+            throw new InvalidOperationException($"Could not find embedded resource '{resourceName}' in assembly '{assembly.FullName}'.");
+        }
+
         var configuration = new ConfigurationBuilder()
             .AddJsonStream(stream)
             .Build();
