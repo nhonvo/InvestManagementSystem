@@ -49,9 +49,7 @@ jobs:
         cat ./coverage/report/Summary.md >> $GITHUB_STEP_SUMMARY
 
     - name: Integration Test
-      run: |
-        cp InventoryManagementSystem/InventoryAlert.IntegrationTests/appsettings.test.json InventoryManagementSystem/InventoryAlert.IntegrationTests/bin/Release/net10.0/appsettings.test.json
-        dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
+      run: dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
 
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
