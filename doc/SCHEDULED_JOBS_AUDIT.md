@@ -40,14 +40,14 @@ This document breaks down the execution steps and dependencies of all background
 2. **Batch Delete:** Executes bulk delete on `PriceHistory` records older than the threshold.
 3. **Rationale:** With a 15-minute sync interval for 1,000+ symbols, the table grows by ~35M rows/year. Cleanup prevents unbounded storage growth and maintains index performance for historical charts (which capped at 1-year range).
 
-## 5. CompanyNewsJob
-
-**Purpose:** Syncs latest market news for tracked symbols.
-
-1. **Get Targets:** Lists tickers from `IProductRepository`.
-2. **Fetch News:** Calls `IStockDataService.GetCompanyNewsAsync` for each symbol.
-3. **Filter:** Removes duplicates already present in the local database.
-4. **Store:** Inserts new news items into `ICompanyNewsRepository`.
+## 5. NewsSyncJob
+**Purpose:** Consolidated job for fetching both Global Market News and Symbol-Specific Company News.
+1. **Market News:** Iterates through global categories (General, Forex, Crypto, Merger) and persists to `IMarketNewsDynamoRepository`.
+2. **Company News:** 
+    - Lists tickers from `IStockListingRepository`.
+    - Fetches symbol-specific news in parallel (limited concurrency).
+    - Persists articles to `ICompanyNewsDynamoRepository`.
+3. **Storage:** Uses DynamoDB for high-volume append-only data.
 
 ## 6. SyncMetricsJob
 

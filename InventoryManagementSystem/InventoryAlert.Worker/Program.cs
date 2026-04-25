@@ -61,14 +61,13 @@ try
     builder.Services.AddScoped<SyncEarningsJob>();
     builder.Services.AddScoped<SyncRecommendationsJob>();
     builder.Services.AddScoped<SyncInsidersJob>();
-    builder.Services.AddScoped<CompanyNewsJob>();
+    builder.Services.AddScoped<NewsSyncJob>();
     builder.Services.AddScoped<CleanupPriceHistoryJob>();
     builder.Services.AddScoped<IProcessQueueJob, ProcessQueueJob>();
 
     // Integration Event Handlers
     builder.Services.AddScoped<MarketPriceAlertHandler>();
     builder.Services.AddScoped<CompanyNewsAlertHandler>();
-    builder.Services.AddScoped<SyncMarketNewsHandler>();
     builder.Services.AddScoped<LowHoldingsHandler>();
 
     builder.Services.AddHostedService<JobSchedulerService>();
