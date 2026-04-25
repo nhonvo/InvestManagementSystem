@@ -55,6 +55,13 @@ try
         opts.ServerName = "finance-worker";
     });
 
+    // ─── SignalR with Redis Backplane ─────────────────────────────────────────
+    // Note: The Worker doesn't host hubs, but needs this to send messages via the backplane.
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
+            options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
+        });
+
     // Scheduled Jobs
     builder.Services.AddScoped<SyncPricesJob>();
     builder.Services.AddScoped<SyncMetricsJob>();

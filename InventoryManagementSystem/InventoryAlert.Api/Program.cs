@@ -110,20 +110,35 @@ try
             {
                 OnMessageReceived = context =>
                 {
+                    // 1. Standard Header handling
                     var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (string.IsNullOrEmpty(authHeader)) return Task.CompletedTask;
-
-                    // If the header starts with 'ey' (JWT start) and doesn't have 'Bearer ', 
-                    // extract it manually to improve DX for manual curl/tool calls.
-                    if (authHeader.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(authHeader))
                     {
-                        context.Token = authHeader;
+                        if (authHeader.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = authHeader;
+                        }
                     }
+                    
+                    // 2. SignalR Query String handling (Standard for WebSockets)
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+
                     return Task.CompletedTask;
                 }
             };
         });
     builder.Services.AddAuthorization();
+
+    // ─── SignalR with Redis Backplane ─────────────────────────────────────────
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
+            options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
+        });
 
     // ─── API / Core Services ──────────────────────────────────────────────────
     builder.Services.AddEndpointsApiExplorer();
@@ -190,6 +205,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<InventoryAlert.Infrastructure.Hubs.NotificationHub>(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute);
     app.Run();
 }
 catch (Exception ex)

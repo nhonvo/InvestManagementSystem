@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import { Toast } from "@/components/Toast";
+import { useNotifications } from "@/components/NotificationProvider";
 
 interface Notification {
   id: string;
@@ -14,6 +15,7 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const { decrementCount, markAllAsRead: markAllInBadge } = useNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,6 +41,7 @@ export default function NotificationsPage() {
     try {
       await fetchApi(`/api/v1/notifications/${id}/read`, { method: 'PATCH' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      decrementCount();
     } catch (err: any) {
       setToast({ message: err.message || "Failed to mark as read", type: 'error' });
     }
@@ -48,6 +51,7 @@ export default function NotificationsPage() {
     try {
       await fetchApi("/api/v1/notifications/read-all", { method: 'PATCH' });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      markAllInBadge();
       setToast({ message: "All notifications marked as read", type: 'success' });
     } catch (err: any) {
       setToast({ message: err.message || "Failed to mark all as read", type: 'error' });
@@ -56,8 +60,10 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (id: string) => {
     try {
+      const isUnread = !notifications.find(n => n.id === id)?.isRead;
       await fetchApi(`/api/v1/notifications/${id}`, { method: 'DELETE' });
       setNotifications(prev => prev.filter(n => n.id !== id));
+      if (isUnread) decrementCount();
       setToast({ message: "Notification dismissed", type: 'success' });
     } catch (err: any) {
       setToast({ message: err.message || "Failed to dismiss notification", type: 'error' });
