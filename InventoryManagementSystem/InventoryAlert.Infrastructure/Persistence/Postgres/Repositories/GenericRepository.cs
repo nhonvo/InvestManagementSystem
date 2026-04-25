@@ -24,6 +24,11 @@ public class GenericRepository<T>(AppDbContext context) : IGenericRepository<T> 
         return entity;
     }
 
+    public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken ct)
+    {
+        await _dbSet.AddRangeAsync(entities, ct);
+    }
+
     public virtual Task UpdateAsync(T entity, CancellationToken ct)
     {
         _dbSet.Update(entity);
