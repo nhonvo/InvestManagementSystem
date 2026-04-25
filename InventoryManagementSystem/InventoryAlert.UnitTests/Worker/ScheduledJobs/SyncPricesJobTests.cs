@@ -15,7 +15,6 @@ public class SyncPricesJobTests
     private readonly Mock<IAlertNotifier> _notifier = new();
     private readonly Mock<ILogger<SyncPricesJob>> _logger = new();
     private readonly SyncPricesJob _service;
-    private static readonly CancellationToken Ct = CancellationToken.None;
 
     public SyncPricesJobTests()
     {
@@ -33,20 +32,20 @@ public class SyncPricesJobTests
     {
         // Arrange
         var listing = new StockListing { TickerSymbol = "AAPL" };
-        _uow.Setup(u => u.StockListings.GetAllAsync(Ct)).ReturnsAsync(new List<StockListing> { listing });
-        _finnhub.Setup(f => f.GetQuoteAsync("AAPL", Ct))
+        _uow.Setup(u => u.StockListings.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<StockListing> { listing });
+        _finnhub.Setup(f => f.GetQuoteAsync("AAPL", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InventoryAlert.Domain.External.Finnhub.FinnhubQuoteResponse { CurrentPrice = 150m });
         
-        _uow.Setup(u => u.AlertRules.GetBySymbolsAsync(It.IsAny<IEnumerable<string>>(), Ct))
+        _uow.Setup(u => u.AlertRules.GetBySymbolsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<AlertRule>());
 
         // Act
-        var result = await _service.ExecuteAsync(Ct);
+        var result = await _service.ExecuteAsync(CancellationToken.None);
 
         // Assert
         result.Status.Should().Be(InventoryAlert.Worker.Models.JobStatus.Success);
-        _uow.Verify(u => u.PriceHistories.AddRangeAsync(It.Is<IEnumerable<PriceHistory>>(p => p.Any(x => x.TickerSymbol == "AAPL" && x.Price == 150m)), Ct), Times.Once);
-        _uow.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
+        _uow.Verify(u => u.PriceHistories.AddRangeAsync(It.Is<IEnumerable<PriceHistory>>(p => p.Any(x => x.TickerSymbol == "AAPL" && x.Price == 150m)), It.IsAny<CancellationToken>()), Times.Once);
+        _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -64,18 +63,18 @@ public class SyncPricesJobTests
             IsActive = true
         };
 
-        _uow.Setup(u => u.StockListings.GetAllAsync(Ct)).ReturnsAsync(new List<StockListing> { listing });
-        _finnhub.Setup(f => f.GetQuoteAsync("TSLA", Ct))
+        _uow.Setup(u => u.StockListings.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<StockListing> { listing });
+        _finnhub.Setup(f => f.GetQuoteAsync("TSLA", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InventoryAlert.Domain.External.Finnhub.FinnhubQuoteResponse { CurrentPrice = 210m });
         
-        _uow.Setup(u => u.AlertRules.GetBySymbolsAsync(It.IsAny<IEnumerable<string>>(), Ct))
+        _uow.Setup(u => u.AlertRules.GetBySymbolsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<AlertRule> { rule });
 
         // Act
-        await _service.ExecuteAsync(Ct);
+        await _service.ExecuteAsync(CancellationToken.None);
 
         // Assert
-        _uow.Verify(u => u.Notifications.AddRangeAsync(It.Is<IEnumerable<Notification>>(n => n.Any(x => x.TickerSymbol == "TSLA" && x.AlertRuleId == rule.Id)), Ct), Times.Once);
-        _notifier.Verify(n => n.NotifyAsync(It.IsAny<Notification>(), Ct), Times.Once);
+        _uow.Verify(u => u.Notifications.AddRangeAsync(It.Is<IEnumerable<Notification>>(n => n.Any(x => x.TickerSymbol == "TSLA" && x.AlertRuleId == rule.Id)), It.IsAny<CancellationToken>()), Times.Once);
+        _notifier.Verify(n => n.NotifyAsync(It.IsAny<Notification>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
