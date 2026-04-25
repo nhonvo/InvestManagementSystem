@@ -38,7 +38,7 @@ This document breaks down the execution steps and dependencies of all background
 
 1. **Define Threshold:** Calculates cutoff date (e.g., `DateTime.UtcNow.AddDays(-30)`).
 2. **Batch Delete:** Executes bulk delete on `PriceHistory` records older than the threshold.
-3. **Optimize:** (Optional) Runs `VACUUM` or index maintenance if implemented.
+3. **Rationale:** With a 15-minute sync interval for 1,000+ symbols, the table grows by ~35M rows/year. Cleanup prevents unbounded storage growth and maintains index performance for historical charts (which capped at 1-year range).
 
 ## 5. CompanyNewsJob
 
