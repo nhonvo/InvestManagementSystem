@@ -5,10 +5,11 @@ using InventoryAlert.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace InventoryAlert.Worker.Utilities;
+namespace InventoryAlert.Infrastructure.Utilities;
 
 /// <summary>
 /// Refactored notifier that pushes real-time alerts via SignalR (Redis Backplane).
+/// Shared across services via Infrastructure.
 /// </summary>
 public class NotificationAlertNotifier(
     IHubContext<NotificationHub, INotificationHub> hubContext,
@@ -43,7 +44,6 @@ public class NotificationAlertNotifier(
         catch (Exception ex)
         {
             _logger.LogError(ex, "[AlertNotifier] Failed to push SignalR notification for User {UserId}", notification.UserId);
-            // We don't throw here to avoid failing the sync job; the persistent notification is already in DB.
         }
     }
 }

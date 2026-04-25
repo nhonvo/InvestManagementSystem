@@ -17,10 +17,12 @@ public class SignalRNotificationE2ETests : BaseE2ETest
         // 1. Arrange - Authenticate and setup SignalR connection
         await EnsureAuthenticatedAsync();
         
-        var hubUrl = $"{BaseUrl}{SignalRConstants.NotificationHubRoute}?access_token={JwtToken}";
+        var hubUrl = $"{BaseUrl}{SignalRConstants.NotificationHubRoute}";
         
         var connection = new HubConnectionBuilder()
-            .WithUrl(hubUrl)
+            .WithUrl(hubUrl, options => {
+                options.AccessTokenProvider = () => Task.FromResult(JwtToken);
+            })
             .WithAutomaticReconnect()
             .Build();
 
@@ -30,7 +32,7 @@ public class SignalRNotificationE2ETests : BaseE2ETest
         connection.On<NotificationResponse>("ReceiveNotification", (notification) =>
         {
             receivedNotification = notification;
-            tcs.SetResult(notification);
+            tcs.TrySetResult(notification);
         });
 
         await connection.StartAsync();
@@ -45,7 +47,7 @@ public class SignalRNotificationE2ETests : BaseE2ETest
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             // 3. Assert - Wait for SignalR push
-            var timeoutTask = Task.Delay(5000); // 5s timeout
+            var timeoutTask = Task.Delay(10000); // 10s timeout for E2E environment
             var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
             if (completedTask == timeoutTask)

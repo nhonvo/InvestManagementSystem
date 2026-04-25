@@ -85,9 +85,6 @@ try
 
     builder.Services.AddScoped<ISqsHelper, SqsHelper>();
 
-    // Notification Delivery
-    builder.Services.AddScoped<IAlertNotifier, NotificationAlertNotifier>();
-
     var app = builder.Build();
 
     // Allow remote dashboard access in Dev/Docker

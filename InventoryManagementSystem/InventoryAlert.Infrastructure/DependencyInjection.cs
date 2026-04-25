@@ -104,6 +104,7 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddScoped<ICorrelationProvider, CorrelationProvider>();
+        services.AddScoped<IAlertNotifier, NotificationAlertNotifier>();
 
         return services;
     }
