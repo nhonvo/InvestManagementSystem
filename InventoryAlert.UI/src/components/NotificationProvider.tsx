@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { useSignalR } from '@/hooks/useSignalR';
 import { fetchApi } from '@/lib/api';
 
@@ -15,6 +15,7 @@ interface Notification {
 }
 
 interface NotificationContextType {
+    token: string | null;
     unreadCount: number;
     notifications: Notification[];
     decrementCount: () => void;
@@ -26,21 +27,71 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const connection = useSignalR('/hubs/notifications');
+    
+    // Use null explicitly as initial state
+    const [token, setToken] = useState<string | null>(null);
+    
+    const lastTokenRef = useRef<string | null>(null);
+    const hasLoadedRef = useRef<boolean>(false);
+
+    // Sync token from localStorage
+    useEffect(() => {
+        const syncToken = () => {
+            if (typeof window === "undefined") return;
+            const currentToken = localStorage.getItem("auth_token");
+            if (currentToken !== lastTokenRef.current) {
+                console.log(`[NotificationProvider] Token changed: ${lastTokenRef.current?.slice(0, 8)} -> ${currentToken?.slice(0, 8)}`);
+                lastTokenRef.current = currentToken;
+                setToken(currentToken);
+                hasLoadedRef.current = false;
+            }
+        };
+
+        syncToken();
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === "auth_token") {
+                console.log("[NotificationProvider] Storage change detected");
+                syncToken();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        
+        const interval = setInterval(syncToken, 2000);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, []);
+
+    // ONLY pass the path if we are 100% sure we have a valid token in the state
+    const hubPath = token ? '/hubs/notifications' : null;
+    const connection = useSignalR(hubPath);
 
     useEffect(() => {
-        // Initial fetch
+        if (!token) {
+            setUnreadCount(0);
+            setNotifications([]);
+            hasLoadedRef.current = false;
+            return;
+        }
+
+        if (hasLoadedRef.current) return;
+
         const loadInitialData = async () => {
             try {
+                console.log(`[NotificationProvider] Fetching initial data...`);
                 const count = await fetchApi('/api/v1/notifications/unread-count');
                 setUnreadCount(typeof count === 'number' ? count : (count?.count || 0));
+                hasLoadedRef.current = true;
             } catch (err) {
-                console.error("Failed to load initial notifications", err);
+                console.error("[NotificationProvider] Failed to load notifications:", err);
             }
         };
 
         loadInitialData();
-    }, []);
+    }, [token]);
 
     useEffect(() => {
         if (!connection) return;
@@ -49,9 +100,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             console.log('[SignalR] New notification received:', notification);
             setUnreadCount(prev => prev + 1);
             setNotifications(prev => [notification, ...prev]);
-            
-            // Note: In a full implementation, we could trigger a toast here
-            // using a toast library or custom component.
         });
 
         return () => {
@@ -63,7 +111,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const markAllAsRead = () => setUnreadCount(0);
 
     return (
-        <NotificationContext.Provider value={{ unreadCount, notifications, decrementCount, markAllAsRead }}>
+        <NotificationContext.Provider value={{ token, unreadCount, notifications, decrementCount, markAllAsRead }}>
             {children}
         </NotificationContext.Provider>
     );
