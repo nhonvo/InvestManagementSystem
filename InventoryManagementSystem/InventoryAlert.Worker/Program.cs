@@ -52,7 +52,7 @@ try
     builder.Services.AddHangfireServer(opts =>
     {
         opts.WorkerCount = 4;
-        opts.ServerName = "finance-worker";
+        opts.ServerName = "inventory-worker";
     });
 
     // ─── SignalR with Redis Backplane ─────────────────────────────────────────
