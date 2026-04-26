@@ -1,13 +1,21 @@
 using FluentAssertions;
 using InventoryAlert.Api.Middleware;
+using InventoryAlert.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Moq;
 using Xunit;
 
 namespace InventoryAlert.UnitTests.Web.Middleware;
 
 public class CorrelationIdMiddlewareTests
 {
-    private readonly CorrelationIdMiddleware _sut = new();
+    private readonly Mock<ICorrelationProvider> _correlationProvider = new();
+    private readonly CorrelationIdMiddleware _sut;
+
+    public CorrelationIdMiddlewareTests()
+    {
+        _sut = new CorrelationIdMiddleware(_correlationProvider.Object);
+    }
 
     [Fact]
     public async Task InvokeAsync_GeneratesNewId_WhenHeaderMissing()
