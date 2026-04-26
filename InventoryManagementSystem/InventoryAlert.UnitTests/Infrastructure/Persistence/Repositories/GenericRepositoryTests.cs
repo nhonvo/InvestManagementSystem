@@ -33,6 +33,21 @@ public class GenericRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task AddRangeAsync_AddsEntities()
+    {
+        var listings = new List<StockListing>
+        {
+            new() { Name = "Test 1", TickerSymbol = "T1" },
+            new() { Name = "Test 2", TickerSymbol = "T2" }
+        };
+
+        await _sut.AddRangeAsync(listings, default);
+        await _context.SaveChangesAsync();
+
+        _context.StockListings.Count().Should().Be(2);
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsCorrectCount()
     {
         // Arrange

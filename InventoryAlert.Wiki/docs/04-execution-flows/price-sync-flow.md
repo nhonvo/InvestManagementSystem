@@ -2,7 +2,7 @@
 
 > Orchestration pipeline for global market synchronization, alert evaluation, and in-app notification delivery.
 
-## Sequence (v2 Architecture)
+## Sequence (v3 Architecture - Optimized)
 
 ```mermaid
 sequenceDiagram
@@ -13,42 +13,43 @@ sequenceDiagram
     participant Redis as Redis Cache
     participant SQS as Amazon SQS
 
-    HF->>Job: Trigger (every 15 minutes)
-    Job->>DB: SELECT DISTINCT TickerSymbols FROM StockListing
+    HF->>Job: Trigger (Scheduled)
+    Job->>DB: SELECT TickerSymbols FROM StockListing
 
-    loop For each symbol
-        Job->>Redis: GET quote:{symbol}
-        alt Cache HIT (< 30s)
-            Redis-->>Job: cached quote
-        else Cache MISS
-            Job->>Finnhub: GET /quote?symbol={symbol}
-            Finnhub-->>Job: { currentPrice, change, ... }
-            Job->>Redis: SET quote:{symbol} TTL=30s
-        end
+    Note over Job,Finnhub: Part 1: Parallel Quote Sync
+    loop Parallel.ForEachAsync (concurrency=5)
+        Job->>Finnhub: GET /quote?symbol={symbol}
+        Finnhub-->>Job: { currentPrice, ... }
+        Job->>Job: Collect into Bag<PriceHistory>
+    end
+    Job->>DB: AddRangeAsync(PriceHistories)
 
-        Job->>DB: INSERT INTO PriceHistory
-
-        Note over Job,DB: Alert Evaluation
-        Job->>DB: SELECT active AlertRules WHERE TickerSymbol = symbol
-        loop For each active AlertRule
+    Note over Job,DB: Part 2: Batch Alert Evaluation
+    Job->>DB: SELECT AlertRules WHERE TickerSymbol IN (processedSymbols)
+    loop For each symbol processed
+        loop For each rule
             alt Condition == PercentDropFromCost
-                Job->>DB: SELECT Trades WHERE UserId = rule.UserId AND TickerSymbol = symbol
-                Job->>Job: Compute cost basis + unrealized loss %
+                Note over Job: Check TradeBasisCache
+                alt Cache Miss
+                    Job->>DB: SELECT Trades WHERE UserId/Symbol
+                    Job->>Job: Compute + Cache Basis
+                end
             end
             alt Rule is breached
-                Job->>Redis: GET cooldown:alert:{symbol}
-                alt Not in cooldown
-                    Job->>DB: INSERT Notification { UserId, Message, TickerSymbol }
-                    Job->>Redis: SET cooldown:alert:{symbol} TTL=24h
-                    Job->>SQS: Publish inventoryalert.pricing.price-drop.v1
-                    alt TriggerOnce = true
-                        Job->>DB: UPDATE AlertRule SET IsActive = false
-                    end
+                Job->>Job: Collect into List<Notification>
+                alt TriggerOnce = true
+                    Job->>Job: Update Rule Status
                 end
             end
         end
     end
-    Job->>DB: SaveChangesAsync
+
+    Note over Job,DB: Part 3: Bulk Dispatch
+    Job->>DB: AddRangeAsync(Notifications)
+    loop For each notification
+        Job->>SQS: Publish PriceAlert Event
+    end
+    Job->>DB: SaveChangesAsync (Single Transaction)
 ```
 
 ---
@@ -69,13 +70,14 @@ sequenceDiagram
 
 | Feature | Detail |
 |---|---|
-| **Global Normalization** | `SyncPricesJob` fetches only distinct tickers. 50 users watching AAPL = 1 Finnhub call. |
-| **30s Quote Cache** | Prevents duplicate Finnhub calls within a single sync cycle. Key: `quote:{symbol}`. |
-| **Trade-Based Cost Basis** | `PercentDropFromCost` evaluates against the user's actual bought positions, not a stale snapshot. |
+| **Parallel I/O** | `SyncPricesJob` uses `Parallel.ForEachAsync` to fetch quotes, significantly reducing latency. |
+| **Bulk Persistence** | Uses `AddRangeAsync` for PriceHistories and Notifications to minimize EF Core overhead. |
+| **N+1 Avoidance** | Fetches all relevant `AlertRules` in a single query using `GetBySymbolsAsync`. |
+| **Trade Memoization** | Caches (User, Symbol) cost basis calculations to avoid redundant trade history lookups. |
 | **In-App Notification** | Alert breaches write to the `Notification` table — UI badge updates instantly. |
-| **24h Cooldown** | `cooldown:alert:{symbol}` Redis key prevents repeated alerts within 24 hours for the same symbol. |
+| **Single Transaction** | All state changes (history, notifications, rule updates) are saved in one unit of work. |
 | **TriggerOnce** | If `rule.TriggerOnce = true`, rule is disabled automatically after first breach. |
-| **User Isolation** | `LowHoldingsCount` and `PercentDropFromCost` always filter by `(UserId, TickerSymbol)`. Never aggregate across users. |
+| **User Isolation** | `LowHoldingsCount` and `PercentDropFromCost` always filter by `(UserId, TickerSymbol)`. |
 
 ---
 
