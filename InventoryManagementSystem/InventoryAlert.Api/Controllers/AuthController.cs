@@ -25,7 +25,7 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = isHttps || isLocal, // Allow secure cookies on localhost over HTTP
+            Secure = isHttps, // Only secure if actually HTTPS
             SameSite = (isHttps || isLocal) ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/",
             Expires = expiresAt

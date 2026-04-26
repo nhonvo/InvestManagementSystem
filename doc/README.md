@@ -19,6 +19,10 @@ This folder contains working documentation for the `InventoryManagementSystem/` 
 ## 🗄️ Archive
 - [archive/](archive/) — Legacy plans, setup commands, and hackathon-specific progress logs.
 
+## 📚 Wiki & CI
+
+- [WIKI_REUSE_AND_CI_SYNC.md](WIKI_REUSE_AND_CI_SYNC.md) — Plan to sync `InventoryAlert.Wiki/docs` into the GitHub Wiki repo + suggested CI workflow.
+
 ## 🔭 Observability
 
 - [OBSERVABILITY.md](OBSERVABILITY.md) — Central index (Seq + correlation + error/flow docs).
@@ -34,5 +38,9 @@ This folder contains working documentation for the `InventoryManagementSystem/` 
 ## 🔔 Alerts & Notifications
 
 - [NOTIFICATIONS_AND_ALERT_RULE_FLOW_REVIEW.md](NOTIFICATIONS_AND_ALERT_RULE_FLOW_REVIEW.md) — Business flow review + enhancement recommendations.
+
+## 🧪 Testing
+
+- [JOBS_INTEGRATION_TEST_PLAN.md](JOBS_INTEGRATION_TEST_PLAN.md) — Integration test plan for jobs/worker, SQS retries/DLQ, and Option C DLQ reprocessor.
 
 > Run `/doc` to synchronize this index with new feature implementations.

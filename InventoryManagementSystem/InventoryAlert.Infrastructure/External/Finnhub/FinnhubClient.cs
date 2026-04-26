@@ -118,7 +118,7 @@ public class FinnhubClient(
         var response = await _retryPolicy.ExecuteAsync(async () =>
         {
             var req = new RestRequest(path, Method.Get);
-            req.AddHeader("X-Finnhub-Token", _token);
+            req.AddParameter("token", _token);
             configure(req);
 
             var res = await _client.ExecuteAsync<T>(req, ct);
@@ -155,7 +155,7 @@ public class FinnhubClient(
         var response = await _retryPolicy.ExecuteAsync(async () =>
         {
             var req = new RestRequest(path, Method.Get);
-            req.AddHeader("X-Finnhub-Token", _token);
+            req.AddParameter("token", _token);
             configure(req);
 
             var res = await _client.ExecuteAsync(req, ct);
