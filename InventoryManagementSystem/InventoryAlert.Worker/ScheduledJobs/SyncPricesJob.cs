@@ -32,7 +32,8 @@ public class SyncPricesJob(
             var newPriceHistories = new ConcurrentBag<PriceHistory>();
             var pendingNotifications = new List<Notification>();
 
-            // PART 1: Sync Price
+            // PART 1: Sync Price (Enhanced with Parallelism)
+            // Using a concurrency limit to prevent hitting API rate limits too hard
             var options = new ParallelOptions { MaxDegreeOfParallelism = 5, CancellationToken = ct };
             await Parallel.ForEachAsync(listings, options, async (listing, token) =>
             {
