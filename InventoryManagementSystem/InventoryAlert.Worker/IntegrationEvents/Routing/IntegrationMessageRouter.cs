@@ -6,6 +6,7 @@ using InventoryAlert.Domain.Events;
 using InventoryAlert.Domain.Events.Payloads;
 using InventoryAlert.Worker.IntegrationEvents.Handlers;
 using InventoryAlert.Worker.Interfaces;
+using InventoryAlert.Worker.ScheduledJobs;
 
 namespace InventoryAlert.Worker.IntegrationEvents.Routing;
 
@@ -57,8 +58,8 @@ public class IntegrationMessageRouter(
                     return true;
 
                 case EventTypes.SyncMarketNewsRequested:
-                    _logger.LogInformation("[MessageProcessor] SyncMarketNewsRequested event received. Enqueuing SyncMarketNewsHandler.");
-                    _backgroundJobs.Enqueue<SyncMarketNewsHandler>(job => job.HandleAsync(CancellationToken.None));
+                    _logger.LogInformation("[MessageProcessor] SyncMarketNewsRequested event received. Enqueuing NewsSyncJob.");
+                    _backgroundJobs.Enqueue<NewsSyncJob>(job => job.ExecuteAsync(CancellationToken.None));
                     return true;
                 
                 case EventTypes.SyncCompanyNewsRequested:

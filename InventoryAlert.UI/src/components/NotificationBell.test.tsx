@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import NotificationBell from './NotificationBell';
-import { fetchApi } from '@/lib/api';
+import { useNotifications } from './NotificationProvider';
 
-vi.mock('@/lib/api', () => ({
-  fetchApi: vi.fn(),
+vi.mock('./NotificationProvider', () => ({
+  useNotifications: vi.fn(),
 }));
 
 vi.mock('next/link', () => ({
@@ -20,8 +20,18 @@ describe('NotificationBell', () => {
     vi.clearAllMocks();
   });
 
-  it('shows badge when API returns a number', async () => {
-    vi.mocked(fetchApi).mockResolvedValue(3);
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('shows badge when unreadCount is positive', async () => {
+    vi.mocked(useNotifications).mockReturnValue({
+      unreadCount: 3,
+      notifications: [],
+      decrementCount: vi.fn(),
+      markAllAsRead: vi.fn(),
+    });
+
     render(<NotificationBell />);
 
     await waitFor(() => {
@@ -29,22 +39,36 @@ describe('NotificationBell', () => {
     });
   });
 
-  it('shows badge when API returns {count}', async () => {
-    vi.mocked(fetchApi).mockResolvedValue({ count: 2 });
+  it('shows 9+ when unreadCount is high', async () => {
+    vi.mocked(useNotifications).mockReturnValue({
+      unreadCount: 12,
+      notifications: [],
+      decrementCount: vi.fn(),
+      markAllAsRead: vi.fn(),
+    });
+
     render(<NotificationBell />);
 
     await waitFor(() => {
-      expect(screen.getByText('2')).toBeInTheDocument();
+      expect(screen.getByText('9+')).toBeInTheDocument();
     });
   });
 
-  it('does not show badge when count is 0', async () => {
-    vi.mocked(fetchApi).mockResolvedValue(0);
+  it('does not show badge when unreadCount is 0', async () => {
+    vi.mocked(useNotifications).mockReturnValue({
+      unreadCount: 0,
+      notifications: [],
+      decrementCount: vi.fn(),
+      markAllAsRead: vi.fn(),
+    });
+
     render(<NotificationBell />);
 
     await waitFor(() => {
+      // Bell icon should be there
+      expect(screen.getByText('🔔')).toBeInTheDocument();
+      // But no badge number
       expect(screen.queryByText('0')).not.toBeInTheDocument();
     });
   });
 });
-

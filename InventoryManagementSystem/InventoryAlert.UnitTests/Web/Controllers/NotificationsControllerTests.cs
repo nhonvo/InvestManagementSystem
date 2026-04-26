@@ -13,13 +13,14 @@ namespace InventoryAlert.UnitTests.Web.Controllers;
 public class NotificationsControllerTests
 {
     private readonly Mock<INotificationService> _service = new();
+    private readonly Mock<IAlertNotifier> _notifier = new();
     private readonly NotificationsController _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
     private const string UserId = "user-1";
 
     public NotificationsControllerTests()
     {
-        _sut = new NotificationsController(_service.Object);
+        _sut = new NotificationsController(_service.Object, _notifier.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] {
             new(ClaimTypes.NameIdentifier, UserId),

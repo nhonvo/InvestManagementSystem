@@ -29,11 +29,13 @@ public class NotificationServiceTests
         var symbol = "AAPL";
 
         // Act
-        var result = await _sut.CreateAsync(UserId, message, symbol, null, Ct);
+        var result = await _sut.CreateAsync(UserId, message, InventoryAlert.Domain.Common.Constants.NotificationType.Price, InventoryAlert.Domain.Common.Constants.NotificationSeverity.Critical, symbol, null, Ct);
 
         // Assert
         result.Message.Should().Be(message);
         result.TickerSymbol.Should().Be(symbol);
+        result.Type.Should().Be(InventoryAlert.Domain.Common.Constants.NotificationType.Price);
+        result.Severity.Should().Be(InventoryAlert.Domain.Common.Constants.NotificationSeverity.Critical);
         _uow.Verify(u => u.Notifications.AddAsync(It.IsAny<Notification>(), Ct), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }

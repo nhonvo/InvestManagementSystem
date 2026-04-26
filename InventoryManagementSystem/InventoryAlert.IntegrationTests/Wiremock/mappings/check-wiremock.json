@@ -1,11 +1,16 @@
 {
   "request": {
     "method": "GET",
-    "url": "/some/thing"
+    "urlPath": "/check",
+    "queryParameters": {
+      "token": {
+        "matches": ".+"
+      }
+    }
   },
   "response": {
     "status": 200,
-    "body": "Hello, world! Wiremock has been successfully configured and is responding to requests.",
+    "body": "Wiremock is up!",
     "headers": {
       "Content-Type": "text/plain"
     }

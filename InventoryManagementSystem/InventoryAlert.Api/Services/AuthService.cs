@@ -66,6 +66,11 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
 
     public async Task<AuthTokenPair> RefreshAsync(string refreshToken, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(refreshToken) || refreshToken.Split('.').Length != 3)
+        {
+            throw new UserFriendlyException(ErrorCode.Unauthorized, "Invalid or malformed refresh token.");
+        }
+
         var handler = new JwtSecurityTokenHandler();
         var jwtSettings = _settings.Jwt;
         var key = jwtSettings.Key ?? throw new UnauthorizedAccessException("JWT key not configured.");
@@ -122,6 +127,7 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

@@ -1,3 +1,4 @@
+using InventoryAlert.Domain.Common.Constants;
 using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
@@ -8,12 +9,21 @@ public class NotificationService(IUnitOfWork unitOfWork) : INotificationService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<NotificationResponse> CreateAsync(Guid userId, string message, string? symbol = null, Guid? alertRuleId = null, CancellationToken ct = default)
+    public async Task<NotificationResponse> CreateAsync(
+        Guid userId, 
+        string message, 
+        NotificationType type = NotificationType.System,
+        NotificationSeverity severity = NotificationSeverity.Info,
+        string? symbol = null, 
+        Guid? alertRuleId = null, 
+        CancellationToken ct = default)
     {
         var notification = new Notification
         {
             UserId = userId,
             Message = message,
+            Type = type,
+            Severity = severity,
             TickerSymbol = symbol,
             AlertRuleId = alertRuleId,
             IsRead = false
@@ -26,6 +36,8 @@ public class NotificationService(IUnitOfWork unitOfWork) : INotificationService
             notification.Id,
             notification.Message,
             notification.TickerSymbol,
+            notification.Type,
+            notification.Severity,
             notification.IsRead,
             notification.CreatedAt);
     }
@@ -36,7 +48,14 @@ public class NotificationService(IUnitOfWork unitOfWork) : INotificationService
 
         return new PagedResult<NotificationResponse>
         {
-            Items = result.Items.Select(n => new NotificationResponse(n.Id, n.Message, n.TickerSymbol, n.IsRead, n.CreatedAt)),
+            Items = result.Items.Select(n => new NotificationResponse(
+                n.Id, 
+                n.Message, 
+                n.TickerSymbol, 
+                n.Type, 
+                n.Severity, 
+                n.IsRead, 
+                n.CreatedAt)),
             TotalItems = result.TotalItems,
             PageNumber = result.PageNumber,
             PageSize = result.PageSize

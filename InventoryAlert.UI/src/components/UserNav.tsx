@@ -5,16 +5,16 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import NotificationBell from './NotificationBell'
+import { useNotifications } from './NotificationProvider'
 
 export default function UserNav() {
-  const [token, setToken] = useState<string | null>(null)
+  const { token } = useNotifications()
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, toggleTheme, mounted: themeMounted } = useTheme()
 
   useEffect(() => {
     setMounted(true)
-    setToken(localStorage.getItem('auth_token'))
   }, [])
 
   const handleLogout = async () => {
@@ -32,7 +32,7 @@ export default function UserNav() {
       console.error('Logout failed', e);
     } finally {
       localStorage.removeItem('auth_token');
-      setToken(null);
+      // The NotificationProvider will pick up the removal via interval/storage event
       router.push('/login');
     }
   }

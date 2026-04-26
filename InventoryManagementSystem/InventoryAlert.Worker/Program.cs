@@ -55,20 +55,26 @@ try
         opts.ServerName = "finance-worker";
     });
 
+    // ─── SignalR with Redis Backplane ─────────────────────────────────────────
+    // Note: The Worker doesn't host hubs, but needs this to send messages via the backplane.
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
+            options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
+        });
+
     // Scheduled Jobs
     builder.Services.AddScoped<SyncPricesJob>();
     builder.Services.AddScoped<SyncMetricsJob>();
     builder.Services.AddScoped<SyncEarningsJob>();
     builder.Services.AddScoped<SyncRecommendationsJob>();
     builder.Services.AddScoped<SyncInsidersJob>();
-    builder.Services.AddScoped<CompanyNewsJob>();
+    builder.Services.AddScoped<NewsSyncJob>();
     builder.Services.AddScoped<CleanupPriceHistoryJob>();
     builder.Services.AddScoped<IProcessQueueJob, ProcessQueueJob>();
 
     // Integration Event Handlers
     builder.Services.AddScoped<MarketPriceAlertHandler>();
     builder.Services.AddScoped<CompanyNewsAlertHandler>();
-    builder.Services.AddScoped<SyncMarketNewsHandler>();
     builder.Services.AddScoped<LowHoldingsHandler>();
 
     builder.Services.AddHostedService<JobSchedulerService>();
@@ -78,9 +84,6 @@ try
     builder.Services.AddScoped<InventoryAlert.Worker.Interfaces.IIntegrationMessageRouter, IntegrationMessageRouter>();
 
     builder.Services.AddScoped<ISqsHelper, SqsHelper>();
-
-    // Notification Delivery
-    builder.Services.AddScoped<IAlertNotifier, NotificationAlertNotifier>();
 
     var app = builder.Build();
 

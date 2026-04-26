@@ -43,15 +43,10 @@ public sealed class JobSchedulerService(
             x => x.ExecuteAsync(CancellationToken.None),
             s.SyncInsiders);
 
-        _recurringJobs.AddOrUpdate<SyncMarketNewsHandler>(
-            "market-news",
-            x => x.HandleAsync(CancellationToken.None),
-            s.MarketNews);
-
-        _recurringJobs.AddOrUpdate<CompanyNewsJob>(
-            "company-news",
+        _recurringJobs.AddOrUpdate<NewsSyncJob>(
+            "news-sync",
             x => x.ExecuteAsync(CancellationToken.None),
-            s.NewsCheck);
+            s.MarketNews);
 
         _recurringJobs.AddOrUpdate<CleanupPriceHistoryJob>(
             "cleanup-prices",

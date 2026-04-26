@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using InventoryAlert.Domain.Common.Constants;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.Worker.Models;
@@ -9,11 +10,13 @@ public class SyncPricesJob(
     IUnitOfWork unitOfWork,
     IFinnhubClient finnhub,
     IAlertNotifier notifier,
+    IAlertRuleEvaluator evaluator,
     ILogger<SyncPricesJob> logger)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IFinnhubClient _finnhub = finnhub;
     private readonly IAlertNotifier _notifier = notifier;
+    private readonly IAlertRuleEvaluator _evaluator = evaluator;
     private readonly ILogger<SyncPricesJob> _logger = logger;
 
     public async Task<JobResult> ExecuteAsync(CancellationToken ct)
@@ -63,14 +66,11 @@ public class SyncPricesJob(
                 await _unitOfWork.PriceHistories.AddRangeAsync(newPriceHistories, ct);
             }
 
-            // PART 2: Check Alerts (Enhanced with Batch Fetching and Memoization)
+            // PART 2: Check Alerts (Unified Evaluator)
             var symbolsToProcess = fetchedQuotes.Keys.ToList();
             var allActiveRules = await _unitOfWork.AlertRules.GetBySymbolsAsync(symbolsToProcess, ct);
             var rulesBySymbol = allActiveRules.GroupBy(r => r.TickerSymbol).ToDictionary(g => g.Key, g => g.ToList());
             
-            // Local cache to avoid re-calculating cost basis for multiple alerts on the same User+Symbol
-            var tradeBasisCache = new Dictionary<(Guid UserId, string Symbol), decimal>();
-
             foreach (var kvp in fetchedQuotes)
             {
                 var symbol = kvp.Key;
@@ -80,43 +80,9 @@ public class SyncPricesJob(
 
                 foreach (var rule in rules)
                 {
-                    bool breached = false;
-                    string message = "";
+                    var (isBreached, message) = await _evaluator.EvaluateAsync(rule, currentPrice, ct);
 
-                    if (rule.Condition == AlertCondition.PriceAbove && currentPrice > rule.TargetValue)
-                    {
-                        breached = true;
-                        message = $"{symbol} price {currentPrice:C} is above your target {rule.TargetValue:C}";
-                    }
-                    else if (rule.Condition == AlertCondition.PriceBelow && currentPrice < rule.TargetValue)
-                    {
-                        breached = true;
-                        message = $"{symbol} price {currentPrice:C} is below your target {rule.TargetValue:C}";
-                    }
-                    else if (rule.Condition == AlertCondition.PercentDropFromCost)
-                    {
-                        if (!tradeBasisCache.TryGetValue((rule.UserId, symbol), out var avgCost))
-                        {
-                            var trades = await _unitOfWork.Trades.GetByUserAndSymbolAsync(rule.UserId, symbol, ct);
-                            var buys = trades.Where(t => t.Type == TradeType.Buy).ToList();
-                            var totalCost = buys.Sum(t => t.Quantity * t.UnitPrice);
-                            var totalQty = buys.Sum(t => t.Quantity);
-                            avgCost = totalQty > 0 ? totalCost / totalQty : 0;
-                            tradeBasisCache[(rule.UserId, symbol)] = avgCost;
-                        }
-
-                        if (avgCost > 0)
-                        {
-                            var drop = (avgCost - currentPrice) / avgCost * 100;
-                            if (drop >= rule.TargetValue)
-                            {
-                                breached = true;
-                                message = $"{symbol} has dropped {drop:F2}% from your cost basis of {avgCost:C}";
-                            }
-                        }
-                    }
-
-                    if (breached)
+                    if (isBreached)
                     {
                         var notification = new Notification
                         {
@@ -124,6 +90,8 @@ public class SyncPricesJob(
                             Message = message,
                             TickerSymbol = symbol,
                             AlertRuleId = rule.Id,
+                            Type = NotificationType.Price,
+                            Severity = NotificationSeverity.Warning,
                             IsRead = false,
                             CreatedAt = DateTime.UtcNow
                         };
@@ -143,7 +111,6 @@ public class SyncPricesJob(
                 
                 foreach (var notification in pendingNotifications)
                 {
-                    // Fire-and-forget or sequential depending on notifier capacity
                     await _notifier.NotifyAsync(notification, ct);
                 }
             }
