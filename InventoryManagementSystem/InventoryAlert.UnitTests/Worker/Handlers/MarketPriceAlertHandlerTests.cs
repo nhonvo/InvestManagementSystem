@@ -14,6 +14,7 @@ public class MarketPriceAlertHandlerTests
     private readonly Mock<IAlertRuleRepository> _ruleRepoMock = new();
     private readonly Mock<INotificationRepository> _noteRepoMock = new();
     private readonly Mock<IAlertNotifier> _notifierMock = new();
+    private readonly Mock<IAlertRuleEvaluator> _evaluatorMock = new();
     private readonly Mock<ILogger<MarketPriceAlertHandler>> _loggerMock = new();
     private readonly MarketPriceAlertHandler _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
@@ -24,11 +25,7 @@ public class MarketPriceAlertHandlerTests
         _uowMock.Setup(u => u.AlertRules).Returns(_ruleRepoMock.Object);
         _uowMock.Setup(u => u.Notifications).Returns(_noteRepoMock.Object);
 
-        // Mock ExecuteTransactionAsync to immediately invoke the delegate
-        _uowMock.Setup(u => u.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<Task>, CancellationToken>((action, _) => action());
-
-        _sut = new MarketPriceAlertHandler(_uowMock.Object, _notifierMock.Object, _loggerMock.Object);
+        _sut = new MarketPriceAlertHandler(_uowMock.Object, _notifierMock.Object, _evaluatorMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -42,6 +39,7 @@ public class MarketPriceAlertHandlerTests
 
         var rule = new AlertRule
         {
+            Id = Guid.NewGuid(),
             UserId = userId,
             TickerSymbol = symbol,
             Condition = AlertCondition.PriceAbove,
@@ -52,6 +50,9 @@ public class MarketPriceAlertHandlerTests
 
         _ruleRepoMock.Setup(r => r.GetBySymbolAsync(symbol, Ct))
             .ReturnsAsync(new List<AlertRule> { rule });
+        
+        _evaluatorMock.Setup(e => e.EvaluateAsync(rule, price, Ct))
+            .ReturnsAsync((true, "Price alert: reached..."));
 
         // Act
         await _sut.HandleAsync(payload, Ct);
@@ -86,6 +87,9 @@ public class MarketPriceAlertHandlerTests
         _ruleRepoMock.Setup(r => r.GetBySymbolAsync(symbol, Ct))
             .ReturnsAsync(new List<AlertRule> { rule });
 
+        _evaluatorMock.Setup(e => e.EvaluateAsync(rule, price, Ct))
+            .ReturnsAsync((false, ""));
+
         // Act
         await _sut.HandleAsync(payload, Ct);
 
@@ -119,5 +123,6 @@ public class MarketPriceAlertHandlerTests
 
         // Assert
         _noteRepoMock.Verify(r => r.AddAsync(It.IsAny<Notification>(), It.IsAny<CancellationToken>()), Times.Never);
+        _evaluatorMock.Verify(e => e.EvaluateAsync(It.IsAny<AlertRule>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

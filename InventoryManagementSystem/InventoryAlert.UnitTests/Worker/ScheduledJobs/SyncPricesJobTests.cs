@@ -13,6 +13,7 @@ public class SyncPricesJobTests
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly Mock<IFinnhubClient> _finnhub = new();
     private readonly Mock<IAlertNotifier> _notifier = new();
+    private readonly Mock<IAlertRuleEvaluator> _evaluator = new();
     private readonly Mock<ILogger<SyncPricesJob>> _logger = new();
     private readonly SyncPricesJob _service;
 
@@ -24,7 +25,7 @@ public class SyncPricesJobTests
         _uow.Setup(u => u.Notifications).Returns(new Mock<INotificationRepository>().Object);
         _uow.Setup(u => u.Trades).Returns(new Mock<ITradeRepository>().Object);
 
-        _service = new SyncPricesJob(_uow.Object, _finnhub.Object, _notifier.Object, _logger.Object);
+        _service = new SyncPricesJob(_uow.Object, _finnhub.Object, _notifier.Object, _evaluator.Object, _logger.Object);
     }
 
     [Fact]
@@ -69,6 +70,9 @@ public class SyncPricesJobTests
         
         _uow.Setup(u => u.AlertRules.GetBySymbolsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<AlertRule> { rule });
+
+        _evaluator.Setup(e => e.EvaluateAsync(rule, 210m, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, "TSLA is above target"));
 
         // Act
         await _service.ExecuteAsync(CancellationToken.None);

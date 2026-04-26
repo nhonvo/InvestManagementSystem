@@ -1,3 +1,5 @@
+using InventoryAlert.Domain.Common.Constants;
+
 namespace InventoryAlert.Domain.Entities.Postgres;
 
 /// <summary>
@@ -26,6 +28,16 @@ public class Notification
     /// Human-readable alert message.
     /// </summary>
     public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Category of the notification.
+    /// </summary>
+    public NotificationType Type { get; set; } = NotificationType.System;
+
+    /// <summary>
+    /// Criticality of the notification.
+    /// </summary>
+    public NotificationSeverity Severity { get; set; } = NotificationSeverity.Info;
 
     /// <summary>
     /// Whether the user has acknowledged it.

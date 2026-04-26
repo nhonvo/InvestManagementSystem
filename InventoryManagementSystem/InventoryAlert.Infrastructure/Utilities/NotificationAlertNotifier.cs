@@ -30,6 +30,8 @@ public class NotificationAlertNotifier(
                 notification.Id,
                 notification.Message,
                 notification.TickerSymbol ?? "MARKET",
+                notification.Type,
+                notification.Severity,
                 notification.IsRead,
                 notification.CreatedAt
             );

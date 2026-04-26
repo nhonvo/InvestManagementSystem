@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { useSignalR } from '@/hooks/useSignalR';
 import { fetchApi } from '@/lib/api';
 
@@ -20,6 +20,7 @@ interface NotificationContextType {
     notifications: Notification[];
     decrementCount: () => void;
     markAllAsRead: () => void;
+    refreshUnreadCount: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -69,6 +70,17 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const hubPath = token ? '/hubs/notifications' : null;
     const connection = useSignalR(hubPath);
 
+    const refreshUnreadCount = useCallback(async () => {
+        if (!token) return;
+        try {
+            console.log(`[NotificationProvider] Refreshing unread count...`);
+            const count = await fetchApi('/api/v1/notifications/unread-count');
+            setUnreadCount(typeof count === 'number' ? count : (count?.count || 0));
+        } catch (err) {
+            console.error("[NotificationProvider] Failed to refresh notifications:", err);
+        }
+    }, [token]);
+
     useEffect(() => {
         if (!token) {
             setUnreadCount(0);
@@ -80,18 +92,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         if (hasLoadedRef.current) return;
 
         const loadInitialData = async () => {
-            try {
-                console.log(`[NotificationProvider] Fetching initial data...`);
-                const count = await fetchApi('/api/v1/notifications/unread-count');
-                setUnreadCount(typeof count === 'number' ? count : (count?.count || 0));
-                hasLoadedRef.current = true;
-            } catch (err) {
-                console.error("[NotificationProvider] Failed to load notifications:", err);
-            }
+            await refreshUnreadCount();
+            hasLoadedRef.current = true;
         };
 
         loadInitialData();
-    }, [token]);
+    }, [token, refreshUnreadCount]);
 
     useEffect(() => {
         if (!connection) return;
@@ -111,7 +117,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const markAllAsRead = () => setUnreadCount(0);
 
     return (
-        <NotificationContext.Provider value={{ token, unreadCount, notifications, decrementCount, markAllAsRead }}>
+        <NotificationContext.Provider value={{ token, unreadCount, notifications, decrementCount, markAllAsRead, refreshUnreadCount }}>
             {children}
         </NotificationContext.Provider>
     );

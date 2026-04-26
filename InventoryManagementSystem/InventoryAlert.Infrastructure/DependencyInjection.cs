@@ -39,9 +39,11 @@ public static class DependencyInjection
 
         // ── Persistence: Postgres ──────────────────────────────────────────
         services.AddDbContext<AppDbContext>(options =>
+        {
             options.UseNpgsql(
                 settings.Database.DefaultConnection,
-                b => b.MigrationsAssembly("InventoryAlert.Infrastructure")));
+                b => b.MigrationsAssembly("InventoryAlert.Infrastructure"));
+        });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IStockListingRepository, StockListingRepository>();
@@ -105,6 +107,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICorrelationProvider, CorrelationProvider>();
         services.AddScoped<IAlertNotifier, NotificationAlertNotifier>();
+        services.AddScoped<IAlertRuleEvaluator, AlertRuleEvaluator>();
 
         return services;
     }

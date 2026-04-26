@@ -122,6 +122,8 @@ erDiagram
         Guid AlertRuleId FK
         string TickerSymbol FK
         string Message
+        NotificationType Type
+        NotificationSeverity Severity
         bool IsRead
         datetime CreatedAt
     }
@@ -185,27 +187,43 @@ public enum AlertCondition
 }
 ```
 
+## Notification Enums
+
+```csharp
+public enum NotificationType
+{
+    Price,
+    Holdings,
+    News,
+    System
+}
+
+public enum NotificationSeverity
+{
+    Info,
+    Warning,
+    Critical
+}
+```
+
 ---
 
 ## Alert Evaluation Logic (Fan-Out)
 
-With global normalization, alert evaluation triggers during the periodic price polling of `SyncPricesJob`:
+InventoryAlert **v3** uses a high-performance **Hybrid Pipeline**:
 
 ```mermaid
 flowchart TD
-    A["SyncPricesJob fires every 15 min"] --> B["Fetch Active Listings via UnitOfWork"]
-    B --> C["For each ticker: fetch Finnhub /quote"]
-    C --> D["Insert PriceHistory entry"]
-    D --> E["Load all active AlertRules for this ticker"]
-    E --> F{For each rule}
-    F --> G{Price breaches TargetValue?}
-    G -- Yes --> H{Condition == PercentDropFromCost?}
-    H -- Yes --> I["Calculate Cost Basis via Trades"]
-    H -- No --> J["Format Message directly from Quote"]
-    I --> J
-    J --> K["Create Notification Entity"]
-    K --> L["Call IAlertNotifier (Telegram/FCM)"]
-    L --> M["Update Rule.LastTriggeredAt"]
+    A["Trigger: Scheduled (15m) or Event (Trade/Price)"] --> B["Identify Ticker and User Context"]
+    B --> C["Load Active Rules from PostgreSQL"]
+    C --> D["Evaluate via Shared IAlertRuleEvaluator"]
+    D --> E{Breach Identified?}
+    E -- Yes --> F{Redis Cooldown active?}
+    F -- No --> G["1. Insert Notification (w/ Type & Severity)"]
+    G --> H["2. SET Redis Cooldown (Rule-specific)"]
+    G --> I["3. SignalR Push (Instant UI Sync)"]
+    H & I --> J{TriggerOnce?}
+    J -- Yes --> K["Disable AlertRule"]
 ```
 
 ### Business Rules
@@ -213,5 +231,7 @@ flowchart TD
 | Rule | Detail |
 |---|---|
 | **TriggerOnce** | If `Rule.TriggerOnce` is true, the rule is automatically disabled (`IsActive = false`) after firing. |
+| **Deduplication** | Managed via Redis keys: `alert:cooldown:{userId}:{ruleId}` to prevent notification spam. |
+| **Real-time Delivery** | Every notification is pushed via **SignalR** using the **Redis Backplane**. |
 | **Cascade Behavior** | Deleting a position deletes owned trades and alerts. **Does not** delete the global `StockListing`. |
 | **Notification Feed** | Instead of just sending alerts, breaches generate `Notification` rows to populate the web UI hub. |
