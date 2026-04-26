@@ -11,7 +11,7 @@ namespace InventoryAlert.Worker.ScheduledJobs;
 
 /// <summary>
 /// Continuous polling logic for the Native SQS Background Worker.
-/// Now consolidated with dispatcher logic for reliable processing and reduced abstraction.
+/// Coordinates deduplication, logging, and routing of EventEnvelopes.
 /// </summary>
 public class ProcessQueueJob(
     ISqsHelper sqsHelper,
@@ -68,21 +68,11 @@ public class ProcessQueueJob(
 
     private async Task<bool> DispatchInternalAsync(Message message, CancellationToken ct)
     {
-        // 1. Retry/DLQ Check
-        if (message.Attributes != null &&
-            message.Attributes.TryGetValue("ApproximateReceiveCount", out var receiveCountStr) &&
-            int.TryParse(receiveCountStr, out var receiveCount) && receiveCount > 5)
-        {
-            _logger.LogWarning("[SqsWorker] Message {Id} exceeded retry limit ({Count}).", message.MessageId, receiveCount);
-            // ACK to remove from main queue if it should be handled via Redrive Policy or DLQ
-            return true;
-        }
-
-        // 2. Deserialize Envelope
+        // 1. Deserialize Envelope
         var envelope = TryDeserialize(message);
-        if (envelope == null) return true; // ACK bad JSON
+        if (envelope == null) return true; // ACK malformed JSON
 
-        // 3. Trace Context
+        // 2. Logging & Tracing Context
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["MessageId"] = envelope.MessageId,
@@ -91,31 +81,32 @@ public class ProcessQueueJob(
         });
         using var logContext = Serilog.Context.LogContext.PushProperty("CorrelationId", envelope.CorrelationId);
 
-        // 4. Atomic Deduplication (Redis)
+        // 3. Technical Deduplication Check (Idempotency)
+        // Note: We check but DON'T set here to allow retries on failures.
         var dedupKey = $"msg:processed:{envelope.MessageId}";
-        if (!await _redisDb.StringSetAsync(dedupKey, "1", TimeSpan.FromMinutes(30), When.NotExists))
+        if (await _redisDb.KeyExistsAsync(dedupKey))
         {
-            _logger.LogInformation("[SqsWorker] Duplicate message detected. Skipping.");
+            _logger.LogInformation("[SqsWorker] Duplicate message {MessageId} detected. Skipping.", envelope.MessageId);
             return true;
         }
 
-        // 5. Business Logic Deduplication (Price Alert cooldown)
-        if (envelope.EventType == EventTypes.MarketPriceAlert && await IsSupressedAsync(envelope))
-        {
-            return true;
-        }
-
-        // 6. Execution
+        // 4. Execution
         try
         {
-            await _router.ProcessMessageAsync(message, ct);
-            await _redisDb.KeyExpireAsync(dedupKey, TimeSpan.FromHours(48));
-            return true;
+            var success = await _router.RouteEnvelopeAsync(envelope, ct);
+            
+            if (success)
+            {
+                // Mark as processed only on success
+                await _redisDb.StringSetAsync(dedupKey, "1", TimeSpan.FromHours(24));
+            }
+            
+            return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SqsWorker] Processing failed.");
-            return false; // Redeliver
+            _logger.LogError(ex, "[SqsWorker] Processing failed for message {MessageId}.", envelope.MessageId);
+            return false; // Leave in queue for SQS retry/DLQ
         }
     }
 
@@ -125,30 +116,10 @@ public class ProcessQueueJob(
         {
             return JsonSerializer.Deserialize<EventEnvelope>(message.Body, JsonOptions.Default);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            _logger.LogError(ex, "[SqsWorker] Message {Id} body is not a valid EventEnvelope.", message.MessageId);
+            _logger.LogError("[SqsWorker] Message {Id} body is not a valid EventEnvelope.", message.MessageId);
             return null;
         }
-    }
-
-    private async Task<bool> IsSupressedAsync(EventEnvelope envelope)
-    {
-        try
-        {
-            var payload = JsonSerializer.Deserialize<MarketPriceAlertPayload>(envelope.Payload, JsonOptions.Default);
-            if (payload == null) return false;
-
-            var alertKey = $"alert:cooldown:{payload.Symbol}";
-            if (await _redisDb.KeyExistsAsync(alertKey))
-            {
-                _logger.LogInformation("[SqsWorker] Alert for {Symbol} suppressed by cooldown.", payload.Symbol);
-                return true;
-            }
-
-            await _redisDb.StringSetAsync(alertKey, "1", TimeSpan.FromHours(24));
-            return false;
-        }
-        catch { return false; }
     }
 }

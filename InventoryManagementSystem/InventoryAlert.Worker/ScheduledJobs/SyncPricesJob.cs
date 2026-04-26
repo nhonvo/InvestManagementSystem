@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using InventoryAlert.Domain.Common.Constants;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
+using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Models;
 
 namespace InventoryAlert.Worker.ScheduledJobs;
@@ -11,12 +12,14 @@ public class SyncPricesJob(
     IFinnhubClient finnhub,
     IAlertNotifier notifier,
     IAlertRuleEvaluator evaluator,
+    WorkerSettings settings,
     ILogger<SyncPricesJob> logger)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IFinnhubClient _finnhub = finnhub;
     private readonly IAlertNotifier _notifier = notifier;
     private readonly IAlertRuleEvaluator _evaluator = evaluator;
+    private readonly WorkerSettings _settings = settings;
     private readonly ILogger<SyncPricesJob> _logger = logger;
 
     public async Task<JobResult> ExecuteAsync(CancellationToken ct)
@@ -34,7 +37,7 @@ public class SyncPricesJob(
 
             // PART 1: Sync Price (Enhanced with Parallelism)
             // Using a concurrency limit to prevent hitting API rate limits too hard
-            var options = new ParallelOptions { MaxDegreeOfParallelism = 5, CancellationToken = ct };
+            var options = new ParallelOptions { MaxDegreeOfParallelism = _settings.MaxDegreeOfParallelism, CancellationToken = ct };
             await Parallel.ForEachAsync(listings, options, async (listing, token) =>
             {
                 try

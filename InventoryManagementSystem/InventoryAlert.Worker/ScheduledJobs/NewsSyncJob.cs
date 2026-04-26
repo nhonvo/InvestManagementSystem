@@ -1,5 +1,6 @@
 using InventoryAlert.Domain.Entities.Dynamodb;
 using InventoryAlert.Domain.Interfaces;
+using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Models;
 using Microsoft.Extensions.Logging;
 
@@ -13,12 +14,14 @@ public class NewsSyncJob(
     IFinnhubClient finnhub,
     ICompanyNewsDynamoRepository companyNewsRepo,
     IMarketNewsDynamoRepository marketNewsRepo,
+    WorkerSettings settings,
     ILogger<NewsSyncJob> logger)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IFinnhubClient _finnhub = finnhub;
     private readonly ICompanyNewsDynamoRepository _companyNewsRepo = companyNewsRepo;
     private readonly IMarketNewsDynamoRepository _marketNewsRepo = marketNewsRepo;
+    private readonly WorkerSettings _settings = settings;
     private readonly ILogger<NewsSyncJob> _logger = logger;
 
     public async Task<JobResult> ExecuteAsync(CancellationToken ct)
@@ -85,7 +88,7 @@ public class NewsSyncJob(
         int totalSaved = 0;
 
         // Using Parallel fetching for company news to speed up execution for many symbols
-        var options = new ParallelOptions { MaxDegreeOfParallelism = 5, CancellationToken = ct };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = _settings.MaxDegreeOfParallelism, CancellationToken = ct };
         
         await Parallel.ForEachAsync(listings, options, async (listing, token) =>
         {
