@@ -173,8 +173,8 @@ try
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseMiddleware<PerformanceMiddleware>();
+    app.UseMiddleware<GlobalExceptionMiddleware>();
 
     app.UseResponseCompression();
     app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
