@@ -4,6 +4,7 @@ using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.E2ETests.Abstractions;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit;
 
@@ -22,6 +23,9 @@ public class SignalRNotificationE2ETests : BaseE2ETest
         var connection = new HubConnectionBuilder()
             .WithUrl(hubUrl, options => {
                 options.AccessTokenProvider = () => Task.FromResult(JwtToken);
+            })
+            .AddJsonProtocol(options => {
+                options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
             })
             .WithAutomaticReconnect()
             .Build();

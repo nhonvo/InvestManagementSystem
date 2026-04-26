@@ -10,10 +10,15 @@ async function tryRefreshToken(): Promise<boolean> {
     });
     if (!res.ok) return false;
     const data = await res.json();
-    if (data?.accessToken) {
-      localStorage.setItem("auth_token", data.accessToken);
+    
+    // Backend returns AuthTokenPair which has Auth: { AccessToken: "..." }
+    const newToken = data?.auth?.accessToken || data?.accessToken;
+    
+    if (newToken) {
+      localStorage.setItem("auth_token", newToken);
+      return true;
     }
-    return true;
+    return false;
   } catch {
     return false;
   }
@@ -40,7 +45,8 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}, _isR
     credentials: "include", // always send cookies so refresh token flows work
   });
 
-  if (response.status === 401 && !_isRetry) {
+  // If unauthorized and NOT already trying to refresh and NOT the refresh endpoint itself
+  if (response.status === 401 && !_isRetry && !endpoint.includes("/auth/refresh")) {
     // Attempt a single token refresh then retry the original request.
     if (!isRefreshing) {
       isRefreshing = true;

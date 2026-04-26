@@ -110,20 +110,12 @@ try
             {
                 OnMessageReceived = context =>
                 {
-                    // 1. Standard Header handling
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (!string.IsNullOrEmpty(authHeader))
-                    {
-                        if (authHeader.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            context.Token = authHeader;
-                        }
-                    }
-                    
-                    // 2. SignalR Query String handling (Standard for WebSockets)
+                    // SignalR Query String handling (Standard for WebSockets)
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    
+                    if (!string.IsNullOrEmpty(accessToken) && 
+                        path.StartsWithSegments(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute))
                     {
                         context.Token = accessToken;
                     }
