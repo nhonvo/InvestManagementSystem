@@ -13,7 +13,7 @@ describe('fetchApi Refresh Logic', () => {
       removeItem: vi.fn((key) => { delete storage[key]; }),
     });
     vi.stubGlobal('window', {
-      location: { href: '' },
+      location: { href: '', pathname: '/' },
     });
     vi.stubGlobal('process', {
       env: { NEXT_PUBLIC_API_URL: API_URL, NODE_ENV: 'development' }
@@ -29,25 +29,25 @@ describe('fetchApi Refresh Logic', () => {
     const newToken = 'new-token';
     localStorage.setItem('auth_token', oldToken);
 
-    // First call: 401
-    // Second call (refresh): 200 with new token
-    // Third call (retry): 200
     vi.mocked(fetch)
       .mockResolvedValueOnce({
         status: 401,
         ok: false,
+        headers: { get: vi.fn().mockReturnValue('cid-1') },
         json: async () => ({ message: 'Unauthorized' }),
-      } as Response)
+      } as any)
       .mockResolvedValueOnce({
         status: 200,
         ok: true,
+        headers: { get: vi.fn().mockReturnValue('cid-2') },
         json: async () => ({ auth: { accessToken: newToken } }),
-      } as Response)
+      } as any)
       .mockResolvedValueOnce({
         status: 200,
         ok: true,
+        headers: { get: vi.fn().mockReturnValue('cid-3') },
         json: async () => ({ data: 'success' }),
-      } as Response);
+      } as any);
 
     const result = await fetchApi('/test');
 
@@ -70,7 +70,6 @@ describe('fetchApi Refresh Logic', () => {
     const newToken = 'new-token';
     localStorage.setItem('auth_token', oldToken);
 
-    // We need to be careful with the mock below because fetchApi calls itself recursively.
     let refreshCalledCount = 0;
     vi.mocked(fetch).mockImplementation(async (url, options) => {
         const urlStr = url.toString();
@@ -80,8 +79,9 @@ describe('fetchApi Refresh Logic', () => {
             return {
                 status: 200,
                 ok: true,
+                headers: { get: vi.fn().mockReturnValue('cid-refresh') },
                 json: async () => ({ auth: { accessToken: newToken } }),
-            } as Response;
+            } as any;
         }
 
         if (urlStr.includes('/test')) {
@@ -90,21 +90,22 @@ describe('fetchApi Refresh Logic', () => {
                 return {
                     status: 401,
                     ok: false,
+                    headers: { get: vi.fn().mockReturnValue('cid-401') },
                     json: async () => ({ message: 'Unauthorized' }),
-                } as Response;
+                } as any;
             }
             if (authHeader === `Bearer ${newToken}`) {
                 return {
                     status: 200,
                     ok: true,
+                    headers: { get: vi.fn().mockReturnValue('cid-success') },
                     json: async () => ({ data: 'success' }),
-                } as Response;
+                } as any;
             }
         }
-        return { status: 404 } as Response;
+        return { status: 404, headers: { get: vi.fn() } } as any;
     });
 
-    // Trigger two concurrent requests
     const [res1, res2] = await Promise.all([
       fetchApi('/test'),
       fetchApi('/test')
@@ -113,7 +114,6 @@ describe('fetchApi Refresh Logic', () => {
     expect(res1).toEqual({ data: 'success' });
     expect(res2).toEqual({ data: 'success' });
     
-    // CRITICAL: Refresh should only be called ONCE despite two 401s
     expect(refreshCalledCount).toBe(1);
     expect(localStorage.setItem).toHaveBeenCalledWith('auth_token', newToken);
   });

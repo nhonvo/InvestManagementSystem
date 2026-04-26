@@ -11,7 +11,7 @@ describe('fetchApi', () => {
     });
     // Mock window.location
     vi.stubGlobal('window', {
-      location: { href: '' },
+      location: { href: '', pathname: '/' },
     });
   });
 
@@ -22,8 +22,9 @@ describe('fetchApi', () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       status: 200,
+      headers: { get: vi.fn().mockReturnValue('cid-123') },
       json: async () => ({ data: 'success' }),
-    } as Response);
+    } as any);
 
     await fetchApi('/test');
 
@@ -41,8 +42,9 @@ describe('fetchApi', () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 500,
+      headers: { get: vi.fn().mockReturnValue('cid-err') },
       json: async () => ({ message: 'Internal Server Error' }),
-    } as Response);
+    } as any);
 
     await expect(fetchApi('/test')).rejects.toThrow('Internal Server Error');
   });
