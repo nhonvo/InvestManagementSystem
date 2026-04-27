@@ -1,5 +1,6 @@
 using System.Text.Json;
 using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Constants;
 using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
@@ -129,7 +130,7 @@ public class StockDataService(
 
     public async Task<PeersResponse?> GetPeersAsync(string symbol, CancellationToken ct = default)
     {
-        var cacheKey = $"peers:{symbol}";
+        var cacheKey = CacheKeys.Peers(symbol);
         var cached = await _cache.StringGetAsync(cacheKey);
         if (cached.HasValue)
             return JsonSerializer.Deserialize<PeersResponse>((string)cached!, _json);

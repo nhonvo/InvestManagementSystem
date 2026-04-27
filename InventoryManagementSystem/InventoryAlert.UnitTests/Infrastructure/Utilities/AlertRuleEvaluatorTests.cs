@@ -44,7 +44,7 @@ public class AlertRuleEvaluatorTests
         // Assert
         result.IsBreached.Should().BeTrue();
         result.Message.Should().Contain("above your target");
-        _redis.Verify(r => r.TryAcquireLockAsync(It.IsAny<string>(), "1", TimeSpan.FromHours(24), Ct), Times.Once);
+        _redis.Verify(r => r.TryAcquireBestEffortLockAsync(It.IsAny<string>(), "1", TimeSpan.FromHours(24), Ct), Times.Once);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class AlertRuleEvaluatorTests
 
         // Assert
         result.IsBreached.Should().BeFalse();
-        _redis.Verify(r => r.TryAcquireLockAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), Ct), Times.Never);
+        _redis.Verify(r => r.TryAcquireBestEffortLockAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), Ct), Times.Never);
     }
 
     [Fact]

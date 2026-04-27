@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Amazon.SQS.Model;
 using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Constants;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Domain.Events.Payloads;
 using InventoryAlert.Worker.Configuration;
@@ -92,7 +93,7 @@ public class ProcessQueueJob(
         using var logContext = Serilog.Context.LogContext.PushProperty("CorrelationId", envelope.CorrelationId);
 
         // 4. Atomic Deduplication (Redis)
-        var dedupKey = $"msg:processed:{envelope.MessageId}";
+        var dedupKey = CacheKeys.MessageProcessed(envelope.MessageId);
         if (!await _redisDb.StringSetAsync(dedupKey, "1", TimeSpan.FromMinutes(30), When.NotExists))
         {
             _logger.LogInformation("[SqsWorker] Duplicate message detected. Skipping.");
@@ -139,7 +140,7 @@ public class ProcessQueueJob(
             var payload = JsonSerializer.Deserialize<MarketPriceAlertPayload>(envelope.Payload, JsonOptions.Default);
             if (payload == null) return false;
 
-            var alertKey = $"alert:cooldown:{payload.Symbol}";
+            var alertKey = CacheKeys.GlobalAlertCooldown(payload.Symbol);
             if (await _redisDb.KeyExistsAsync(alertKey))
             {
                 _logger.LogInformation("[SqsWorker] Alert for {Symbol} suppressed by cooldown.", payload.Symbol);
