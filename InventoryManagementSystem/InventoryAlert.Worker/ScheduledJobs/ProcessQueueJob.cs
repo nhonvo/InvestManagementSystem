@@ -114,7 +114,18 @@ public class ProcessQueueJob(
     {
         try
         {
-            return JsonSerializer.Deserialize<EventEnvelope>(message.Body, JsonOptions.Default);
+            string body = message.Body;
+
+            // Detect and unwrap SNS JSON if present
+            using var doc = JsonDocument.Parse(message.Body);
+            if (doc.RootElement.TryGetProperty("Message", out var innerMsg) && 
+                doc.RootElement.TryGetProperty("Type", out var type) && 
+                type.GetString() == "Notification")
+            {
+                body = innerMsg.GetString() ?? message.Body;
+            }
+
+            return JsonSerializer.Deserialize<EventEnvelope>(body, JsonOptions.Default);
         }
         catch (JsonException)
         {

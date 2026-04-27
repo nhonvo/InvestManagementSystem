@@ -27,6 +27,12 @@ public class IntegrationMessageRouter(
     {
         try
         {
+            if (string.IsNullOrEmpty(envelope.EventType))
+            {
+                _logger.LogWarning("[MessageRouter] Received envelope with empty EventType. MessageId: {Id}", envelope.MessageId);
+                return true;
+            }
+
             switch (envelope.EventType)
             {
                 case EventTypes.StockLowAlert:
@@ -45,34 +51,23 @@ public class IntegrationMessageRouter(
                     }
                     return true;
 
-                case EventTypes.CompanyNewsAlert:
-                    var newsPayload = JsonSerializer.Deserialize<CompanyNewsAlertPayload>(envelope.Payload, JsonOptions.Default);
-                    if (newsPayload != null)
-                    {
-                        _backgroundJobs.Enqueue<CompanyNewsAlertHandler>(h => h.HandleAsync(newsPayload, CancellationToken.None));
-                    }
-                    return true;
-
                 case EventTypes.SyncMarketNewsRequested:
                     _logger.LogInformation("[MessageRouter] SyncMarketNewsRequested received. Enqueuing NewsSyncJob.");
                     _backgroundJobs.Enqueue<NewsSyncJob>(job => job.ExecuteAsync(CancellationToken.None));
                     return true;
-                
-                case EventTypes.SyncCompanyNewsRequested:
-                    var syncNewsPayload = JsonSerializer.Deserialize<CompanyNewsAlertPayload>(envelope.Payload, JsonOptions.Default);
-                    if (syncNewsPayload != null)
-                    {
-                        _logger.LogInformation("[MessageRouter] SyncCompanyNewsRequested for {Symbol} received.", syncNewsPayload.Symbol);
-                        _backgroundJobs.Enqueue<CompanyNewsAlertHandler>(h => h.HandleAsync(syncNewsPayload, CancellationToken.None));
-                    }
-                    return true;
+
+                case EventTypes.TestFailureRequested:
+                    _logger.LogCritical("[MessageRouter] TestFailureRequested received. Throwing for retry testing.");
+                    throw new InvalidOperationException("E2E Test Poison Message Failure");
 
                 default:
-                    _logger.LogInformation("[MessageRouter] Unhandled EventType={EventType}. Finalizing with raw handler.", envelope.EventType);
-                    // Create a dummy SQS message to satisfy the IRawDefaultHandler if needed, 
-                    // or refactor raw handler to take envelope.
-                    return true;
+                    _logger.LogInformation("[MessageRouter] Unhandled EventType={EventType}. MessageId: {Id}", envelope.EventType, envelope.MessageId);
+                    return true; // ACK unknown events
             }
+        }
+        catch (InvalidOperationException) when (envelope.EventType == EventTypes.TestFailureRequested)
+        {
+            throw; // Re-throw for E2E testing
         }
         catch (Exception ex)
         {
@@ -81,28 +76,11 @@ public class IntegrationMessageRouter(
         }
     }
 
-    public async Task<bool> ProcessAndAcknowledgeAsync(Message message, CancellationToken ct)
+    public async Task ProcessMessageAsync(Message message, CancellationToken ct)
     {
-        try
-        {
-            // Fallback for raw SQS messages not in Envelope format
-            var envelope = JsonSerializer.Deserialize<EventEnvelope>(message.Body, JsonOptions.Default);
-            if (envelope == null || string.IsNullOrEmpty(envelope.EventType))
-            {
-                _logger.LogWarning("[MessageRouter] Message {MessageId} is not a valid EventEnvelope. Delegating to raw handler.", message.MessageId);
-                await _rawHandler.HandleAsync(message, ct);
-                return true;
-            }
-
-            return await RouteEnvelopeAsync(envelope, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[MessageRouter] Critical failure processing message {MessageId}.", message.MessageId);
-            return false;
-        }
+        // This is now a legacy bridge if any direct callers remain. 
+        // Real logic should flow through RouteEnvelopeAsync.
+        _logger.LogWarning("[MessageRouter] ProcessMessageAsync (Legacy) called for Message {Id}.", message.MessageId);
+        await _rawHandler.HandleAsync(message, ct);
     }
-
-    public Task ProcessMessageAsync(Message message, CancellationToken ct)
-        => ProcessAndAcknowledgeAsync(message, ct);
 }
