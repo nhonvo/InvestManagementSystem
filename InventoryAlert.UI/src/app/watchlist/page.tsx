@@ -6,6 +6,8 @@ import { fetchApi } from "@/lib/api";
 import { AddSymbolModal } from "@/components/AddSymbolModal";
 import { Toast } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import Pagination from "@/components/ui/Pagination";
+import { getErrorMessage } from "@/lib/error-utils";
 
 interface WatchlistItem {
   symbol: string;
@@ -23,13 +25,17 @@ export default function WatchlistPage() {
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
+
   const loadWatchlist = async () => {
     try {
       setLoading(true);
       const data = await fetchApi("/api/v1/watchlist");
       setWatchlist(data || []);
+      setPage(1);
     } catch (err: any) {
-      setError(err.message || "Failed to load watchlist");
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -41,15 +47,20 @@ export default function WatchlistPage() {
 
   const removeFromWatchlist = async (symbol: string) => {
     try {
+      const wasLastOnPage = watchlist.length > 0 && watchlist.slice((page - 1) * pageSize, page * pageSize).length === 1;
       await fetchApi(`/api/v1/watchlist/${symbol}`, { method: 'DELETE' });
       setWatchlist(prev => prev.filter(item => item.symbol !== symbol));
       setToast({ message: `${symbol} removed from watchlist`, type: 'success' });
+      if (wasLastOnPage && page > 1) setPage(page - 1);
     } catch (err: any) {
-      setToast({ message: err.message || "Failed to remove symbol", type: 'error' });
+      setToast({ message: getErrorMessage(err), type: 'error' });
     } finally {
       setConfirmDelete(null);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(watchlist.length / pageSize));
+  const pageItems = watchlist.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="max-w-7xl mx-auto space-y-10">
@@ -95,7 +106,7 @@ export default function WatchlistPage() {
              <button onClick={() => setIsModalOpen(true)} className="text-blue-500 font-semibold uppercase text-xs hover:underline decoration-2">Find your first stock →</button>
           </div>
         ) : (
-          watchlist.map((item) => (
+          pageItems.map((item) => (
             <div key={item.symbol} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-[2.5rem] p-8 hover:border-blue-500/50 transition-all group relative group shadow-sm dark:shadow-none">
                 <button 
                     onClick={() => setConfirmDelete(item.symbol)}
@@ -129,6 +140,17 @@ export default function WatchlistPage() {
           ))
         )}
       </div>
+
+      {!loading && watchlist.length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm dark:shadow-none">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            isLoading={loading}
+          />
+        </div>
+      )}
     </div>
   );
 }

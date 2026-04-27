@@ -1,11 +1,11 @@
-export interface ApiError {
+export interface ApiErrorDetail {
     code: string;
     message: string;
     property?: string;
 }
 
 export interface ErrorResponse {
-    errors: ApiError[];
+    errors: ApiErrorDetail[];
     errorId: string;
     correlationId?: string;
 }

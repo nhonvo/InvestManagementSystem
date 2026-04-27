@@ -5,7 +5,7 @@ describe('fetchApi Refresh Logic', () => {
   const API_URL = "http://localhost:8080";
 
   beforeEach(() => {
-    let storage: Record<string, string> = {};
+    const storage: Record<string, string> = {};
     vi.stubGlobal('fetch', vi.fn());
     vi.stubGlobal('localStorage', {
       getItem: vi.fn((key) => storage[key] || null),

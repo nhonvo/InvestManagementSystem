@@ -55,7 +55,7 @@ export default function NotificationsPage() {
       const data = await fetchApi(`/api/v1/notifications?page=${targetPage}&pageSize=${pageSize}`);
       setNotifications(data.items || []);
       setTotalPages(data.totalPages || 1);
-      setPage(data.page || targetPage);
+      setPage(data.pageNumber || targetPage);
       
       await refreshUnreadCount(); // Sync badge
     } catch (err: any) {
@@ -100,15 +100,17 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (id: string) => {
     try {
-      const isUnread = !notifications.find(n => n.id === id)?.isRead;
+      const target = notifications.find(n => n.id === id);
+      const isUnread = !target?.isRead;
+      const wasLastOnPage = notifications.length === 1;
       await fetchApi(`/api/v1/notifications/${id}`, { method: 'DELETE' });
       setNotifications(prev => prev.filter(n => n.id !== id));
       if (isUnread) decrementCount();
       setToast({ message: "Notification dismissed", type: 'success' });
       
       // If we deleted the last item on a page, go back one page
-      if (notifications.length === 1 && page > 1) {
-          handlePageChange(page - 1);
+      if (wasLastOnPage && page > 1) {
+        handlePageChange(page - 1);
       }
     } catch (err: any) {
       setToast({ message: getErrorMessage(err), type: 'error' });
