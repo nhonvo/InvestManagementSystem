@@ -6,6 +6,8 @@ import { fetchApi } from "@/lib/api";
 import { Toast } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TradeModal } from "@/components/TradeModal";
+import Pagination from "@/components/ui/Pagination";
+import { getErrorMessage } from "@/lib/error-utils";
 
 interface PortfolioPosition {
   symbol: string;
@@ -32,30 +34,36 @@ export default function PortfolioPage() {
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const loadPortfolio = async () => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 10;
+
+  const loadPortfolio = async (targetPage: number) => {
     try {
       setLoading(true);
-      const data = await fetchApi("/api/v1/portfolio/positions");
+      const data = await fetchApi(`/api/v1/portfolio/positions?pageNumber=${targetPage}&pageSize=${pageSize}`);
       // The API returns PagedResult<PortfolioPositionResponse>
       setPositions(data.items || []);
+      setTotalPages(data.totalPages || 1);
+      setPage(data.pageNumber || targetPage);
     } catch (err: any) {
-      setError(err.message || "Failed to load portfolio");
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPortfolio();
+    loadPortfolio(1);
   }, []);
 
   const handleDelete = async (symbol: string) => {
     try {
       await fetchApi(`/api/v1/portfolio/positions/${symbol}`, { method: 'DELETE' });
       setToast({ message: `Position for ${symbol} removed`, type: 'success' });
-      loadPortfolio();
+      loadPortfolio(page);
     } catch (err: any) {
-      setToast({ message: err.message || "Failed to remove position", type: 'error' });
+      setToast({ message: getErrorMessage(err), type: 'error' });
     } finally {
       setConfirmDelete(null);
     }
@@ -63,7 +71,7 @@ export default function PortfolioPage() {
 
   const handleTradeSuccess = () => {
     setToast({ message: "Trade recorded successfully", type: 'success' });
-    loadPortfolio();
+    loadPortfolio(page);
   };
 
   const totalMarketValue = positions.reduce((acc, p) => acc + p.marketValue, 0);
@@ -210,6 +218,16 @@ export default function PortfolioPage() {
             </tbody>
           </table>
         </div>
+        {positions.length > 0 && (
+          <div className="border-t border-zinc-200 dark:border-white/5">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={(p) => loadPortfolio(p)}
+              isLoading={loading}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
