@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using Hangfire.Common;
+using Hangfire.Server;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace InventoryAlert.Worker.Filters;
@@ -9,8 +12,9 @@ namespace InventoryAlert.Worker.Filters;
 /// Global Hangfire job filter that intercepts all job failures and routes them
 /// through ILogger — consistent with the rest of the system.
 /// Also tracks retry attempt count and emits a structured warning per retry.
+/// Logs handler start and completion events.
 /// </summary>
-public sealed class HangfireJobLoggingFilter : JobFilterAttribute, IApplyStateFilter
+public sealed class HangfireJobLoggingFilter : JobFilterAttribute, IApplyStateFilter, IServerFilter
 {
     // ILoggerFactory cannot be constructor-injected because Hangfire creates
     // filter instances before the DI container is ready. Set it once at startup.
@@ -22,6 +26,26 @@ public sealed class HangfireJobLoggingFilter : JobFilterAttribute, IApplyStateFi
     private static ILogger GetLogger()
         => _loggerFactory?.CreateLogger("HangfireJobFilter")
            ?? NullLogger.Instance;
+
+    public void OnPerforming(PerformingContext filterContext)
+    {
+        filterContext.Items["Stopwatch"] = Stopwatch.StartNew();
+        GetLogger().LogInformation("handler.started: Job {JobName} execution started.", filterContext.BackgroundJob.Job.Type.Name);
+    }
+
+    public void OnPerformed(PerformedContext filterContext)
+    {
+        var logger = GetLogger();
+        var jobName = filterContext.BackgroundJob.Job.Type.Name;
+        var stopwatch = filterContext.Items["Stopwatch"] as Stopwatch;
+        stopwatch?.Stop();
+        var elapsedMs = stopwatch?.Elapsed.TotalMilliseconds ?? 0;
+        
+        bool succeeded = filterContext.Exception == null && !filterContext.Canceled;
+
+        logger.LogInformation("handler.completed: Job {JobName} execution finished. Succeeded={Succeeded} | ElapsedMs={ElapsedMs:F3}", 
+            jobName, succeeded, elapsedMs);
+    }
 
     public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
     {
