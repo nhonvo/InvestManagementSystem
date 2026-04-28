@@ -76,11 +76,38 @@ public class IntegrationMessageRouter(
         }
     }
 
-    public async Task ProcessMessageAsync(Message message, CancellationToken ct)
+    public async Task<bool> ProcessAndAcknowledgeAsync(Message message, CancellationToken ct)
     {
-        // This is now a legacy bridge if any direct callers remain. 
-        // Real logic should flow through RouteEnvelopeAsync.
-        _logger.LogWarning("[MessageRouter] ProcessMessageAsync (Legacy) called for Message {Id}.", message.MessageId);
-        await _rawHandler.HandleAsync(message, ct);
+        try
+        {
+            string body = message.Body;
+
+            // 1. Detect if it's an SNS-wrapped message (contains "Message" and "Type")
+            using var doc = JsonDocument.Parse(message.Body);
+            if (doc.RootElement.TryGetProperty("Message", out var innerMsg) && doc.RootElement.TryGetProperty("Type", out var type) && type.GetString() == "Notification")
+            {
+                _logger.LogDebug("[MessageRouter] Detected SNS wrap for message {MessageId}. Unwrapping.", message.MessageId);
+                body = innerMsg.GetString() ?? message.Body;
+            }
+
+            // 2. Deserialize Envelope
+            var envelope = JsonSerializer.Deserialize<EventEnvelope>(body, JsonOptions.Default);
+            if (envelope == null || string.IsNullOrEmpty(envelope.EventType))
+            {
+                _logger.LogWarning("[MessageRouter] Message {MessageId} is not a valid EventEnvelope. Delegating to raw handler.", message.MessageId);
+                await _rawHandler.HandleAsync(message, ct);
+                return true;
+            }
+
+            return await RouteEnvelopeAsync(envelope, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MessageRouter] Critical failure processing message {MessageId}.", message.MessageId);
+            return false;
+        }
     }
+
+    public async Task ProcessMessageAsync(Message message, CancellationToken ct)
+        => await ProcessAndAcknowledgeAsync(message, ct);
 }

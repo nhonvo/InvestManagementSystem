@@ -68,32 +68,20 @@ public class ProcessQueueJob(
 
     private async Task<bool> DispatchInternalAsync(Message message, CancellationToken ct)
     {
-        // 1. Deserialize Envelope
-        var envelope = TryDeserialize(message);
-        if (envelope == null) return true; // ACK malformed JSON
-
-        // 2. Logging & Tracing Context
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["MessageId"] = envelope.MessageId,
-            ["EventType"] = envelope.EventType,
-            ["CorrelationId"] = envelope.CorrelationId
-        });
-        using var logContext = Serilog.Context.LogContext.PushProperty("CorrelationId", envelope.CorrelationId);
-
-        // 3. Technical Deduplication Check (Idempotency)
-        // Note: We check but DON'T set here to allow retries on failures.
-        var dedupKey = $"msg:processed:{envelope.MessageId}";
+        // 1. Technical Deduplication Check (Idempotency)
+        // We check if we already finished this message id.
+        var dedupKey = $"msg:processed:{message.MessageId}";
         if (await _redisDb.KeyExistsAsync(dedupKey))
         {
-            _logger.LogInformation("[SqsWorker] Duplicate message {MessageId} detected. Skipping.", envelope.MessageId);
+            _logger.LogInformation("[SqsWorker] Duplicate message {MessageId} detected. Skipping.", message.MessageId);
             return true;
         }
 
-        // 4. Execution
+        // 2. Execution
         try
         {
-            var success = await _router.RouteEnvelopeAsync(envelope, ct);
+            // Note: IntegrationMessageRouter now handles SNS unwrapping and deserialization
+            var success = await _router.ProcessAndAcknowledgeAsync(message, ct);
             
             if (success)
             {
@@ -105,32 +93,8 @@ public class ProcessQueueJob(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SqsWorker] Processing failed for message {MessageId}.", envelope.MessageId);
+            _logger.LogError(ex, "[SqsWorker] Processing failed for message {MessageId}.", message.MessageId);
             return false; // Leave in queue for SQS retry/DLQ
-        }
-    }
-
-    private EventEnvelope? TryDeserialize(Message message)
-    {
-        try
-        {
-            string body = message.Body;
-
-            // Detect and unwrap SNS JSON if present
-            using var doc = JsonDocument.Parse(message.Body);
-            if (doc.RootElement.TryGetProperty("Message", out var innerMsg) && 
-                doc.RootElement.TryGetProperty("Type", out var type) && 
-                type.GetString() == "Notification")
-            {
-                body = innerMsg.GetString() ?? message.Body;
-            }
-
-            return JsonSerializer.Deserialize<EventEnvelope>(body, JsonOptions.Default);
-        }
-        catch (JsonException)
-        {
-            _logger.LogError("[SqsWorker] Message {Id} body is not a valid EventEnvelope.", message.MessageId);
-            return null;
         }
     }
 }

@@ -26,7 +26,7 @@ while (true)
     Console.WriteLine("║   InventoryAlert Event Simulator         ║");
     Console.WriteLine("╠══════════════════════════════════════════╣");
     Console.WriteLine("║  1 → MarketPriceAlert  (via API)         ║");
-    Console.WriteLine("║  2 → CompanyNewsAlert  (via API)         ║");
+    Console.WriteLine("║  2 → SyncCompanyNews   (via API)         ║");
     Console.WriteLine("║  5 → Stress test — 50 random (→ SNS)    ║");
     Console.WriteLine("║  6 → Publish direct to SNS (bypasses API)║");
     Console.WriteLine("║  q → Quit                                ║");
@@ -50,7 +50,7 @@ while (true)
             break;
 
         case "2":
-            await PublishViaApiAsync(httpClient, EventTypes.CompanyNewsAlert,
+            await PublishViaApiAsync(httpClient, EventTypes.SyncCompanyNewsRequested,
                 new CompanyNewsAlertPayload
                 {
                     Symbol = "TSLA"
@@ -122,7 +122,7 @@ static async Task StressTestAsync(IAmazonSimpleNotificationService sns, string t
 {
     var rng = new Random();
     var symbols = new[] { "AAPL", "MSFT", "GOOGL", "TSLA", "AMZN" };
-    var types = new[] { EventTypes.MarketPriceAlert, EventTypes.CompanyNewsAlert };
+    var types = new[] { EventTypes.MarketPriceAlert, EventTypes.SyncCompanyNewsRequested };
 
     Console.WriteLine("🚀 Sending 50 random events directly to SNS...");
 
@@ -131,15 +131,10 @@ static async Task StressTestAsync(IAmazonSimpleNotificationService sns, string t
         var symbol = symbols[rng.Next(symbols.Length)];
         var eventType = types[rng.Next(types.Length)];
 
-        string payloadJson = eventType == EventTypes.MarketPriceAlert
-            ? JsonSerializer.Serialize(new MarketPriceAlertPayload
-            {
-                Symbol = symbol
-            }, JsonOptions.Default)
-            : JsonSerializer.Serialize(new CompanyNewsAlertPayload
-            {
-                Symbol = symbol
-            }, JsonOptions.Default);
+        string payloadJson = JsonSerializer.Serialize(new CompanyNewsAlertPayload
+        {
+            Symbol = symbol
+        }, JsonOptions.Default);
 
         var envelope = new EventEnvelope
         {

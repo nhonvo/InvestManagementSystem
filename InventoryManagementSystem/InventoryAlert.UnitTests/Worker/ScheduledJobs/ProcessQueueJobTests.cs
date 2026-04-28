@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Amazon.SQS.Model;
+using FluentAssertions;
 using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Worker.Configuration;
@@ -9,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
 using Xunit;
-using FluentAssertions;
 
 namespace InventoryAlert.UnitTests.Worker.ScheduledJobs;
 
@@ -61,7 +61,7 @@ public class ProcessQueueJobTests
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
         };
 
-        _routerMock.Setup(r => r.RouteEnvelopeAsync(It.IsAny<EventEnvelope>(), It.IsAny<CancellationToken>()))
+        _routerMock.Setup(r => r.ProcessAndAcknowledgeAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
@@ -74,7 +74,7 @@ public class ProcessQueueJobTests
         _sqsHelperMock.Verify(s => s.DeleteMessageAsync(_settings.Aws.SqsQueueUrl, "rh-1", It.IsAny<CancellationToken>()), Times.Once);
         
         // We bypass strict signature matching by checking if ANY call happened to the mock that looks like a save
-        _redisDbMock.Invocations.Any(i => i.Method.Name.Contains("StringSet") && i.Arguments[0].ToString().Contains(messageId))
+        _redisDbMock.Invocations.Any(i => i.Method.Name.Contains("StringSet") && i.Arguments.Count > 0 && i.Arguments[0].ToString().Contains(messageId))
             .Should().BeTrue("Redis should have marked the message as processed.");
     }
 
@@ -83,11 +83,9 @@ public class ProcessQueueJobTests
     {
         // Arrange
         var messageId = "msg-dup";
-        var envelope = new EventEnvelope { EventType = EventTypes.MarketPriceAlert, MessageId = messageId, Payload = "{ \"Symbol\": \"AAPL\" }" };
-        var body = JsonSerializer.Serialize(envelope, JsonOptions.Default);
         var message = new Message
         {
-            Body = body,
+            Body = "{}",
             MessageId = messageId,
             ReceiptHandle = "rh-dup",
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
@@ -100,7 +98,7 @@ public class ProcessQueueJobTests
         await _sut.ProcessBatchAsync(new[] { message }, CancellationToken.None);
 
         // Assert
-        _routerMock.Verify(r => r.RouteEnvelopeAsync(It.IsAny<EventEnvelope>(), It.IsAny<CancellationToken>()), Times.Never);
+        _routerMock.Verify(r => r.ProcessAndAcknowledgeAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()), Times.Never);
         _sqsHelperMock.Verify(s => s.DeleteMessageAsync(It.IsAny<string>(), "rh-dup", It.IsAny<CancellationToken>()), Times.Once);
     }
 }
