@@ -34,7 +34,8 @@ public class ValidateModelFilter : IActionFilter
                 })
                 .ToList();
 
-            context.Result = new BadRequestObjectResult(new ErrorResponse(errors));
+            var correlationId = context.HttpContext.Items["X-Correlation-Id"]?.ToString();
+            context.Result = new BadRequestObjectResult(new ErrorResponse(errors, correlationId));
         }
     }
 }
