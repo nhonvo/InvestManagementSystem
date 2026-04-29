@@ -29,6 +29,8 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .MinimumLevel.Override("Hangfire", LogEventLevel.Information)
     .Enrich.FromLogContext()
+    .Enrich.WithProperty("Service", "InventoryAlert.Worker")
+    .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production")
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
     .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
     .CreateLogger();

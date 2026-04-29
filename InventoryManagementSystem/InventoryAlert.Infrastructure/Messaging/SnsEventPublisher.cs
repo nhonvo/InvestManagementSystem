@@ -24,6 +24,8 @@ public sealed class SnsEventPublisher(
     {
         var messageBody = JsonSerializer.Serialize(envelope);
 
+        var correlationId = string.IsNullOrEmpty(envelope.CorrelationId) ? Guid.NewGuid().ToString() : envelope.CorrelationId;
+        
         var request = new PublishRequest
         {
             TopicArn = _topicArn,
@@ -40,22 +42,18 @@ public sealed class SnsEventPublisher(
                 {
                     DataType = "String",
                     StringValue = envelope.Source ?? "Unknown"
+                },
+                ["CorrelationId"] = new()
+                {
+                    DataType = "String",
+                    StringValue = correlationId
                 }
             }
         };
 
-        if (!string.IsNullOrEmpty(envelope.CorrelationId))
-        {
-            request.MessageAttributes["CorrelationId"] = new()
-            {
-                DataType = "String",
-                StringValue = envelope.CorrelationId
-            };
-        }
-
         var response = await _sns.PublishAsync(request, ct);
         _logger.LogInformation(
             "[SnsEventPublisher] Published {EventType} | CorrelationId={CorrelationId} | SnsMessageId={SnsId}",
-            envelope.EventType, envelope.CorrelationId, response.MessageId);
+            envelope.EventType, correlationId, response.MessageId);
     }
 }
