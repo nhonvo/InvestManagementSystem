@@ -1,3 +1,5 @@
+using InventoryAlert.Domain.Interfaces;
+
 namespace InventoryAlert.Api.Middleware;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace InventoryAlert.Api.Middleware;
 /// The header precedence: incoming X-Correlation-Id → new Guid.
 /// The Id is written back on the response header so clients can reference it.
 /// </summary>
-public sealed class CorrelationIdMiddleware : IMiddleware
+public sealed class CorrelationIdMiddleware(ICorrelationProvider correlationProvider) : IMiddleware
 {
     private const string CorrelationIdHeader = "X-Correlation-Id";
 
@@ -16,6 +18,9 @@ public sealed class CorrelationIdMiddleware : IMiddleware
         var correlationId = context.Request.Headers.TryGetValue(CorrelationIdHeader, out var existing)
             ? existing.ToString()
             : Guid.NewGuid().ToString();
+
+        // Sync with the provider so other services can access the current ID
+        correlationProvider.SetCorrelationId(correlationId);
 
         // Push into logging context so all ILogger calls in this request will include it
         using (Serilog.Context.LogContext.PushProperty("CorrelationId", correlationId))
@@ -27,4 +32,3 @@ public sealed class CorrelationIdMiddleware : IMiddleware
         }
     }
 }
-
