@@ -8,7 +8,7 @@ public class RedisHelper(IConnectionMultiplexer redis, ILogger<RedisHelper> logg
 {
     private readonly IDatabase _db = redis.GetDatabase();
 
-    public async Task<bool> TryAcquireLockAsync(string key, string value, TimeSpan expiry, CancellationToken ct = default)
+    public async Task<bool> TryAcquireBestEffortLockAsync(string key, string value, TimeSpan expiry, CancellationToken ct = default)
     {
         try
         {
@@ -16,8 +16,21 @@ public class RedisHelper(IConnectionMultiplexer redis, ILogger<RedisHelper> logg
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Redis error while acquiring lock for key {Key}", key);
-            return true; // Default to true so we don't accidentally skip processing on Redis failure
+            logger.LogWarning(ex, "[RedisHelper] Error acquiring best-effort lock for {Key}", key);
+            return true; // Fail-open
+        }
+    }
+
+    public async Task<bool> TryAcquireStrictLockAsync(string key, string value, TimeSpan expiry, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _db.StringSetAsync(key, value, expiry, When.NotExists);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[RedisHelper] Critical error acquiring strict lock for {Key}", key);
+            return false; // Fail-closed
         }
     }
 

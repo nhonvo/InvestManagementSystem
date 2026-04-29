@@ -22,13 +22,19 @@ This folder contains working documentation for the `InventoryManagementSystem/` 
 ## 📚 Wiki & CI
 
 - [WIKI_REUSE_AND_CI_SYNC.md](WIKI_REUSE_AND_CI_SYNC.md) — Plan to sync `InventoryAlert.Wiki/docs` into the GitHub Wiki repo + suggested CI workflow.
+- [GITHUB_WIKI_CI_PUBLISH.md](GITHUB_WIKI_CI_PUBLISH.md) — How to publish `https://github.com/nhonvo/InvestManagementSystem/wiki` from CI (GitHub Actions) via the `.wiki.git` repo.
 
 ## 🔭 Observability
 
 - [OBSERVABILITY.md](OBSERVABILITY.md) — Central index (Seq + correlation + error/flow docs).
 - [LOGGING_REVIEW.md](LOGGING_REVIEW.md) — Logging review + recommendations.
+- [SEQ_REQUEST_RESPONSE_AND_FLOW_LOGGING.md](SEQ_REQUEST_RESPONSE_AND_FLOW_LOGGING.md) — Seq guidance: request/response logging (safe), correlation, and event-flow logging.
 - [error_handling_and_response_standard.md](error_handling_and_response_standard.md) — Error response/status standardization.
 - [worker_jobs_and_event_flow_review.md](worker_jobs_and_event_flow_review.md) — Worker jobs + event-flow review.
+
+## 🧰 Redis
+
+- [REDIS_STANDARD_AND_USAGE.md](REDIS_STANDARD_AND_USAGE.md) — Current Redis usage inventory + key/TTL standards and improvements.
 
 ## 🖥️ UI
 
@@ -42,5 +48,6 @@ This folder contains working documentation for the `InventoryManagementSystem/` 
 ## 🧪 Testing
 
 - [JOBS_INTEGRATION_TEST_PLAN.md](JOBS_INTEGRATION_TEST_PLAN.md) — Integration test plan for jobs/worker, SQS retries/DLQ, and Option C DLQ reprocessor.
+- [WORKER_JOBS_AND_EVENTS_INTEGRATION_TESTS.md](WORKER_JOBS_AND_EVENTS_INTEGRATION_TESTS.md) — Practical setup + test catalog for worker jobs and event handling (Moto SNS/SQS).
 
 > Run `/doc` to synchronize this index with new feature implementations.
