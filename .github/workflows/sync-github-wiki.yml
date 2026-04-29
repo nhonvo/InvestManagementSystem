@@ -6,6 +6,12 @@ on:
     paths:
       - "InventoryAlert.Wiki/docs/**"
       - ".github/workflows/sync-github-wiki.yml"
+  
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "InventoryAlert.Wiki/docs/**"
+
   workflow_dispatch:
 
 jobs:
