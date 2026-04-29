@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Amazon.SQS.Model;
 using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Constants;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Domain.Events.Payloads;
 using InventoryAlert.Worker.Configuration;

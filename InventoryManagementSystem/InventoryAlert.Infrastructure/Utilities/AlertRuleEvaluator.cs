@@ -1,4 +1,5 @@
 using InventoryAlert.Domain.Common.Constants;
+using InventoryAlert.Domain.Constants;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -17,8 +18,7 @@ public class AlertRuleEvaluator(
     public async Task<(bool IsBreached, string Message)> EvaluateAsync(AlertRule rule, decimal currentPrice, CancellationToken ct)
     {
         // 1. Check Cooldown/Deduplication
-        // Key pattern: alert:cooldown:{userId}:{ruleId}
-        var cooldownKey = $"alert:cooldown:{rule.UserId}:{rule.Id}";
+        var cooldownKey = CacheKeys.AlertCooldown(rule.UserId, rule.Id);
         if (await _redis.KeyExistsAsync(cooldownKey, ct))
         {
             return (false, string.Empty);
@@ -70,7 +70,7 @@ public class AlertRuleEvaluator(
         if (isBreached)
         {
             // Set cooldown to prevent alert storm (e.g., 24 hours)
-            await _redis.TryAcquireLockAsync(cooldownKey, "1", TimeSpan.FromHours(24), ct);
+            await _redis.TryAcquireBestEffortLockAsync(cooldownKey, "1", TimeSpan.FromHours(24), ct);
             _logger.LogInformation("[Evaluator] Rule {RuleId} breached for user {UserId}", rule.Id, rule.UserId);
         }
 
