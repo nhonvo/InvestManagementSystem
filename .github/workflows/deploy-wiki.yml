@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'InventoryAlert.Wiki/**'
+      - '.github/workflows/deploy-wiki.yml'
   pull_request:
     branches: [ "main" ]
     paths:
