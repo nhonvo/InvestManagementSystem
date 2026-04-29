@@ -115,12 +115,9 @@ try {
 # 8. Native Events integration (SQS / Moto)
 Write-Host "`n[8] Testing EventsController (SQS Pipeline)..." -ForegroundColor Yellow
 $eventBody = @{
-    eventType = "inventoryalert.news.market-news.v1"
+    eventType = "inventoryalert.news.sync-requested.v1"
     payload = @{
         Reason = "E2E_Test_Script"
-        Category = "general"
-        Source = "Test Script"
-        Headline = "Test Headline"
     }
 } | ConvertTo-Json
 

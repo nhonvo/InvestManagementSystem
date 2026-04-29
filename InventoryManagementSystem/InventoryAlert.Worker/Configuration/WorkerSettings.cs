@@ -5,6 +5,8 @@ namespace InventoryAlert.Worker.Configuration;
 public class WorkerSettings : AppSettings
 {
     public bool IsPollMessage { get; set; } = true;
+    public int MaxDegreeOfParallelism { get; set; } = 5;
+    public string DlqQueueUrl { get; set; } = string.Empty;
 
     public JobSchedules Schedules { get; set; } = new();
 }

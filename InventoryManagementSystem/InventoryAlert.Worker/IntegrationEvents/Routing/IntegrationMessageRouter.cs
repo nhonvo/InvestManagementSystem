@@ -55,16 +55,6 @@ public class IntegrationMessageRouter(
                     _logger.LogInformation("[MessageRouter] SyncMarketNewsRequested received. Enqueuing NewsSyncJob.");
                     _backgroundJobs.Enqueue<NewsSyncJob>(job => job.ExecuteAsync(CancellationToken.None));
                     return true;
-                
-                case EventTypes.SyncCompanyNewsRequested:
-                    var syncNewsPayload = JsonSerializer.Deserialize<CompanyNewsAlertPayload>(envelope.Payload, JsonOptions.Default);
-                    if (syncNewsPayload != null)
-                    {
-                        _logger.LogInformation("[MessageRouter] SyncCompanyNewsRequested for {Symbol} received.", syncNewsPayload.Symbol);
-                        // Consolidate: Send to NewsSyncJob if logic is shared, or keep as CompanyNewsAlertHandler
-                        _backgroundJobs.Enqueue<NewsSyncJob>(job => job.ExecuteAsync(CancellationToken.None));
-                    }
-                    return true;
 
                 case EventTypes.TestFailureRequested:
                     _logger.LogCritical("[MessageRouter] TestFailureRequested received. Throwing for retry testing.");
@@ -118,6 +108,6 @@ public class IntegrationMessageRouter(
         }
     }
 
-    public Task ProcessMessageAsync(Message message, CancellationToken ct)
-        => ProcessAndAcknowledgeAsync(message, ct);
+    public async Task ProcessMessageAsync(Message message, CancellationToken ct)
+        => await ProcessAndAcknowledgeAsync(message, ct);
 }

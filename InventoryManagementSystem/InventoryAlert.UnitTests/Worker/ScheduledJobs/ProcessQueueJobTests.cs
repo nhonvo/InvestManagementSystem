@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Amazon.SQS.Model;
+using FluentAssertions;
 using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Worker.Configuration;
@@ -30,9 +31,7 @@ public class ProcessQueueJobTests
         };
 
         _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
+        
         _sut = new ProcessQueueJob(
             _sqsHelperMock.Object,
             _routerMock.Object,
@@ -46,6 +45,7 @@ public class ProcessQueueJobTests
     {
         // Arrange
         var messageId = "msg-123";
+
         var envelope = new EventEnvelope
         {
             EventType = EventTypes.MarketPriceAlert,
@@ -61,14 +61,21 @@ public class ProcessQueueJobTests
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
         };
 
-        _routerMock.Setup(r => r.ProcessMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        _routerMock.Setup(r => r.ProcessAndAcknowledgeAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(false);
 
         // Act
         await _sut.ProcessBatchAsync(new[] { message }, CancellationToken.None);
 
         // Assert
         _sqsHelperMock.Verify(s => s.DeleteMessageAsync(_settings.Aws.SqsQueueUrl, "rh-1", It.IsAny<CancellationToken>()), Times.Once);
+        
+        // We bypass strict signature matching by checking if ANY call happened to the mock that looks like a save
+        _redisDbMock.Invocations.Any(i => i.Method.Name.Contains("StringSet") && i.Arguments.Count > 0 && i.Arguments[0].ToString().Contains(messageId))
+            .Should().BeTrue("Redis should have marked the message as processed.");
     }
 
     [Fact]
@@ -76,23 +83,22 @@ public class ProcessQueueJobTests
     {
         // Arrange
         var messageId = "msg-dup";
-        var envelope = new EventEnvelope { EventType = EventTypes.MarketPriceAlert, MessageId = messageId, Payload = "{ \"Symbol\": \"AAPL\" }" };
-        var body = JsonSerializer.Serialize(envelope, JsonOptions.Default);
         var message = new Message
         {
-            Body = body,
+            Body = "{}",
             MessageId = messageId,
+            ReceiptHandle = "rh-dup",
             Attributes = new Dictionary<string, string> { { "ApproximateReceiveCount", "1" } }
         };
 
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), When.NotExists, It.IsAny<CommandFlags>()))
-            .ReturnsAsync(false); // Failed to set = Duplicate
+        _redisDbMock.Setup(d => d.KeyExistsAsync(It.Is<RedisKey>(k => k.ToString().Contains(messageId)), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true); // Exists = Duplicate
 
         // Act
         await _sut.ProcessBatchAsync(new[] { message }, CancellationToken.None);
 
         // Assert
-        _routerMock.Verify(r => r.ProcessMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()), Times.Never);
-        _sqsHelperMock.Verify(s => s.DeleteMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _routerMock.Verify(r => r.ProcessAndAcknowledgeAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sqsHelperMock.Verify(s => s.DeleteMessageAsync(It.IsAny<string>(), "rh-dup", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

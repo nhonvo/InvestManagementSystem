@@ -35,6 +35,10 @@ public class PortfolioE2ETests : BaseE2ETest
         var openReq = CreateAuthenticatedRequest("api/v1/portfolio/positions", Method.Post);
         openReq.AddJsonBody(new CreatePositionRequest(symbol, 5, 400.00m, DateTime.UtcNow.AddMinutes(-5)));
         var openRes = await Client.ExecuteAsync<PortfolioPositionResponse>(openReq);
+        if (openRes.StatusCode != HttpStatusCode.Created)
+        {
+            throw new Exception($"Failed to open position. Status: {openRes.StatusCode}. Content: {openRes.Content}");
+        }
         openRes.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 2. Remove
@@ -106,13 +110,19 @@ public class PortfolioE2ETests : BaseE2ETest
     public async Task GetPosition_ShouldReturnOk_WhenExists()
     {
         await EnsureAuthenticatedAsync();
-        const string symbol = "GOOG";
+        const string symbol = "NFLX"; // Use unique symbol for this test
 
         // 1. Seed & Open
-        await Client.ExecuteAsync(CreateAuthenticatedRequest($"api/v1/stocks/{symbol}/quote", Method.Get));
+        var discoveryRes = await Client.ExecuteAsync(CreateAuthenticatedRequest($"api/v1/stocks/{symbol}/quote", Method.Get));
+        discoveryRes.StatusCode.Should().Be(HttpStatusCode.OK, "Symbol discovery should succeed via quote lookup.");
+
         var openReq = CreateAuthenticatedRequest("api/v1/portfolio/positions", Method.Post);
         openReq.AddJsonBody(new CreatePositionRequest(symbol, 2, 100.00m, DateTime.UtcNow));
         var openRes = await Client.ExecuteAsync<PortfolioPositionResponse>(openReq);
+        if (openRes.StatusCode != HttpStatusCode.Created)
+        {
+            throw new Exception($"Failed to open position. Status: {openRes.StatusCode}. Content: {openRes.Content}");
+        }
         openRes.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 2. Get Single Position

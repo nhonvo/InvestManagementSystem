@@ -3,6 +3,7 @@ using InventoryAlert.Domain.Entities.Dynamodb;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.External.Finnhub;
 using InventoryAlert.Domain.Interfaces;
+using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.ScheduledJobs;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,12 +22,14 @@ public class NewsSyncJobTests
 
     public NewsSyncJobTests()
     {
+        var settings = new WorkerSettings { MaxDegreeOfParallelism = 5 };
         _uowMock.Setup(u => u.StockListings).Returns(new Mock<IStockListingRepository>().Object);
         _sut = new NewsSyncJob(
             _uowMock.Object, 
             _finnhubMock.Object, 
             _companyNewsRepoMock.Object, 
             _marketNewsRepoMock.Object, 
+            settings,
             _loggerMock.Object);
     }
 
