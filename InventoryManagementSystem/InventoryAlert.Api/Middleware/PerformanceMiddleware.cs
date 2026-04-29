@@ -1,37 +1,40 @@
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace InventoryAlert.Api.Middleware;
 
-public class PerformanceMiddleware(ILoggerFactory loggerFactory) : IMiddleware
+/// <summary>
+/// Centralized request logger. Generates exactly one structured log per HTTP request.
+/// </summary>
+public class PerformanceMiddleware(ILogger<PerformanceMiddleware> logger) : IMiddleware
 {
-    private readonly ILogger _logger = loggerFactory.CreateLogger<PerformanceMiddleware>();
-
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         var stopwatch = Stopwatch.StartNew();
 
-        await next(context);
-
-        stopwatch.Stop();
-        var timeTaken = stopwatch.Elapsed;
-
-        if (timeTaken.TotalMilliseconds > 500)
+        try
         {
-            _logger.LogWarning("SLOW REQ: {Method} {Path} responded {StatusCode} in {TimeTaken}ms | CID: {CorrelationId}",
-                context.Request.Method,
-                context.Request.Path,
-                context.Response.StatusCode,
-                timeTaken.TotalMilliseconds.ToString("F3"),
-                context.Items["X-Correlation-Id"] ?? "N/A");
+            await next(context);
         }
-        else
+        finally
         {
-            _logger.LogInformation("{Method} {Path} responded {StatusCode} in {TimeTaken}ms",
+            stopwatch.Stop();
+            var elapsedMs = stopwatch.Elapsed.TotalMilliseconds;
+            var statusCode = context.Response.StatusCode;
+            var userId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Anonymous";
+            var correlationId = context.Items["X-Correlation-Id"]?.ToString() ?? "N/A";
+
+            // Structured logging enables high-performance filtering in Seq/ELK
+            var level = statusCode >= 500 ? LogLevel.Error : (elapsedMs > 500 ? LogLevel.Warning : LogLevel.Information);
+            
+            logger.Log(level, 
+                "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs:F3}ms | User: {UserId} | CID: {CorrelationId}",
                 context.Request.Method,
                 context.Request.Path,
-                context.Response.StatusCode,
-                timeTaken.TotalMilliseconds.ToString("F3"));
+                statusCode,
+                elapsedMs,
+                userId,
+                correlationId);
         }
     }
 }
-

@@ -18,6 +18,12 @@ This plan complements `InventoryManagementSystem/InventoryAlert.IntegrationTests
 
 This is documentation only; it describes what to test and how to structure it.
 
+Status note (current repo reality):
+
+- The existing integration tests in `InventoryManagementSystem/InventoryAlert.IntegrationTests` currently run as “black-box” HTTP tests against the docker-compose stack (RestSharp clients).
+- For a practical worker/jobs/events coverage plan that matches the current harness, also see:
+  - `doc/WORKER_JOBS_AND_EVENTS_INTEGRATION_TESTS.md`
+
 ---
 
 ## 1) Test environments (recommended)

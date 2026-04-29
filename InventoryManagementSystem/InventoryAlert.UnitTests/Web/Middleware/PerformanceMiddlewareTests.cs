@@ -9,15 +9,12 @@ namespace InventoryAlert.UnitTests.Web.Middleware;
 
 public class PerformanceMiddlewareTests
 {
-    private readonly Mock<ILoggerFactory> _loggerFactory = new();
     private readonly Mock<ILogger<PerformanceMiddleware>> _logger = new();
     private readonly PerformanceMiddleware _sut;
 
     public PerformanceMiddlewareTests()
     {
-        _loggerFactory.Setup(x => x.CreateLogger(typeof(PerformanceMiddleware).FullName!))
-            .Returns(_logger.Object);
-        _sut = new PerformanceMiddleware(_loggerFactory.Object);
+        _sut = new PerformanceMiddleware(_logger.Object);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 import { PriceAlertModal } from "@/components/PriceAlertModal";
 import Link from "next/link";
+import Pagination from "@/components/ui/Pagination";
 
 // Spec §4.4 DTOs
 
@@ -110,6 +111,7 @@ export default function StockDetailPage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [newsPage, setNewsPage] = useState(1);
+  const newsPageSize = 10;
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [updatingWatchlist, setUpdatingWatchlist] = useState(false);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
@@ -209,7 +211,7 @@ export default function StockDetailPage() {
         .catch(console.error);
     }
     if (activeTab === "News") {
-      fetchApi(`/api/v1/stocks/${symbol}/news?page=${newsPage}&pageSize=10`)
+      fetchApi(`/api/v1/stocks/${symbol}/news?page=${newsPage}&pageSize=${newsPageSize}`)
         .then((data) => setNews(data || []))
         .catch(console.error);
     }
@@ -218,7 +220,7 @@ export default function StockDetailPage() {
         .then((data: PeersResponse) => setPeers(data?.peers || []))
         .catch(console.error);
     }
-  }, [activeTab, symbol]);
+  }, [activeTab, symbol, newsPage]);
 
   if (loading) {
     return (
@@ -563,23 +565,12 @@ export default function StockDetailPage() {
                       </a>
                     ))}
                     
-                    {/* Pagination */}
-                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                      <button
-                        onClick={() => setNewsPage(p => Math.max(1, p - 1))}
-                        disabled={newsPage === 1}
-                        className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Page {newsPage}</span>
-                      <button
-                        onClick={() => setNewsPage(p => p + 1)}
-                        disabled={news.length < 10}
-                        className="px-4 py-2 bg-zinc-800 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                      >
-                        Next
-                      </button>
+                    <div className="pt-4 border-t border-white/5">
+                      <Pagination
+                        currentPage={newsPage}
+                        hasNextPage={news.length === newsPageSize}
+                        onPageChange={setNewsPage}
+                      />
                     </div>
                   </div>
                 )}

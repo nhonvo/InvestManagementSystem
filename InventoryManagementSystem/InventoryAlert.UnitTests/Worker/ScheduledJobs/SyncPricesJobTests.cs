@@ -1,6 +1,7 @@
 using FluentAssertions;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
+using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.ScheduledJobs;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,13 +20,14 @@ public class SyncPricesJobTests
 
     public SyncPricesJobTests()
     {
+        var settings = new WorkerSettings { MaxDegreeOfParallelism = 5 };
         _uow.Setup(u => u.StockListings).Returns(new Mock<IStockListingRepository>().Object);
         _uow.Setup(u => u.PriceHistories).Returns(new Mock<IPriceHistoryRepository>().Object);
         _uow.Setup(u => u.AlertRules).Returns(new Mock<IAlertRuleRepository>().Object);
         _uow.Setup(u => u.Notifications).Returns(new Mock<INotificationRepository>().Object);
         _uow.Setup(u => u.Trades).Returns(new Mock<ITradeRepository>().Object);
 
-        _service = new SyncPricesJob(_uow.Object, _finnhub.Object, _notifier.Object, _evaluator.Object, _logger.Object);
+        _service = new SyncPricesJob(_uow.Object, _finnhub.Object, _notifier.Object, _evaluator.Object, settings, _logger.Object);
     }
 
     [Fact]
