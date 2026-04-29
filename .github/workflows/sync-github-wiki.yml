@@ -1,0 +1,46 @@
+name: Sync GitHub Wiki
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "InventoryAlert.Wiki/docs/**"
+      - ".github/workflows/sync-github-wiki.yml"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Export docs to GitHub Wiki format
+        run: |
+          mkdir -p artifacts/wiki-export
+          node ./scripts/export-wiki.mjs
+
+      - name: Clone wiki repository
+        run: |
+          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
+        env:
+          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+
+      - name: Sync + publish
+        run: |
+          # Use rsync to mirror files, excluding .git
+          rsync -av --delete --exclude '.git' artifacts/wiki-export/ artifacts/wiki-repo/
+          cd artifacts/wiki-repo
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Sync wiki from InventoryAlert.Wiki/docs"
+            git push
+          else
+            echo "No changes to commit."
+          fi
