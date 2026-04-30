@@ -4,7 +4,7 @@
 
 ## JWT Token Lifecycle
 
-Access token TTL = **15 minutes**. Refresh token TTL = **7 days** (stored as `httpOnly; Secure; SameSite=Strict` cookie).
+Access token TTL defaults to **60 minutes** (config: `Jwt:ExpiryMinutes`). Refresh token TTL defaults to **7 days** (config: `Jwt:RefreshExpiryDays`). Refresh token is stored as an `httpOnly` cookie; `Secure` is enabled only on HTTPS, and `SameSite` is `None` for HTTPS/localhost (otherwise `Lax`).
 
 ```mermaid
 sequenceDiagram
@@ -34,7 +34,7 @@ sequenceDiagram
     participant UI as Next.js UI
     participant API as InventoryAlert.Api
 
-    Note over UI: Access token expired (15 min)
+    Note over UI: Access token expired
     UI->>API: POST /api/v1/auth/refresh
     Note over UI,API: Refresh token read from httpOnly cookie (no body)
     API->>API: Validate refresh token (JWT signature + claims)
@@ -86,8 +86,8 @@ sequenceDiagram
 | `sub` | User ID (Guid) — used by all services to scope data access |
 | `name` | Username — displayed in UI |
 | `role` | `User` or `Admin` — controls endpoint authorization |
-| `exp` | Token expiry — 15 minutes from issuance |
-| `iss` / `aud` | Validated on every request to prevent token reuse |
+| `exp` | Token expiry — controlled by `Jwt:ExpiryMinutes` (default 60 minutes) |
+| `iss` / `aud` | Validated on every request when configured (`Jwt:Issuer`, `Jwt:Audience`) |
 
 ---
 
@@ -95,17 +95,16 @@ sequenceDiagram
 
 | Endpoint | Required |
 |---|---|
-| `POST /auth/login`, `POST /auth/register`, `POST /auth/refresh` | `[Public]` — no token needed |
+| `POST /api/v1/auth/login`, `POST /api/v1/auth/register`, `POST /api/v1/auth/refresh` | `[Public]` — no token needed |
 | All other endpoints | `[Authorize]` — valid JWT required |
-| `POST /stocks/sync`, `GET/POST /events/*` | `[Authorize(Roles = "Admin")]` |
-| `GET /market/status` | `[AllowAnonymous]` — explicitly public |
+| `POST /api/v1/stocks/sync`, `GET/POST /api/v1/events/*` | `[Authorize(Roles = "Admin")]` |
+| `GET /api/v1/market/status` | `[AllowAnonymous]` — explicitly public |
 
 ---
 
 ## Security Considerations
 
-- Passwords are hashed with **BCrypt** (default work factor 11).
+- Passwords are hashed with **BCrypt**.
 - Access token delivered in JSON body; **refresh token in `httpOnly` cookie** — not accessible to JavaScript.
-- Refresh tokens are **single-use** (rotated on each refresh call).
+- Refresh tokens are **rotated** on each refresh call (revocation/deny-list can be added if strict single-use is required).
 - All sensitive config (`Jwt:Key`, `Database:ConnectionString`, `Finnhub:ApiKey`) lives in `appsettings.*.json` which is **gitignored**. Only `appsettings.Example.json` is committed.
-- Login endpoint is **429 rate-limited** to prevent brute-force attacks.
