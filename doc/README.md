@@ -4,7 +4,7 @@ type: reference
 status: active
 version: 1.0
 tags: [documentation, bm25, inventoryalert]
-last_updated: 2026-04-26
+last_updated: 2026-04-30
 ---
 
 # InventoryAlert Documentation Index
@@ -22,7 +22,7 @@ This folder contains working documentation for the `InventoryManagementSystem/` 
 ## 📚 Wiki & CI
 
 - [WIKI_REUSE_AND_CI_SYNC.md](WIKI_REUSE_AND_CI_SYNC.md) — Plan to sync `InventoryAlert.Wiki/docs` into the GitHub Wiki repo + suggested CI workflow.
-- [GITHUB_WIKI_CI_PUBLISH.md](GITHUB_WIKI_CI_PUBLISH.md) — How to publish `https://github.com/nhonvo/InvestManagementSystem/wiki` from CI (GitHub Actions) via the `.wiki.git` repo.
+- [GITHUB_WIKI_CI_PUBLISH.md](GITHUB_WIKI_CI_PUBLISH.md) — How to publish `https://github.com/nhonvo/InventoryManagementSystem/wiki` from CI (GitHub Actions) via the `.wiki.git` repo.
 
 ## 🔭 Observability
 

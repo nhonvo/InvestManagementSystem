@@ -15,6 +15,13 @@ public class TradeRepository(AppDbContext context)
             .ToListAsync(ct);
     }
 
+    public async Task<IEnumerable<Trade>> GetByUserAndSymbolsAsync(Guid userId, IEnumerable<string> symbols, CancellationToken ct)
+    {
+        return await _dbSet.AsNoTracking()
+            .Where(x => x.UserId == userId && symbols.Contains(x.TickerSymbol))
+            .ToListAsync(ct);
+    }
+
     public async Task<decimal> GetNetHoldingsAsync(Guid userId, string symbol, CancellationToken ct)
     {
         var buySum = await _dbSet.AsNoTracking()

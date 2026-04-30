@@ -13,6 +13,13 @@ public class StockListingRepository(AppDbContext context)
             .FirstOrDefaultAsync(x => x.TickerSymbol == symbol, ct);
     }
 
+    public async Task<IEnumerable<StockListing>> FindBySymbolsAsync(IEnumerable<string> symbols, CancellationToken ct)
+    {
+        return await _dbSet.AsNoTracking()
+            .Where(x => symbols.Contains(x.TickerSymbol))
+            .ToListAsync(ct);
+    }
+
     public async Task<IEnumerable<StockListing>> SearchAsync(string query, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(query))

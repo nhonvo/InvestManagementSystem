@@ -85,7 +85,7 @@ public class AuthApiTest : BaseIntegrationTest
 
         var loginResponse = await client.LoginAsync(username, password);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var refreshTokenCookie = loginResponse.Cookies.FirstOrDefault(c => c.Name == "refreshToken");
+        var refreshTokenCookie = loginResponse.Cookies?.FirstOrDefault(c => c.Name == "refreshToken");
         refreshTokenCookie.Should().NotBeNull();
 
         // Act

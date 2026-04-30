@@ -1,76 +1,71 @@
-# InventoryAlert — Modern Financial Inventory Ecosystem
+# InventoryAlert — Inventory & Stock Alerting System
 
-InventoryAlert is a high-performance inventory management and stock monitoring system built with **.NET 10 (Clean Architecture)** and **Next.js 15**. It provides real-time stock price tracking, automated alert evaluation via AWS SQS, and a premium developer experience through a centralized Wiki and Scalar API documentation.
+InventoryAlert is a full-stack inventory management and stock monitoring system built with **.NET 10** and **Next.js 15**. It tracks stock prices via Finnhub, evaluates user-defined rules, and delivers in-app notifications (SignalR), with documentation published via Docusaurus and GitHub Actions.
 
----
+## Repository layout
 
-## 🏗 Architecture Overview
+- `InventoryManagementSystem/` — .NET solution (`InventoryManagementSystem.sln`)
+- `InventoryAlert.UI/` — Next.js UI
+- `InventoryAlert.Wiki/` — Docusaurus docs site (source in `InventoryAlert.Wiki/docs/`)
+- `doc/` — internal engineering docs and audits
 
-The system is designed with strict **Domain-Driven Design (DDD)** principles and distributed observer patterns:
+## Quick start (development)
 
-- **Api (.NET 10)**: High-throughput REST interface with JWT security and Scalar documentation.
-- **Worker (.NET 10)**: Background engine handling Hangfire schedulers and AWS SQS consumers for price alerts.
-- **Contracts**: Shared library for entities, common exceptions, and bus events to ensure zero circular dependencies.
-- **UI (Next.js 15)**: OLED-themed dashboard using Tailwind CSS v4 and Nextra for the system Wiki.
-- **Infrastructure**: Powered by **PostgreSQL** (Relational), **Redis** (Cache/Hangfire), and **Seq** (Structured Logging).
+Prereqs: Docker, .NET 10 SDK, Node.js 20.
 
----
+### 1) Infrastructure (Docker)
 
-## 🚀 Quick Start (Development)
-
-### 1. Infrastructure (One-Click Docker)
-Spin up the database, cache, AWS emulator (LocalStack), and logging server:
 ```powershell
-# Navigate to solution folder
 cd InventoryManagementSystem
 docker compose up -d db redis moto moto-init seq
 ```
 
-### 2. Backend (API & Worker)
-Run the core services from the root folder:
-```powershell
-# Run API
-dotnet run --project InventoryManagementSystem/InventoryAlert.Api
+### 2) Backend (API + Worker)
 
-# Run Worker
+```powershell
+dotnet run --project InventoryManagementSystem/InventoryAlert.Api
 dotnet run --project InventoryManagementSystem/InventoryAlert.Worker
 ```
-- **API Health**: `http://localhost:5294/health`
-- **Interactive API Docs (Scalar)**: `http://localhost:5294/scalar/v1`
 
-### 3. Frontend (UI & Wiki)
+- API health: `http://localhost:5294/health`
+- Swagger UI: `http://localhost:5294/swagger`
+- Scalar API reference: `http://localhost:5294/scalar/v1`
+
+### 3) Frontend (UI)
+
 ```powershell
 cd InventoryAlert.UI
 npm install
 npm run dev
 ```
-- **Dashboard**: `http://localhost:3000`
-- **Project Wiki**: `http://localhost:3000/docs`
 
----
+- UI: `http://localhost:3000`
 
-## 📚 Documentation & Observability
+### 4) Documentation (Docusaurus)
 
-### System Wiki
-The built-in Wiki provides deep-dives into:
-- **Execution Flows**: Authentication and Alert evaluation sequences.
-- **Database Model**: ERD and persistence strategy.
-- **AI Agent Guide**: Protocol for coding assistants (Transaction patterns, async rules).
+```powershell
+cd InventoryAlert.Wiki
+npm ci
+npm run start
+```
 
-### Monitoring (Seq)
-All internal messages and errors are streamed to **Seq** for real-time observability.
-- **URL**: `http://localhost:5341`
-- **Tracing**: Every request includes a `CorrelationId` that propagates from the API through SNS/SQS to the Worker.
+- Wiki site: `http://localhost:3001`
 
----
+## Documentation publishing
 
-## 🛠 Tech Stack
-- **Backend**: C# 12, .NET 10, EF Core, Hangfire, MediatR, FluentValidation.
-- **Frontend**: React 19, Next.js 15 (App Router), Tailwind CSS v4, Lucide Icons, Nextra.
-- **Observability**: Serilog, Seq, OpenTelemetry.
-- **Cloud/Infra**: PostgreSQL, Redis, AWS SNS/SQS (LocalStack/Moto).
+- GitHub Pages (Docusaurus): `.github/workflows/deploy-wiki.yml`
+- GitHub Wiki sync (markdown export): `.github/workflows/sync-github-wiki.yml`
 
----
+## Observability
 
-## 📜 Maintenance Flow
-Changes affecting the core architecture should follow the **Boy Scout Rule for Docs**: If you update a domain entity or a business flow, always update the corresponding entry in the [Project Wiki](./InventoryAlert.UI/src/pages/docs).
+- Seq: `http://localhost:5341`
+
+## Tech stack (actual)
+
+- Backend: C# 12, .NET 10, EF Core, Hangfire, FluentValidation, SignalR, Scalar + Swagger
+- Frontend: React 19, Next.js 15
+- Infra: PostgreSQL, Redis, Moto (AWS emulator), Seq
+
+## Docs rule
+
+If you change a domain entity, endpoint, or execution flow, update the matching page under `InventoryAlert.Wiki/docs/` (and keep `doc/` references in sync when applicable).
