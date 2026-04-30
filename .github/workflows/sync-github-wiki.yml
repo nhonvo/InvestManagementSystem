@@ -2,11 +2,23 @@ name: Sync GitHub Wiki
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
+      - "refactor/**"
+      - "feature/**"
     paths:
       - "InventoryAlert.Wiki/docs/**"
       - ".github/workflows/sync-github-wiki.yml"
+  
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "InventoryAlert.Wiki/docs/**"
+
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   sync:
@@ -25,12 +37,16 @@ jobs:
           node ./scripts/export-wiki.mjs
 
       - name: Clone wiki repository
+        if: github.event_name != 'pull_request'
         run: |
-          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
+          TOKEN="${WIKI_PUSH_TOKEN:-$GITHUB_TOKEN}"
+          git clone "https://x-access-token:${TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
         env:
           WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync + publish
+        if: github.event_name != 'pull_request'
         run: |
           # Use rsync to mirror files, excluding .git
           rsync -av --delete --exclude '.git' artifacts/wiki-export/ artifacts/wiki-repo/

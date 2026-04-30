@@ -88,7 +88,7 @@ try
     {
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
         {
-            jwtKey = "FinanceAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
+            jwtKey = "InventoryAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
             Log.Warning("Using temporary default JWT key. NOT FOR PRODUCTION.");
         }
         else

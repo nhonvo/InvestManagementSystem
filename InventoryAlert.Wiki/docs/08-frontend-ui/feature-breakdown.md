@@ -6,7 +6,7 @@
 
 | Feature | Route | Auth | Description |
 |---|---|---|---|
-| **Login** | `/login` | Public | JWT authentication form. 429 rate-limited. |
+| **Login** | `/login` | Public | JWT authentication form. |
 | **Register** | `/register` | Public | New account creation with username + email + password. |
 | **Dashboard** | `/dashboard` | ✅ | Overview: portfolio summary, watchlist strip, market status, top news, alert badges. |
 | **Portfolio** | `/portfolio` | ✅ | Paginated position list with search + filter. Cost basis, return %, market value. |
@@ -40,11 +40,11 @@ flowchart LR
 ```mermaid
 flowchart LR
     A[SyncPricesJob detects breach] --> B[INSERT Notification row]
-    B --> C[UI polls GET /notifications/unread-count every 30s]
+    B --> C[UI polls GET /api/v1/notifications/unread-count every 30s]
     C --> D{Count > 0?}
     D -- Yes --> E[Bell badge shows red count]
     E --> F[User opens notification panel]
-    F --> G[PATCH /notifications/read-all]
+    F --> G[PATCH /api/v1/notifications/read-all]
     G --> H[Bell clears]
 ```
 

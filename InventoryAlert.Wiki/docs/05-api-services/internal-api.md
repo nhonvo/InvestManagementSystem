@@ -10,10 +10,10 @@ Authentication via secure JWTs and `httpOnly` Refresh Token cookies.
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/login` | `[Public]` | Authenticate and receive `AuthResponse` + Refresh token via Cookie. 429 rate-limited. |
+| POST | `/login` | `[Public]` | Authenticate and receive `AuthResponse` + Refresh token via Cookie. |
 | POST | `/register` | `[Public]` | Create a new user account. |
 | POST | `/refresh` | `[Public]` | Exchange a valid `httpOnly` refresh token for a new access JWT. |
-| POST | `/logout` | JWT | Revoke the current refresh token server-side. Clears cookie. |
+| POST | `/logout` | JWT | Clears the refresh token cookie (server-side revocation hook reserved for future). |
 
 ### POST `/login` — Response
 
@@ -24,7 +24,7 @@ Authentication via secure JWTs and `httpOnly` Refresh Token cookies.
 }
 ```
 
-> Access token TTL = **15 minutes**. Refresh token TTL = **7 days**, delivered as `httpOnly; Secure; SameSite=Strict` cookie.
+> Access token TTL defaults to **60 minutes** (config: `Jwt:ExpiryMinutes`). Refresh token TTL defaults to **7 days** (config: `Jwt:RefreshExpiryDays`). Refresh token is delivered as an `httpOnly` cookie; `Secure` is enabled only on HTTPS, and `SameSite` is `None` for HTTPS/localhost (otherwise `Lax`).
 
 ---
 
@@ -135,9 +135,9 @@ Configure dynamic evaluation triggers executed globally by background workers.
 |---|---|---|
 | GET | `/` | List all alert rules for the authenticated user. |
 | POST | `/` | Create a new alert rule (symbol is auto-resolved if missing from catalog). |
-| PUT | `/{ruleId}` | Full replacement of an existing rule. |
-| PATCH | `/{ruleId}/toggle` | Enable or disable without modifying rule parameters. |
-| DELETE | `/{ruleId}` | Permanently remove an alert rule. |
+| PUT | `/{id}` | Full replacement of an existing rule (`id` is a GUID). |
+| PATCH | `/{id}/toggle` | Enable or disable without modifying rule parameters (`id` is a GUID). |
+| DELETE | `/{id}` | Permanently remove an alert rule (`id` is a GUID). |
 
 ### Alert Conditions
 
@@ -157,11 +157,12 @@ In-app notification delivery. UI polls every 30 seconds.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | Chronological notification feed. Pass `?OnlyUnread=true` for focused rendering. |
+| POST | `/test-signalr?message=...` | Dev helper: pushes a test notification via SignalR to the current user. |
+| GET | `/` | Chronological notification feed. Pass `?onlyUnread=true` for focused rendering. |
 | GET | `/unread-count` | Returns `int` for navbar bell badge. |
-| PATCH | `/{id}/read` | Mark one notification as acknowledged. |
+| PATCH | `/{id}/read` | Mark one notification as acknowledged (204 No Content). |
 | PATCH | `/read-all` | Batch acknowledge all notifications. |
-| DELETE | `/{id}` | Permanently dismiss a notification. |
+| DELETE | `/{id}` | Permanently dismiss a notification (204 No Content). |
 
 ---
 
