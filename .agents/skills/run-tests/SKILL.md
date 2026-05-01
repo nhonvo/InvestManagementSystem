@@ -55,15 +55,17 @@ dotnet test InventoryManagementSystem --no-build --verbosity normal
 ### 3. Run by test class
 
 ```bash
-dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~ProductServiceTests"
-dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~ProductsControllerTests"
+dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~PortfolioServiceTests"
+dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~StockDataServiceTests"
+dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~AlertRuleServiceTests"
+dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~WatchlistControllerTests"
 dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~GenericRepositoryTests"
 ```
 
 ### 4. Run by method name
 
 ```bash
-dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~GetAll_ReturnsEmptyList_WhenNoProductsExist"
+dotnet test InventoryManagementSystem --no-build --filter "FullyQualifiedName~GetQuote_ReturnsCachedResult_WhenAvailable"
 ```
 
 ### 5. Run with coverage (HTML report)
@@ -98,7 +100,7 @@ Passed: 43  Failed: 0  Skipped: 0
 | Error | Fix |
 |-------|-----|
 | NuGet version conflict | Align `Microsoft.EntityFrameworkCore.InMemory` to `10.0.5` |
-| `ProductFixtures` type not found | Add `<ProjectReference>` to `InventoryAlert.Api.csproj` in test `.csproj` |
+| Shared test fixture type not found | Add missing `<ProjectReference>` entries in the test `.csproj` |
 | `CS1998` in test build | Remove `async` from `GenericRepository` non-awaiting methods |
 | Test isoloation failure | Ensure EF InMemory tests use `Guid.NewGuid().ToString()` as DB name |
 

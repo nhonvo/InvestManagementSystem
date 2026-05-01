@@ -40,10 +40,11 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           TOKEN="${WIKI_PUSH_TOKEN:-$GITHUB_TOKEN}"
-          git clone "https://x-access-token:${TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
+          git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" artifacts/wiki-repo
         env:
           WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Sync + publish
         if: github.event_name != 'pull_request'

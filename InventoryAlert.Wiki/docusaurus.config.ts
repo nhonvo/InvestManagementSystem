@@ -2,16 +2,19 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
+const repoOwner = process.env.GITHUB_REPOSITORY_OWNER ?? 'nhonvo';
+const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? 'InventoryManagementSystem';
+
 const config: Config = {
   title: 'InventoryAlert Wiki',
   tagline: 'Modern Inventory Management System Documentation',
   favicon: 'img/favicon.ico',
 
-  url: 'https://vothuongtruongnhon.github.io',
-  baseUrl: '/InvestManagementSystem/', // Typically /<projectName>/ for GitHub pages
+  url: `https://${repoOwner}.github.io`,
+  baseUrl: `/${repoName}/`, // GitHub Pages project site: /<repoName>/
 
-  organizationName: 'vothuongtruongnhon',
-  projectName: 'InvestManagementSystem',
+  organizationName: repoOwner,
+  projectName: repoName,
 
   onBrokenLinks: 'ignore', // Changed to ignore during migration
   onBrokenMarkdownLinks: 'warn',
@@ -28,7 +31,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/',
-          editUrl: 'https://github.com/vothuongtruongnhon/InvestManagementSystem/tree/main/InventoryAlert.Wiki/',
+          editUrl: `https://github.com/${repoOwner}/${repoName}/tree/main/InventoryAlert.Wiki/`,
         },
         blog: false, // Disable the blog plugin
         theme: {

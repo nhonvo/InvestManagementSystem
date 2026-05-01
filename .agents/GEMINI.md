@@ -4,16 +4,16 @@ glob:
 description:
 ---
 
-# InventoryAlert.Api — Project Context
+# InventoryAlert — Project Context
 
 ---
 
-description: AI cold-start briefing for InventoryAlert.Api. Read before every session.
+description: AI cold-start briefing for the InventoryAlert solution. Read before every session.
 type: reference
 status: active
-version: 2.0
+version: 2.1
 tags: [context, gemini, inventoryalert, ddd, dotnet, onboarding]
-last_updated: 2026-04-04
+last_updated: 2026-05-01
 
 ---
 
@@ -22,14 +22,70 @@ last_updated: 2026-04-04
 
 ---
 
+## Global Coding Standards
+
+- Always follow Clean Architecture and Clean Code principles.
+- Prefer readability over cleverness.
+- Explore codebase before implementing changes (use BM25 search first).
+- Plan before coding on complex tasks.
+- Run targeted tests after changes (prefer single-scope test runs before full suite).
+- Never commit sensitive data (API keys, credentials).
+
+## Current Repository Layout (source of truth)
+
+Top-level:
+
+- `InventoryManagementSystem/` — .NET solution (`InventoryManagementSystem.sln`)
+- `InventoryAlert.UI/` — Next.js UI
+- `InventoryAlert.Wiki/` — Docusaurus docs (source in `InventoryAlert.Wiki/docs/`)
+- `doc/` — internal engineering docs
+- `.agents/` — agent workflows/skills/scripts (this folder)
+
+Runtime components (current):
+
+- API: `InventoryManagementSystem/InventoryAlert.Api`
+- Worker: `InventoryManagementSystem/InventoryAlert.Worker` (Hangfire + SQS polling + handlers)
+- Infra: PostgreSQL + Redis + Moto (AWS emulator) + Seq
+
+---
+
+## Reference Data (verified current)
+
+This section is intended to be copied into prompts/issues. It is checked against the current repository layout and code paths.
+
+### Current entry points
+
+- API host: `InventoryManagementSystem/InventoryAlert.Api/Program.cs`
+- Worker host: `InventoryManagementSystem/InventoryAlert.Worker/Program.cs`
+- EF Core DbContext: `InventoryManagementSystem/InventoryAlert.Infrastructure/Persistence/Postgres/AppDbContext.cs`
+- EF Core mappings: `InventoryManagementSystem/InventoryAlert.Infrastructure/Persistence/Postgres/Configurations/`
+
+### Current data model (high level)
+
+- Postgres entities: `InventoryManagementSystem/InventoryAlert.Domain/Entities/Postgres/`
+  - `User`, `StockListing`, `WatchlistItem`, `AlertRule`, `Trade`, `Notification`
+  - `PriceHistory`, `StockMetric`, `EarningsSurprise`, `RecommendationTrend`, `InsiderTransaction`
+- DynamoDB read models: `InventoryManagementSystem/InventoryAlert.Domain/Entities/Dynamodb/`
+  - `inventoryalert-market-news` (`MarketNewsDynamoEntry`)
+  - `inventoryalert-company-news` (`CompanyNewsDynamoEntry`)
+
+### Current “hot spots”
+
+- Market + symbol intelligence + caching: `InventoryManagementSystem/InventoryAlert.Api/Services/StockDataService.cs`
+- Portfolio/trades logic: `InventoryManagementSystem/InventoryAlert.Api/Services/PortfolioService.cs`
+- Scheduled quote sync + evaluation: `InventoryManagementSystem/InventoryAlert.Worker/ScheduledJobs/SyncPricesJob.cs`
+- Native SQS polling + idempotency: `InventoryManagementSystem/InventoryAlert.Worker/ScheduledJobs/ProcessQueueJob.cs`
+- Event routing: `InventoryManagementSystem/InventoryAlert.Worker/IntegrationEvents/Routing/IntegrationMessageRouter.cs`
+
 ## What This Project Does
 
-Real-time inventory management system with stock price monitoring.
+Real-time inventory management system with portfolio + watchlist + alerting.
 
-- Tracks products with ticker symbols (e.g., `AAPL`, `GOOGL`)
-- Syncs live prices from **Finnhub API** every N minutes via a background worker
-- Triggers price-drop alerts when drop % exceeds a per-product threshold
-- CRUD for products with a PostgreSQL database via EF Core
+- Tracks symbols (e.g., `AAPL`, `GOOGL`) via `StockListing` + `WatchlistItem`
+- Records ownership changes via immutable `Trade` ledger (includes optional `Notes`)
+- Evaluates `AlertRule` against live quotes and generates `Notification` events
+- Syncs price/intelligence data from **Finnhub API** and caches reads via Redis
+- Stores news read models in DynamoDB (market news + company news)
 
 ---
 
@@ -41,7 +97,7 @@ Real-time inventory management system with stock price monitoring.
 | Web Framework | ASP.NET Core Minimal Hosting |
 | ORM | EF Core 10 + Npgsql (PostgreSQL) |
 | External API | Finnhub REST (RestSharp client) |
-| Background Jobs | `BackgroundService` (PeriodicTimer) |
+| Background Jobs | Hangfire (Worker) + native SQS poller |
 | Documentation | Swashbuckle / Swagger |
 | Tests | xUnit + Moq + FluentAssertions |
 | Containerization | Docker + Docker Compose |
@@ -71,53 +127,62 @@ ojt-training/
 │   │   ├── 03_DYNAMODB_TABLE_DESIGN.md
 │   │   ├── 04_JOBS_WORKERS_TELEGRAM.md
 │   │   └── 05_UI_PLAN.md
-│   └── archive/                       ← completed legacy documentation
+│   └── archive/                       ← completed archived documentation
 ├── InventoryAlert.UI/                 ← Next.js 15 frontend
 └── InventoryManagementSystem/
-    ├── InventoryAlert.Api/            ← main API project
-    │   ├── Domain/                    ← entities, repo interfaces (no dependencies)
-    │   ├── Application/               ← services, DTOs (depends on Domain only)
-    │   ├── Infrastructure/            ← EF Core, repos, Finnhub client, worker
-    │   └── Web/                       ← controllers, DI extensions, config model
-    └── InventoryAlert.Tests/          ← xUnit test project
-        ├── Application/Services/
-        ├── Web/Controllers/
-        ├── Infrastructure/Persistence/Repositories/
-        └── Helpers/                   ← ProductFixtures shared builders
+    ├── InventoryAlert.Api/            ← API project
+    ├── InventoryAlert.Domain/         ← domain entities + interfaces
+    ├── InventoryAlert.Infrastructure/ ← EF Core + repositories + Finnhub + SNS/SQS + Dynamo repos
+    ├── InventoryAlert.Worker/         ← Hangfire + SQS poller + handlers
+    ├── InventoryAlert.UnitTests/      ← unit tests
+    ├── InventoryAlert.IntegrationTests/
+    ├── InventoryAlert.E2ETests/
+    └── InventoryAlert.ArchitectureTests/
 ```
 
 ---
 
 ## Key Domain Model
 
-```csharp
-public class Product
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string TickerSymbol { get; set; }        // e.g. "AAPL"
-    public decimal OriginPrice { get; set; }        // purchase price
-    public decimal CurrentPrice { get; set; }       // synced from Finnhub
-    public double PriceAlertThreshold { get; set; } // e.g. 0.2 = 20% loss triggers alert
-    public int StockCount { get; set; }
-    public DateTime? LastAlertSentAt { get; set; }
-}
-```
+### Postgres entities (core)
+
+| Entity | Purpose / notes |
+| :--- | :--- |
+| `User` | Auth identity (seeded in dev) |
+| `StockListing` | Symbol directory (name, exchange, logo, industry, etc.) |
+| `WatchlistItem` | User → symbol subscription |
+| `Trade` | Ownership ledger (immutable position changes); optional `Notes` |
+| `AlertRule` | User-defined alert conditions per symbol |
+| `Notification` | Persisted alert notifications |
+
+### Postgres entities (intelligence / caching)
+
+| Entity | Purpose |
+| :--- | :--- |
+| `PriceHistory` | Historical quotes / cache |
+| `StockMetric` | Fundamental metrics cache |
+| `EarningsSurprise` | Earnings history cache |
+| `RecommendationTrend` | Analyst recommendations cache |
+| `InsiderTransaction` | Insider trades cache |
+
+### DynamoDB read models
+
+| DynamoDB table | Entry model |
+| :--- | :--- |
+| `inventoryalert-market-news` | `MarketNewsDynamoEntry` |
+| `inventoryalert-company-news` | `CompanyNewsDynamoEntry` |
 
 ---
 
-## Key Service: `ProductService`
+## Key Services (API)
 
-| Method | What it does |
+| Service | What it does |
 | :--- | :--- |
-| `GetAllProductsAsync` | Returns all products mapped to `ProductResponse` |
-| `GetProductByIdAsync` | Returns one product or `null` |
-| `CreateProductAsync` | Adds product, calls `SaveChangesAsync` |
-| `UpdateProductAsync` | Updates existing, wraps in transaction |
-| `DeleteProductAsync` | Deletes existing, wraps in transaction |
-| `BulkInsertProductsAsync` | Adds many products in one transaction |
-| `GetPriceLossAlertsAsync` | Calls Finnhub per product, returns products where `priceDelta > threshold` |
-| `SyncCurrentPricesAsync` | Calls Finnhub per product, updates `CurrentPrice` in one transaction |
+| `PortfolioService` | Positions, cost basis, trades, portfolio alerts |
+| `WatchlistService` | CRUD watchlist symbols for a user |
+| `AlertRuleService` | CRUD alert rules + evaluation helpers |
+| `NotificationService` | Read/ack notifications |
+| `StockDataService` | Quotes + profile + market intelligence (cache-first) |
 
 ---
 
@@ -127,13 +192,18 @@ public class Product
 | :--- | :--- |
 | `GetQuoteAsync` | Returns price quote (Redis cache-first) |
 | `GetProfileAsync` | Returns company profile (Postgres cache-first) |
-| `GetCompanyNewsAsync` | Returns filtered news for a symbol |
-| `GetRecommendationsAsync`| Returns analyst recommendation trends |
-| `GetEarningsAsync` | Returns historical earnings data |
-| `SearchSymbolsAsync` | Search for tickers/companies on Finnhub |
-| `GetMarketNewsAsync` | Returns general market news |
-| `GetMarketStatusAsync` | Returns if exchange is open/closed |
-| `GetCryptoExchangesAsync`| Returns supported crypto exchanges |
+| `GetFinancialsAsync` | Returns cached financial metrics (fundamentals) |
+| `GetEarningsAsync` | Returns earnings surprises/history |
+| `GetRecommendationsAsync` | Returns analyst recommendation trends |
+| `GetInsidersAsync` | Returns insider transactions |
+| `GetPeersAsync` | Returns peer symbols |
+| `GetCompanyNewsAsync` | Returns company news (DynamoDB-backed) |
+| `GetMarketNewsAsync` | Returns market news (DynamoDB-backed) |
+| `GetMarketStatusAsync` | Returns market status |
+| `GetMarketHolidaysAsync` | Returns market holidays |
+| `GetEarningsCalendarAsync` | Returns earnings calendar |
+| `GetIpoCalendarAsync` | Returns IPO calendar |
+| `SearchSymbolsAsync` | Search for tickers/companies |
 
 ---
 
@@ -141,22 +211,17 @@ public class Product
 
 | What | Where |
 | :--- | :--- |
-| Application services | `Web/ServiceExtensions/ApplicationServiceExtensions.cs` |
-| Infrastructure (repos, EF, Finnhub, worker) | `Web/ServiceExtensions/InfrastructureServiceExtensions.cs` |
-| Config singleton | `Program.cs` (`builder.Services.AddSingleton(settings)`) |
+| App settings bind/validate | `InventoryManagementSystem/InventoryAlert.Api/Program.cs` |
+| API service registration | `InventoryManagementSystem/InventoryAlert.Api/ServiceExtensions/InfrastructureServiceExtensions.cs` (`AddWebApiInfrastructure`) |
+| Infrastructure (EF, repos, Finnhub, AWS, Redis) | `InventoryManagementSystem/InventoryAlert.Infrastructure/DependencyInjection.cs` (`AddInfrastructure`) |
 
 ---
 
-## Known Tech Debt (do not repeat)
+## Known Pitfalls (avoid repeating)
 
-| # | Location | Issue |
-| :--- | :--- | :--- |
-| 1 | `ProductService.UpdateProductAsync` | `StockAlertThreshold` silently dropped — not on entity |
-| 2 | `ProductService.UpdateProductAsync` | Blank entity captured before transaction lambda |
-| 3 | `ProductService.DeleteProductAsync` | Same blank-entity pattern |
-| 4 | `ProductsController.UpdateStockCount` | Business logic in controller (SRP violation) |
-| 5 | `FinnhubClient` | `Console.WriteLine` instead of `ILogger` |
-| 6 | `GenericRepository` | CS1998 on `DeleteAsync`, `UpdateAsync`, `UpdateRangeAsync` |
+- Always assign the final response/result **inside** `_unitOfWork.ExecuteTransactionAsync` (avoid capturing a default/blank value outside the lambda).
+- Worker services are singleton by default: use `IServiceScopeFactory` to resolve scoped dependencies safely.
+- Finnhub endpoints can fail / rate-limit / be plan-restricted: treat null/empty responses as normal; log and continue.
 
 ---
 
@@ -193,7 +258,7 @@ python .agents/scripts/core/bm25_search.py "your query" -n 5
 python .agents/scripts/core/bm25_search.py "ExecuteTransactionAsync" -n 3 -f ".agents"
 
 # Verify reliability score
-python .agents/scripts/core/bm25_search.py "ProductService" --verify
+python .agents/scripts/core/bm25_search.py "StockDataService GetQuoteAsync" --verify
 ```
 
 ---
@@ -212,13 +277,12 @@ python .agents/scripts/core/bm25_search.py "ProductService" --verify
 
 ## Seed Data
 
-3 products seeded in `AppDbContext.OnModelCreating`:
+Seeded users (development/docker) via `InventoryManagementSystem/InventoryAlert.Infrastructure/Persistence/Postgres/DatabaseSeeder.cs`:
 
-| Name | Ticker | OriginPrice | CurrentPrice | Threshold | Stock |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Apple | AAPL | 250 | 200 | 0.20 | 50 |
-| Google | GOOGL | 300 | 300 | 0.10 | 100 |
-| Microsoft | MSFT | 400 | 400 | 0.15 | 5 |
+| Username | Email |
+| :--- | :--- |
+| `admin` | `admin@example.com` |
+| `user1` | `user1@example.com` |
 
 ---
 

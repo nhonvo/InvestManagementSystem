@@ -141,9 +141,9 @@ cp InventoryAlert.Api/appsettings.Example.json InventoryAlert.Api/appsettings.De
 
 ---
 
-### ❌ Test — `ProductFixtures` type not found
+### ❌ Test — shared fixture type not found
 ```
-error CS0246: The type or namespace name 'ProductFixtures' could not be found
+error CS0246: The type or namespace name '...Fixtures' could not be found
 ```
 
 **Fix**: Ensure `InventoryAlert.Tests.csproj` has:

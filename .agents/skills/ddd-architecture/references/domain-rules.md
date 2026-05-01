@@ -10,11 +10,11 @@ Entities are POCOs (Plain Old CLR Objects). They hold data and state, but in thi
 ### Repository Interfaces
 Interfaces define *what* the application needs to store, not *how*.
 ```csharp
-namespace InventoryAlert.Api.Domain.Interfaces;
+namespace InventoryAlert.Domain.Interfaces;
 
-public interface IProductRepository : IGenericRepository<Product>
+public interface ITradeRepository : IGenericRepository<Trade>
 {
     // Place strictly domain-relevant extraction queries here.
-    // e.g. Task<IEnumerable<Product>> GetProductsByThresholdAsync(double threshold, CancellationToken ct);
+    // e.g. Task<List<Trade>> GetByUserAndSymbolAsync(Guid userId, string symbol, CancellationToken ct);
 }
 ```

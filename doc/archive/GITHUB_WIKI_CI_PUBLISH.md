@@ -1,21 +1,21 @@
 ---
-description: CI approach to publish this repo's docs into the GitHub Wiki for InvestManagementSystem.
+description: CI approach to publish this repo's docs into the GitHub Wiki for InventoryManagementSystem.
 type: reference
 status: draft
 version: 1.0
 tags: [github-wiki, ci, github-actions, documentation, inventoryalert]
-last_updated: 2026-04-28
+last_updated: 2026-04-30
 ---
 
-# Publish GitHub Wiki from CI (InvestManagementSystem)
+# Publish GitHub Wiki from CI (InventoryManagementSystem)
 
 Target wiki UI:
 
-- `https://github.com/nhonvo/InvestManagementSystem/wiki`
+- `https://github.com/<owner>/<repo>/wiki` (example: `https://github.com/nhonvo/InventoryManagementSystem/wiki`)
 
 GitHub wiki is backed by a separate git repository:
 
-- `https://github.com/nhonvo/InvestManagementSystem.wiki.git`
+- `https://github.com/<owner>/<repo>.wiki.git` (example: `https://github.com/nhonvo/InventoryManagementSystem.wiki.git`)
 
 This document describes a CI approach (GitHub Actions) to publish markdown pages into the wiki repo from this codebase.
 
@@ -117,9 +117,10 @@ jobs:
 
       - name: Clone wiki repository
         run: |
-          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
+          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" artifacts/wiki-repo
         env:
           WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Sync + publish
         run: |

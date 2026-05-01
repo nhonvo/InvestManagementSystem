@@ -30,13 +30,64 @@ public class PortfolioService(
             .Take(query.PageSize);
 
         var positions = new List<PortfolioPositionResponse>();
+        var symbols = pagedItems.Select(x => x.TickerSymbol).ToList();
 
-        foreach (var item in pagedItems)
+        if (symbols.Any())
         {
-            var position = await GetPositionBySymbolAsync(item.TickerSymbol, userId, ct);
-            if (position != null)
+            var tradesList = await _unitOfWork.Trades.GetByUserAndSymbolsAsync(userGuid, symbols, ct);
+            var listingsList = await _unitOfWork.StockListings.FindBySymbolsAsync(symbols, ct);
+
+            var quotesTasks = symbols.Select(s => _stockDataService.GetQuoteAsync(s, ct));
+            var quotesResult = await Task.WhenAll(quotesTasks);
+            var quotesDict = quotesResult.Where(q => q != null).ToDictionary(q => q!.Symbol, q => q!);
+
+            var tradesBySymbol = tradesList.GroupBy(t => t.TickerSymbol).ToDictionary(g => g.Key, g => g.ToList());
+            var listingsDict = listingsList.ToDictionary(l => l.TickerSymbol, l => l);
+
+            foreach (var item in pagedItems)
             {
-                positions.Add(position);
+                var symbol = item.TickerSymbol;
+                var trades = tradesBySymbol.GetValueOrDefault(symbol) ?? new List<Trade>();
+                
+                if (!listingsDict.TryGetValue(symbol, out var listing)) continue;
+
+                var quote = quotesDict.GetValueOrDefault(symbol);
+                var currentPrice = quote?.Price ?? 0;
+
+                var netHoldings = trades
+                    .Where(x => x.Type == TradeType.Buy).Sum(x => x.Quantity) -
+                    trades.Where(x => x.Type == TradeType.Sell).Sum(x => x.Quantity);
+
+                var totalBuyCost = trades
+                    .Where(x => x.Type == TradeType.Buy)
+                    .Sum(x => x.Quantity * x.UnitPrice);
+
+                var totalBuyQty = trades
+                    .Where(x => x.Type == TradeType.Buy)
+                    .Sum(x => x.Quantity);
+
+                var averagePrice = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0;
+                var marketValue = netHoldings * currentPrice;
+                var totalCost = netHoldings * averagePrice;
+                var totalReturn = marketValue - totalCost;
+                var totalReturnPercent = totalCost > 0 ? (double)(totalReturn / totalCost * 100) : 0;
+
+                positions.Add(new PortfolioPositionResponse(
+                    listing.Id,
+                    symbol,
+                    listing.Name,
+                    listing.Exchange,
+                    listing.Logo,
+                    netHoldings,
+                    averagePrice,
+                    currentPrice,
+                    marketValue,
+                    totalCost,
+                    totalReturn,
+                    totalReturnPercent,
+                    quote?.Change ?? 0,
+                    (decimal)(quote?.ChangePercent ?? 0),
+                    listing.Industry));
             }
         }
 

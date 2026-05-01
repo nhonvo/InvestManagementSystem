@@ -57,6 +57,7 @@ try
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
+    builder.Services.AddTransient<RequestResponseLoggingMiddleware>();
 
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>

@@ -4,18 +4,18 @@ type: reference
 status: draft
 version: 1.0
 tags: [wiki, documentation, github-actions, ci, docusaurus, inventoryalert]
-last_updated: 2026-04-26
+last_updated: 2026-04-30
 ---
 
-# GitHub Wiki Reuse + CI Sync Plan (InvestManagementSystem)
+# GitHub Wiki Reuse + CI Sync Plan (InventoryManagementSystem)
 
 Target GitHub Wiki (UI):
 
-- `https://github.com/nhonvo/InvestManagementSystem/wiki`
+- `https://github.com/<owner>/<repo>/wiki` (example: `https://github.com/nhonvo/InventoryManagementSystem/wiki`)
 
 Important note: GitHub Wikis are backed by a **separate git repository**:
 
-- `https://github.com/nhonvo/InvestManagementSystem.wiki.git`
+- `https://github.com/<owner>/<repo>.wiki.git` (example: `https://github.com/nhonvo/InventoryManagementSystem.wiki.git`)
 
 This document proposes how to **reuse** that wiki repo and how to **update CI** so changes in this repository can be published to the GitHub Wiki automatically.
 
@@ -84,7 +84,7 @@ Output folder suggestion in CI:
 One-time setup:
 
 ```bash
-git clone https://github.com/nhonvo/InvestManagementSystem.wiki.git _wiki
+git clone https://github.com/<owner>/<repo>.wiki.git _wiki
 ```
 
 Then copy exported `.md` files into `_wiki/`, commit, push:
@@ -153,9 +153,10 @@ jobs:
       # 2) Checkout GitHub Wiki repo
       - name: Checkout wiki repo
         run: |
-          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/nhonvo/InvestManagementSystem.wiki.git" artifacts/wiki-repo
+          git clone "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" artifacts/wiki-repo
         env:
           WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       # 3) Copy, commit, push
       - name: Publish

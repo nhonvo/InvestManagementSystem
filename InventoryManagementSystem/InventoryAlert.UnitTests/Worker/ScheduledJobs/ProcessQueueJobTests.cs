@@ -74,7 +74,7 @@ public class ProcessQueueJobTests
         _sqsHelperMock.Verify(s => s.DeleteMessageAsync(_settings.Aws.SqsQueueUrl, "rh-1", It.IsAny<CancellationToken>()), Times.Once);
         
         // We bypass strict signature matching by checking if ANY call happened to the mock that looks like a save
-        _redisDbMock.Invocations.Any(i => i.Method.Name.Contains("StringSet") && i.Arguments.Count > 0 && i.Arguments[0].ToString().Contains(messageId))
+        _redisDbMock.Invocations.Any(i => i.Method.Name.Contains("StringSet") && i.Arguments.Count > 0 && (i.Arguments[0]?.ToString()?.Contains(messageId) == true))
             .Should().BeTrue("Redis should have marked the message as processed.");
     }
 

@@ -46,7 +46,7 @@ Before writing any plan, identify blind spots.
 
 Ask the user these questions (or proceed with defaults if they say "go"):
 
-1. **Scope**: Is this a new method on `ProductService`, a new entity, or a new external integration?
+1. **Scope**: Is this a new method on an existing service (e.g., `PortfolioService`, `WatchlistService`, `StockDataService`), a new entity, or a new external integration?
 2. **Input/Output**: What does the endpoint receive? What shape does the response need?
 3. **Persistence**: Does this require a DB column/table/index change → migration needed?
 4. **Finnhub**: Does this feature call Finnhub? If so, how should null/error be handled?

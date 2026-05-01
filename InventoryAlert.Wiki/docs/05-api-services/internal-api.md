@@ -67,6 +67,25 @@ Personal position management. All data scoped strictly to the authenticated user
 
 ---
 
+### POST `/{symbol}/trades` — Request
+
+Records an immutable `Trade` row for the authenticated user and returns the updated position snapshot.
+
+```json
+{
+  "type": "Buy",
+  "quantity": 10,
+  "unitPrice": 172.5,
+  "notes": "Optional note (max 500 chars)"
+}
+```
+
+Validation notes:
+
+- `notes` is optional and limited to **500 characters**.
+- `unitPrice` must be `>= 0` (dividend/split can be `0`).
+- For `Sell`, the API rejects oversell attempts when `netHoldings < quantity`.
+
 ## Stocks (Market Intelligence) — `/api/v1/stocks`
 
 Global market intelligence hub. Extensively cached locally to bypass strict external rate limits.
@@ -187,7 +206,6 @@ Internal event publishing for SQS integration.
 | `Unauthorized` | 401 | Missing or invalid JWT. |
 | `Forbidden` | 403 | Authenticated but lacks ownership of resource. |
 | `UnprocessableEntity` | 422 | Semantic error (e.g., negative quantity, bad ticker). |
-| `TooManyRequests` | 429 | Rate limit exceeded (login endpoint). |
 | `Internal` | 500 | Unhandled server error. |
 
 ### Standard Error Body

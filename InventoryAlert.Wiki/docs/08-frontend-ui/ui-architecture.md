@@ -11,7 +11,7 @@ InventoryAlert.UI/
 │   │   ├── (auth)/
 │   │   │   ├── login/            ← JWT authentication form
 │   │   │   └── register/         ← New account creation
-│   │   ├── dashboard/            ← Portfolio summary, watchlist strip, market status, news
+│   │   ├── page.tsx              ← Dashboard: Portfolio summary, watchlist strip, market status, news (Route: /)
 │   │   ├── portfolio/            ← Paginated position list with trade history
 │   │   │   └── [symbol]/         ← Position detail: chart, trades, alerts
 │   │   ├── stocks/               ← Global StockListing catalog (browse + search)
@@ -19,6 +19,8 @@ InventoryAlert.UI/
 │   │   ├── watchlist/            ← Live watchlist with quick-add
 │   │   ├── alerts/               ← Alert rule CRUD with toggle
 │   │   ├── market/               ← Exchange status, news feed, earnings calendar, IPO calendar
+│   │   ├── admin/                ← Admin only pages
+│   │   │   └── health/           ← Real-time system health dashboard
 │   │   └── layout.tsx            ← Root layout with Navbar, Sidebar, MarketStatusBanner
 │   ├── components/               ← Reusable UI components
 │   ├── hooks/                    ← Custom React hooks (useQuote, useNotifications)
@@ -31,7 +33,7 @@ InventoryAlert.UI/
 
 | Page | Route | Key API Calls |
 |---|---|---|
-| Dashboard | `/dashboard` | `GET /portfolio/positions`, `GET /watchlist/`, `GET /market/status`, `GET /market/news` |
+| Dashboard | `/` | `GET /portfolio/positions`, `GET /watchlist/`, `GET /market/status`, `GET /market/news` |
 | Portfolio | `/portfolio` | `GET /portfolio/positions` (paged), `GET /portfolio/alerts` |
 | Position Detail | `/portfolio/[symbol]` | `GET /portfolio/positions/{symbol}`, `GET /stocks/{symbol}/quote`, `GET /alertrules/` |
 | Stock Catalog | `/stocks` | `GET /stocks/` (paged), `GET /stocks/search` |
@@ -39,6 +41,7 @@ InventoryAlert.UI/
 | Watchlist | `/watchlist` | `GET /watchlist/`, `POST /watchlist/{symbol}`, `DELETE /watchlist/{symbol}` |
 | Alerts | `/alerts` | `GET /alertrules/`, `POST /alertrules/`, `PUT /alertrules/{id}`, `PATCH /alertrules/{id}/toggle` |
 | Market | `/market` | `GET /market/status`, `/news`, `/calendar/earnings`, `/calendar/ipo`, `/holiday` |
+| Admin Health | `/admin/health` | `GET /health` (via proxy or direct) |
 
 ---
 

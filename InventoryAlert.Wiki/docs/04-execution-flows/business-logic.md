@@ -8,7 +8,7 @@ This document outlines the core domain logic governing the InventoryAlert.Api sy
 
 ### 1.1 Price Alerts
 
-Evaluated during the **price sync loop** inside `SyncPricesJob` (every 15 min). Loads all active `AlertRule` rows for each ticker, compares against the latest quote.
+Evaluated during the **price sync loop** inside `SyncPricesJob` (cron-configured via `WorkerSettings.Schedules.SyncPrices`). Loads active `AlertRule` rows for each ticker and compares against the latest quote.
 
 | Condition | Evaluation |
 |---|---|
@@ -20,7 +20,7 @@ On breach:
 - An unread `Notification` row is written for the owning user.
 - `rule.LastTriggeredAt` is updated.
 - If `rule.TriggerOnce = true`, the rule is deactivated (`IsActive = false`).
-- Redis cooldown key `cooldown:alert:{symbol}` is set (24h TTL) to prevent alert storms.
+- A Redis cooldown key `inventoryalert:alerts:cooldown:v1:{userId}:{ruleId}` is set (24h TTL) to prevent alert storms.
 
 ### 1.2 Portfolio Cost-Basis Alerts (`PercentDropFromCost`)
 
@@ -33,7 +33,7 @@ Evaluates an individual user's specific unrealized loss exposure.
 
 ### 1.3 Low Holdings Alert (`LowHoldingsCount`)
 
-Triggered synchronously by `LowHoldingsHandler` when a trade is executed — not on the 15-minute cycle.
+Triggered by `LowHoldingsHandler` via an integration event (`inventoryalert.inventory.stock-low.v1`) — not by the scheduled price sync cycle.
 
 - **Formula**: `SUM(Quantity WHERE Type = Buy) - SUM(Quantity WHERE Type = Sell) < rule.TargetValue`
 - **Guard**: The service guards against net holdings going negative (oversell) — rejects the trade with `422 Unprocessable`.
@@ -95,16 +95,17 @@ When `DELETE /portfolio/positions/{symbol}` is called:
 
 ## 5. Market Intelligence Sync Schedule
 
-| Data | Job | Frequency | Finnhub Endpoint |
+Schedules are configurable via `WorkerSettings.Schedules.*`.
+
+| Data | Job | Schedule setting | Finnhub Endpoint |
 |---|---|---|---|
-| Price quotes | `SyncPricesJob` | Every 15 min | `/quote` |
-| Basic Financials | `SyncMetricsJob` | Daily 06:00 UTC | `/stock/metric` |
-| Earnings Surprises | `SyncEarningsJob` | Daily 07:00 UTC | `/stock/earnings` |
-| Analyst Recommendations | `SyncRecommendationsJob` | Weekly (Monday) | `/stock/recommendation` |
-| Insider Transactions | `SyncInsidersJob` | Daily 08:00 UTC | `/stock/insider-transactions` |
-| Company News | `CompanyNewsJob` | Every 6h | `/company-news` |
-| Market News | `MarketNewsJob` | Every 2h | `/news` |
-| Price History Cleanup | `CleanupPriceHistoryJob` | Daily 00:00 UTC | — (DB delete) |
+| Price quotes | `SyncPricesJob` | `Schedules.SyncPrices` | `/quote` |
+| Basic Financials | `SyncMetricsJob` | `Schedules.SyncMetrics` | `/stock/metric` |
+| Earnings Surprises | `SyncEarningsJob` | `Schedules.SyncEarnings` | `/stock/earnings` |
+| Analyst Recommendations | `SyncRecommendationsJob` | `Schedules.SyncRecommendations` | `/stock/recommendation` |
+| Insider Transactions | `SyncInsidersJob` | `Schedules.SyncInsiders` | `/stock/insider-transactions` |
+| Market + Company News | `NewsSyncJob` | `Schedules.MarketNews` | `/news` + `/company-news` |
+| Price History Cleanup | `CleanupPriceHistoryJob` | `Schedules.CleanupPrices` | — (DB delete) |
 
 ---
 
