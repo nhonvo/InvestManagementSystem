@@ -117,7 +117,7 @@ public class PortfolioE2ETests : BaseE2ETest
         discoveryRes.StatusCode.Should().Be(HttpStatusCode.OK, "Symbol discovery should succeed via quote lookup.");
 
         var openReq = CreateAuthenticatedRequest("api/v1/portfolio/positions", Method.Post);
-        openReq.AddJsonBody(new CreatePositionRequest(symbol, 2, 100.00m, DateTime.UtcNow));
+        openReq.AddJsonBody(new CreatePositionRequest(symbol, 2, 100.00m, DateTime.UtcNow.AddMinutes(-1)));
         var openRes = await Client.ExecuteAsync<PortfolioPositionResponse>(openReq);
         if (openRes.StatusCode != HttpStatusCode.Created)
         {

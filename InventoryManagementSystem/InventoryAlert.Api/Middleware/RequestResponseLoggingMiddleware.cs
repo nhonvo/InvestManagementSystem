@@ -52,6 +52,7 @@ public class RequestResponseLoggingMiddleware(RequestDelegate next, ILogger<Requ
             context.Response.Body.Position = 0;
             
             await responseBody.CopyToAsync(originalBodyStream);
+            context.Response.Body = originalBodyStream;
 
             _logger.LogInformation("HTTP Response: {Method} {Path} responded {StatusCode} in {ElapsedMs}ms | CID: {CorrelationId} | Body: {Body}",
                 context.Request.Method,
