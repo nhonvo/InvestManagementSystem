@@ -34,22 +34,26 @@ graph TD
 
 Running inside `InventoryAlert.Worker`, driven by Hangfire cron schedules.
 
-| Job | Cron Schedule | Finnhub Endpoint | Key Duty |
+Schedules are configurable via `WorkerSettings.Schedules.*` (with sensible defaults in code and environment overrides via `appsettings*.json`).
+
+InventoryAlert uses a total of **8 background jobs** (7 recurring via Hangfire + 1 continuous SQS listener).
+
+| Job | Schedule setting | Finnhub Endpoint | Key duty |
 |---|---|---|---|
-| **SyncPricesJob** | `*/15 * * * *` | `/quote` | Parallel fetch → updates `PriceHistory` → Batch evaluates `AlertRule` → writes `Notification` → SignalR Push |
-| **SyncMetricsJob** | `0 6 * * *` | `/stock/metric` | Updates `StockMetric` table for all active symbols |
-| **SyncEarningsJob** | `0 7 * * *` | `/stock/earnings` | Refreshes `EarningsSurprise` rows for watchlisted symbols |
-| **SyncRecommendationsJob** | `0 8 * * 1` | `/stock/recommendation` | Refreshes `RecommendationTrend` for portfolio + watchlist symbols |
-| **SyncInsidersJob** | `0 8 * * *` | `/stock/insider-transactions` | Pulls last 100 insider transactions for actively-watched symbols |
-| **NewsSyncJob** | `0 */2 * * *` | `/news` & `/company-news` | **Consolidated:** Syncs global market categories AND symbol-specific news in parallel. |
-| **CleanupPriceHistoryJob** | `@daily` | — | Deletes `PriceHistory` rows older than 1 year (batched, `LIMIT 10000`) |
-| **ProcessQueueJob** | Continuous | — | SQS consumer with Redis-based idempotency (30-min window) |
+| **SyncPricesJob** | `Schedules.SyncPrices` | `/quote` | Parallel fetch → insert `PriceHistory` → batch evaluate `AlertRule` → insert `Notification` → SignalR push |
+| **SyncMetricsJob** | `Schedules.SyncMetrics` | `/stock/metric` | Refresh cached `StockMetric` rows |
+| **SyncEarningsJob** | `Schedules.SyncEarnings` | `/stock/earnings` | Refresh `EarningsSurprise` rows |
+| **SyncRecommendationsJob** | `Schedules.SyncRecommendations` | `/stock/recommendation` | Refresh `RecommendationTrend` rows |
+| **SyncInsidersJob** | `Schedules.SyncInsiders` | `/stock/insider-transactions` | Refresh `InsiderTransaction` rows |
+| **NewsSyncJob** | `Schedules.MarketNews` | `/news` & `/company-news` | Consolidated market + company news sync (DynamoDB read-model) |
+| **CleanupPriceHistoryJob** | `Schedules.CleanupPrices` | — | Deletes `PriceHistory` rows older than 1 year |
+| **ProcessQueueJob** | Continuous | — | Native SQS poller + router + idempotency |
 
 ---
 
 ## The Optimized Evaluation Pipeline: `SyncPricesJob`
 
-The v3 architecture features high-concurrency and batch-resolution logic:
+The current architecture uses high-concurrency quote fetching and batch rule evaluation:
 
 ```text
 1. Collect active TickerSymbols from StockListing.
@@ -59,10 +63,9 @@ The v3 architecture features high-concurrency and batch-resolution logic:
 3. PART 2 (Batch Alert Check):
    - Fetch all active AlertRules for processed symbols in ONE query.
    - Evaluate breach conditions (direct comparison or cost-basis math).
-   - Use TradeBasisCache to memoize heavy User+Symbol cost calculations.
 4. PART 3 (Real-time Notification):
    - Batch insert Notification records.
-   - For each breach: Push via IHubContext (SignalR Redis Backplane).
+   - For each breach: Push via `IAlertNotifier` (SignalR via Redis backplane).
 5. COMMIT: Single SaveChangesAsync call for all history, notifications, and rule updates.
 ```
 
@@ -76,15 +79,18 @@ The v3 architecture features high-concurrency and batch-resolution logic:
 
 ## Event Handlers (SQS Topology)
 
-Located in `IntegrationEvents/Handlers`. Operating under CQRS Command-Query principles.
+Located in `IntegrationEvents/Handlers`, invoked by `IntegrationMessageRouter` after messages are pulled from SQS by `ProcessQueueJob`.
 
 | Handler | SQS Event Type | Role |
 |---|---|---|
-| **MarketPriceAlertHandler** | `inventoryalert.pricing.price-drop.v1` | Price fetch → cache update → `PriceHistory` insert → full `AlertRule` evaluate for symbol |
-| **LowHoldingsHandler** | `inventoryalert.inventory.stock-low.v1` | Queries `Trade` ledger by `(UserId, TickerSymbol)` → checks `AlertRule[LowHoldingsCount]` |
-| **CompanyNewsAlertHandler** | `inventoryalert.news.headline.v1` | Immediate sync of ticker news → DynamoDB `CompanyNews` |
-| **NewsSyncJob** (via Router) | `inventoryalert.news.sync-requested.v1` | On-demand UI command to refresh global news feed |
-| **DefaultHandler** | `*` (unmatched) | Log + acknowledge. Prevents poison-message queue blockage. |
+| **MarketPriceAlertHandler** | `inventoryalert.pricing.price-drop.v1` | Evaluate rules for a specific symbol + price payload and push notifications |
+| **LowHoldingsHandler** | `inventoryalert.inventory.stock-low.v1` | Persist + push a holdings notification for a specific user + symbol |
+| **NewsSyncJob** (via Router) | `inventoryalert.news.sync-requested.v1` | Enqueue the consolidated news sync job |
+| **DefaultHandler** | `*` (unmatched) | Log + acknowledge (prevents poison-message blockage) |
+
+Notes:
+
+- `inventoryalert.news.company-sync-requested.v1` is defined in `EventTypes`, but is not currently routed by `IntegrationMessageRouter`.
 
 ---
 

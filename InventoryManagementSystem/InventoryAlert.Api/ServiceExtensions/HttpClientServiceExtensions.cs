@@ -22,16 +22,6 @@ public static class HttpClientServiceExtensions
             PooledConnectionLifetime = TimeSpan.FromMinutes(2) // Prevent stale DNS connections
         });
 
-        // ── Telegram Configuration ───────────────────────────────────────────
-        services.AddHttpClient(ApplicationConstants.HttpClientNames.Telegram, client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(15);
-        })
-        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-        {
-            PooledConnectionLifetime = TimeSpan.FromMinutes(2)
-        });
-
         return services;
     }
 }

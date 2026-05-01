@@ -4,7 +4,7 @@
 
 ## Overview
 
-Alert dispatch in InventoryAlert **v3** uses a **hybrid evaluation pipeline** combining scheduled and event-driven triggers. Both paths utilize a shared `IAlertRuleEvaluator` to ensure consistent business logic. Delivery is now handled via **SignalR** with a **Redis Backplane** for instant UI reactivity.
+Alert dispatch uses a **hybrid evaluation pipeline** combining scheduled and event-driven triggers. Both paths use a shared `IAlertRuleEvaluator` for consistent business logic, and delivery is handled via **SignalR** with a **Redis backplane** for instant UI reactivity.
 
 ---
 
@@ -12,9 +12,9 @@ Alert dispatch in InventoryAlert **v3** uses a **hybrid evaluation pipeline** co
 
 The system ensures alert rules are checked whenever relevant data changes.
 
-1.  **Scheduled Path (`SyncPricesJob`)**: Runs every 15 minutes. Performs a global scan of all active stock listings and evaluates all associated rules.
-2.  **Event Path (`MarketPriceAlertHandler`)**: Triggered immediately by price update events from SQS.
-3.  **Holdings Path (`LowHoldingsHandler`)**: Triggered immediately when a trade is recorded.
+1.  **Scheduled Path (`SyncPricesJob`)**: Runs on a cron schedule (config: `WorkerSettings.Schedules.SyncPrices`). Scans symbols, fetches quotes, evaluates rules, persists notifications, and pushes via SignalR.
+2.  **Event Path (`MarketPriceAlertHandler`)**: Triggered by SQS events (EventType: `inventoryalert.pricing.price-drop.v1`) for a specific symbol + price.
+3.  **Holdings Path (`LowHoldingsHandler`)**: Triggered by SQS events (EventType: `inventoryalert.inventory.stock-low.v1`) when a user’s holdings drop below a threshold.
 
 ### Shared Evaluator Logic (`IAlertRuleEvaluator`)
 
@@ -29,9 +29,9 @@ flowchart TD
     
     H & I & J --> K{Breached?}
     K -- Yes --> L{Redis Cooldown active?}
-    L -- Yes --> M[Skip — alert:cooldown:{userId}:{ruleId} exists]
+    L -- Yes --> M[Skip — inventoryalert:alerts:cooldown:v1:{userId}:{ruleId} exists]
     L -- No --> N[1. INSERT Notification row]
-    N --> O[2. SET alert:cooldown:{userId}:{ruleId} TTL=1h+]
+    N --> O[2. SET inventoryalert:alerts:cooldown:v1:{userId}:{ruleId} TTL=24h]
     O --> P[3. Push via SignalR HubContext]
     P --> Q{TriggerOnce?}
     Q -- Yes --> R[UPDATE AlertRule SET IsActive = false]
@@ -42,7 +42,7 @@ flowchart TD
 
 ## Real-Time Delivery (SignalR)
 
-InventoryAlert v3 replaces legacy polling with an instant push architecture:
+SignalR provides an instant push architecture:
 
 1.  **Hub Host**: `InventoryAlert.Api` hosts the `NotificationHub` at `/hubs/notifications`.
 2.  **The Signal**: When the Worker (producer) identifies a breach, it calls `NotifyAsync` on the `IAlertNotifier`.
@@ -67,9 +67,6 @@ Notifications are now categorized for better UX:
 ## Deduplication & Cooldown
 
 To prevent "Alert Storms," the system enforces a cooldown gate:
-- **Key Pattern**: `alert:cooldown:{userId}:{ruleId}`
-- **Standard TTL**: 
-    - Price Alerts: 1 Hour
-    - Holdings Alerts: 6 Hours
-    - News Alerts: 24 Hours
-- **Global SQS Dedup**: `dedup:sqs:{messageId}` (30 min TTL) prevents duplicate processing of the same message across worker nodes.
+- **Key Pattern**: `inventoryalert:alerts:cooldown:v1:{userId}:{ruleId}`
+- **Standard TTL**: 24 hours (set by the shared `IAlertRuleEvaluator`)
+- **SQS message idempotency**: `msg:processed:{messageId}` (24h TTL) prevents processing the same SQS message multiple times in the native polling worker.

@@ -86,6 +86,17 @@ dotnet test --filter "FullyQualifiedName~UnitTests"
 dotnet test --filter "FullyQualifiedName~E2ETests"
 ```
 
+### Code Coverage Script
+
+A pre-configured batch script is available at the root of the repository to generate line-coverage metrics and an HTML report.
+
+```powershell
+# From the repository root
+./code-coverage.bat
+```
+
+> **Requirements**: The script will automatically attempt to install `dotnet-reportgenerator-globaltool` and `coverlet.console` globally if they are not already present.
+
 > ⚠️ **E2E tests** require the full Docker stack running: `docker compose up --build`
 
 ---

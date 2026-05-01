@@ -4,7 +4,9 @@
 
 ## Accessing the Dashboard
 
-Navigate to `http://localhost:8080/hangfire` (requires **Admin** role JWT).
+Navigate to `http://localhost:8081/hangfire` (Docker Compose maps Worker `8080` → host `8081`).
+
+Authorization note: the Worker dashboard uses a development-friendly authorization filter (`DevDashboardAuthorizationFilter`). It is not driven by JWT.
 
 ## Dashboard Sections
 
@@ -18,17 +20,17 @@ Navigate to `http://localhost:8080/hangfire` (requires **Admin** role JWT).
 
 ## Scheduled Jobs Visible in Dashboard
 
-| Job Name | Cron | Failure Impact |
+Recurring jobs are registered by `JobSchedulerService` and use schedules from `WorkerSettings.Schedules.*`.
+
+| Recurring Job Id | Schedule setting | Failure impact |
 |---|---|---|
-| `SyncPricesJob` | `*/15 * * * *` | No price update; no alert evaluation for that cycle |
-| `SyncMetricsJob` | `0 6 * * *` | Stale `StockMetric` data (P/E, EPS, margins) |
-| `SyncEarningsJob` | `0 7 * * *` | Stale `EarningsSurprise` data |
-| `SyncRecommendationsJob` | `0 8 * * 1` | Stale analyst consensus |
-| `SyncInsidersJob` | `0 8 * * *` | Stale insider transaction data |
-| `CompanyNewsJob` | `0 */6 * * *` | Missing company news for that window |
-| `MarketNewsJob` | `0 */2 * * *` | Missing general market news |
-| `CleanupPriceHistoryJob` | `@daily` | `PriceHistory` table grows unbounded |
-| `ProcessQueueJob` | Continuous | SQS events back up until next `SqsScheduledPollerJob` runs |
+| `sync-prices` | `Schedules.SyncPrices` | No price update; no scheduled alert evaluation for that cycle |
+| `sync-metrics` | `Schedules.SyncMetrics` | Stale `StockMetric` data |
+| `sync-earnings` | `Schedules.SyncEarnings` | Stale `EarningsSurprise` data |
+| `sync-recommendations` | `Schedules.SyncRecommendations` | Stale analyst consensus |
+| `sync-insiders` | `Schedules.SyncInsiders` | Stale insider transaction data |
+| `news-sync` | `Schedules.MarketNews` | Stale market/company news snapshots in DynamoDB |
+| `cleanup-prices` | `Schedules.CleanupPrices` | `PriceHistory` grows unbounded |
 
 ## Retrying a Failed Job
 
@@ -40,11 +42,9 @@ Navigate to `http://localhost:8080/hangfire` (requires **Admin** role JWT).
 
 From Hangfire Dashboard:
 1. Go to **Recurring Jobs**
-2. Find `SyncPricesJob`
+2. Find `sync-prices`
 3. Click **Trigger Now**
 
-Or via the API:
-```bash
-POST http://localhost:8080/api/v1/stocks/sync
-Authorization: Bearer <admin-jwt>
-```
+Or via the API endpoint (placeholder):
+
+- `POST /api/v1/stocks/sync` currently returns `202 Accepted` but does not enqueue a Hangfire job.

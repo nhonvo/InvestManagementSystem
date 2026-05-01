@@ -46,24 +46,20 @@ sequenceDiagram
     participant Cache as Redis
     participant Finnhub as Finnhub API
     participant DB as PostgreSQL
-    participant SQS as Amazon SQS
+    participant Redis as Redis Backplane
 
-    HF->>Job: Trigger (every 15 minutes)
+    HF->>Job: Trigger (cron from WorkerSettings.Schedules.SyncPrices)
     Job->>DB: SELECT DISTINCT TickerSymbols FROM StockListing
 
     loop For each symbol
-        Job->>Cache: GET quote:{symbol}
-        alt Cache MISS
-            Job->>Finnhub: GET /quote?symbol={symbol}
-            Job->>Cache: SET quote:{symbol} TTL=30s
-        end
+        Job->>Finnhub: GET /quote?symbol={symbol}
         Job->>DB: INSERT PriceHistory
         Job->>DB: SELECT active AlertRules WHERE TickerSymbol
         loop For each AlertRule
             alt Condition breached AND cooldown not active
                 Job->>DB: INSERT Notification
-                Job->>Cache: SET cooldown:alert:{symbol} TTL=24h
-                Job->>SQS: Publish inventoryalert.pricing.price-drop.v1
+                Job->>Cache: SET inventoryalert:alerts:cooldown:v1:{userId}:{ruleId} TTL=24h
+                Job->>Redis: SignalR push (IAlertNotifier)
             end
         end
     end
@@ -76,13 +72,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    API["InventoryAlert.Api"] -->|Publish| SQS["SQS: inventory-events"]
-    HF["Hangfire Scheduler"] -->|Trigger| Worker["InventoryAlert.Worker"]
-    Worker -->|Publish| SQS
+    API["InventoryAlert.Api"] -->|Publish| SNS["SNS Topic"]
+    SNS -->|Fan-out| SQS["SQS: inventory-events"]
     SQS -->|Consume| Router["IntegrationMessageRouter"]
-    Router -->|price-drop.v1| PriceHandler["PriceAlertHandler"]
+    Router -->|price-drop.v1| PriceHandler["MarketPriceAlertHandler"]
     Router -->|stock-low.v1| HoldingsHandler["LowHoldingsHandler"]
-    Router -->|news.headline.v1| NewsHandler["CompanyNewsHandler"]
+    Router -->|news.sync-requested.v1| NewsHandler["Enqueue NewsSyncJob"]
     Router -->|Unknown| DefaultHandler["DefaultHandler: Log + ACK"]
     PriceHandler --> DB[("PostgreSQL")]
     NewsHandler --> DDB[("DynamoDB")]
