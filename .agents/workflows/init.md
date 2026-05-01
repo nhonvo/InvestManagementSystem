@@ -66,7 +66,7 @@ Use BM25 to retrieve focused context without reading full files:
 python .agents/scripts/core/bm25_search.py "your query" -n 5
 
 # Search only documentation files
-python .agents/scripts/core/bm25_search.py "ProductService transaction" -n 5
+python .agents/scripts/core/bm25_search.py "ExecuteTransactionAsync transaction capture pattern" -n 5
 
 # Search with mode filter
 python .agents/scripts/core/bm25_search.py "repository pattern EF Core" -n 3 --mode doc
@@ -77,10 +77,10 @@ python .agents/scripts/core/bm25_search.py "migration" -n 3 -f ".agents/workflow
 
 **Domain-specific queries to know**:
 ```bash
-python .agents/scripts/core/bm25_search.py "ProductService GetPriceLossAlertsAsync"
+python .agents/scripts/core/bm25_search.py "PortfolioService OpenPositionAsync"
 python .agents/scripts/core/bm25_search.py "ExecuteTransactionAsync unit of work"
 python .agents/scripts/core/bm25_search.py "FinnhubClient GetQuoteAsync"
-python .agents/scripts/core/bm25_search.py "GenericRepository EF Core CS1998"
+python .agents/scripts/core/bm25_search.py "StockDataService cache Redis"
 ```
 
 ---

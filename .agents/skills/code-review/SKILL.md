@@ -45,14 +45,14 @@ tags: [workflow, code-review, quality, checklist, inventoryalert]
 - [ ] Entity never returned raw — only via `MapToResponse()`
 - [ ] `MapToResponse()` and `MapToEntity()` are `private static`
 - [ ] `KeyNotFoundException` (not `ArgumentException`) when entity not found on update
-- [ ] **No** `new Product()` before a transaction lambda — assign inside the lambda:
+- [ ] **No** default entity captured before a transaction lambda — assign inside the lambda:
   ```csharp
   // ❌ BAD
-  Product updated = new();
+  AlertRule updated = new();
   await _unitOfWork.ExecuteTransactionAsync(async () => { updated = ...; }, ct);
 
   // ✅ GOOD
-  ProductResponse result = null!;
+  AlertRuleResponse result = null!;
   await _unitOfWork.ExecuteTransactionAsync(async () => { result = MapToResponse(await ...); }, ct);
   ```
 

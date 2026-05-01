@@ -1,11 +1,11 @@
 ---
 name: inventoryalert-async-patterns
-description: Provides strict heuristics and guidelines for asynchronous Task handling matching C# 12 and the Finnhub BackgroundService constraints. Use this skill when modifying threaded handlers, dealing with execution scopes, adding Background services, passing CancellationTokens, or whenever async concurrency optimizations apply to the project.
+description: Provides strict heuristics and guidelines for asynchronous Task handling matching C# 12 and the worker/background processing constraints. Use this skill when modifying threaded handlers, dealing with execution scopes, adding hosted services, passing CancellationTokens, or whenever async concurrency optimizations apply to the project.
 ---
 
 # InventoryAlert Async Patterns
 
-Because `InventoryAlert.Api` relies on background tasks (`FinnhubPricesSyncWorker`) that operate simultaneously alongside Web API controllers, handling asynchronous states is extremely delicate.
+Because this solution runs background processing (Hangfire jobs + queue polling) alongside Web API controllers, handling asynchronous states is extremely delicate.
 
 ## CancellationToken Propagation
 We rigidly enforce complete propagation. Every single async method inside `Domain`, `Application`, and `Infrastructure` layers **must** take a `CancellationToken ct` as its absolute last parameter. 
