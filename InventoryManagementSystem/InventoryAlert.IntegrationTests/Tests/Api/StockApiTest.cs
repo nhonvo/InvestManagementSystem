@@ -3,24 +3,27 @@ using FluentAssertions;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
+[Trait("Category", "Api")]
 public class StockApiTest : BaseIntegrationTest
 {
     private readonly StockClient _stockClient;
     private readonly AuthClient _authClient;
 
-    public StockApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public StockApiTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
-        _stockClient = new StockClient(fixture.ServiceProvider.GetRequiredService<RestClient>());
-        _authClient = new AuthClient(fixture.ServiceProvider.GetRequiredService<RestClient>());
+        _stockClient = new StockClient(Client);
+        _authClient = new AuthClient(Client);
     }
 
     [Fact]
+    
     public async Task GetStocks_ShouldReturnStocks_WhenTokenIsValid()
     {
         // Arrange
@@ -36,6 +39,7 @@ public class StockApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task SearchSymbol_ShouldReturnSymbols_WhenTokenIsValid()
     {
         // Arrange
@@ -52,6 +56,7 @@ public class StockApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task GetStockQuote_ShouldReturnStockQuote_WhenTokenIsValid()
     {
         // Arrange

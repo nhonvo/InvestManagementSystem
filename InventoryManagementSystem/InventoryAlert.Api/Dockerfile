@@ -24,7 +24,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
 
 # Install security and diagnostic dependencies
-RUN apk add --no-cache icu-libs curl gcompat libgdiplus
+RUN apk add --no-cache icu-libs curl gcompat libgdiplus krb5-libs
 
 # Configure runtime for Alpine (Globalization)
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false

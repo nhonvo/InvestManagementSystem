@@ -1,25 +1,22 @@
 using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using Xunit.Abstractions;
 using RestSharp;
 using RestSharp.Serializers.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using InventoryAlert.IntegrationTests.Config;
 using Xunit;
 
 namespace InventoryAlert.IntegrationTests.Abstractions;
 
 [Collection("IntegrationTests")]
-public abstract class BaseIntegrationTest : IAsyncLifetime
+public abstract class Tier2TestBase : IAsyncLifetime
 {
     protected readonly TestFixture Fixture;
     protected readonly ITestOutputHelper Output;
     protected readonly RestClient Client;
-    protected readonly TestUser _testUser;
 
-    protected BaseIntegrationTest(TestFixture fixture, ITestOutputHelper output)
+    protected Tier2TestBase(TestFixture fixture, ITestOutputHelper output)
     {
         Fixture = fixture;
         Output = output;
@@ -33,9 +30,6 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
             PropertyNameCaseInsensitive = true,
             Converters = { new JsonStringEnumConverter() }
         }));
-        
-        var appSettings = Fixture.Configuration.Get<AppSettings>();
-        _testUser = appSettings?.TestUser ?? new TestUser { Username = "admin", Password = "password" };
     }
 
     public virtual async Task InitializeAsync()

@@ -4,24 +4,24 @@ using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
 using InventoryAlert.IntegrationTests.TestUtils.Assertions;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
+[Trait("Category", "Api")]
 public class WatchlistApiTest : BaseIntegrationTest
 {
     private readonly WatchlistClient _watchlistClient;
     private readonly AuthClient _authClient;
-    
-    public WatchlistApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
-    {
-        var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
-        _watchlistClient = new WatchlistClient(restClient);
-        _authClient = new AuthClient(restClient);
-    }
 
+    public WatchlistApiTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    {
+        _watchlistClient = new WatchlistClient(Client);
+        _authClient = new AuthClient(Client);
+    }
     //[Fact]
     //public async Task GetWatchlist_ShouldReturnWatchlist_WhenUserIsAuthenticated()
     //{
@@ -39,6 +39,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     //}
 
     [Fact]
+    
     public async Task GetWatchlist_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -79,6 +80,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     //}
 
     [Fact]
+    
     public async Task GetSingleWatchlistItem_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -91,6 +93,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task GetSingleWatchlistItem_ShouldReturnNotFound_WhenItemDoesNotExist()
     {
         // Arrange
@@ -105,6 +108,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task AddToWatchlist_ShouldAddItem_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -127,10 +131,11 @@ public class WatchlistApiTest : BaseIntegrationTest
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         response.Data.Should().NotBeNull();
         response.Data.Symbol.Should().Be(symbol);
-        _output.WriteLine(response.Content);
+        Output.WriteLine(response.Content);
     }
 
     [Fact]
+    
     public async Task AddToWatchlist_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -167,6 +172,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     //}
 
     [Fact]
+    
     public async Task AddToWatchlist_ShouldReturnBadRequest_WhenItemIsAlreadyInWatchlist()
     {
         // Arrange
@@ -192,6 +198,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task RemoveFromWatchlist_ShouldRemoveItem_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -211,6 +218,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task RemoveFromWatchlist_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -224,6 +232,7 @@ public class WatchlistApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task RemoveFromWatchlist_ShouldReturnNotFound_WhenItemIsNotInWatchlist()
     {
         // Arrange

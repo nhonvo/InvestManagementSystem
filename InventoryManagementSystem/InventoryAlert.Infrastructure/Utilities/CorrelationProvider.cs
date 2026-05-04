@@ -11,20 +11,21 @@ public class CorrelationProvider(IHttpContextAccessor httpContextAccessor) : ICo
     public string GetCorrelationId()
     {
         // 1. Prefer explicitly set Correlation ID (for workers/async flows)
-        if (!string.IsNullOrEmpty(_currentCorrelationId.Value))
+        var cid = _currentCorrelationId.Value;
+        if (!string.IsNullOrEmpty(cid))
         {
-            return _currentCorrelationId.Value;
+            return cid;
         }
 
         // 2. Fallback to HttpContext
         var context = httpContextAccessor.HttpContext;
-        if (context != null && context.Items.TryGetValue(CorrelationIdHeader, out var cid) && cid != null)
+        if (context != null && context.Items.TryGetValue(CorrelationIdHeader, out var httpCid) && httpCid != null)
         {
-            return cid.ToString()!;
+            return httpCid.ToString()!;
         }
 
         // 3. Last resort: Generate new one
-        return Guid.NewGuid().ToString();
+        return "N/A";
     }
 
     public void SetCorrelationId(string correlationId)

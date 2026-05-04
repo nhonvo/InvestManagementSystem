@@ -3,6 +3,7 @@ using FluentAssertions;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
@@ -14,11 +15,10 @@ public class WatchlistSmokeTest : BaseIntegrationTest
     private readonly WatchlistClient _watchlistClient;
     private readonly AuthClient _authClient;
 
-    public WatchlistSmokeTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public WatchlistSmokeTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
-        var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
-        _watchlistClient = new WatchlistClient(restClient);
-        _authClient = new AuthClient(restClient);
+        _watchlistClient = new WatchlistClient(Client);
+        _authClient = new AuthClient(Client);
     }
 
     [Fact]

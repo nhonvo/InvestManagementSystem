@@ -8,6 +8,7 @@ using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace InventoryAlert.Api.Services;
 
@@ -29,6 +30,8 @@ public class AuthService(IUnitOfWork unitOfWork, ApiSettings settings) : IAuthSe
 
         var refreshExpiresAt = DateTime.UtcNow.AddDays(_settings.Jwt.RefreshExpiryDays > 0 ? _settings.Jwt.RefreshExpiryDays : 7);
         var refreshToken = GenerateRefreshToken(user, refreshExpiresAt);
+
+        Log.Information("[AuthService] User {Username} authenticated successfully.", user.Username);
 
         return new AuthTokenPair(new AuthResponse(token, expiresAt), refreshToken, refreshExpiresAt);
     }

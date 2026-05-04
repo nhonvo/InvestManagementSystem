@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/news",
+    "queryParameters": {
+      "token": { "matches": ".+" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": "[]",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

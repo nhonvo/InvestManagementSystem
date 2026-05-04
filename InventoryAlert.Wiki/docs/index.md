@@ -53,6 +53,7 @@ Everything you need to run, build, and maintain the platform.
 - **[.NET CLI Reference](./07-dev-maintenance/dotnet-commands.md)** — Migrations, test commands, publish guide.
 - **[Testing & Standards](./07-dev-maintenance/testing-and-standards.md)** — C# 12 rules, primary constructors, and common patterns.
 - **[Test Structure & App Quality](./07-dev-maintenance/test-strategy.md)** — Test project architecture, CI/CD gates, and runtime observability.
+- **[Integration Testing Tiers](./07-dev-maintenance/integration-testing-tiers.md)** — Deep dive into White-box, Black-box, and Whole-Flow tests.
 - **[Operational Runbook](./07-dev-maintenance/operational-runbook.md)** — Troubleshooting guide, DB queries, common debug scenarios.
 - **[AI Agent Workflows](./07-dev-maintenance/ai-agent-workflows.md)** — Slash commands, transaction capture patterns, file placement rules.
 

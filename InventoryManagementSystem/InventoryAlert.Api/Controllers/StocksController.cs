@@ -8,10 +8,11 @@ namespace InventoryAlert.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class StocksController(IStockDataService stockDataService, IUnitOfWork unitOfWork) : ControllerBase
+public class StocksController(IStockDataService stockDataService, IUnitOfWork unitOfWork, IEventService eventService) : ControllerBase
 {
     private readonly IStockDataService _stockDataService = stockDataService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IEventService _eventService = eventService;
 
     /// <summary>Browse the full global StockListing catalog (paged, filterable).</summary>
     [HttpGet]
@@ -108,9 +109,9 @@ public class StocksController(IStockDataService stockDataService, IUnitOfWork un
     /// <summary>[Admin] Manually trigger a global price sync job.</summary>
     [Authorize(Roles = "Admin")]
     [HttpPost("sync")]
-    public IActionResult TriggerSync()
+    public async Task<IActionResult> TriggerSync(CancellationToken ct)
     {
-        // In production: enqueue via Hangfire BackgroundJob.Enqueue<SyncPricesJob>(j => j.ExecuteAsync(CancellationToken.None))
-        return Accepted(new { Message = "Price sync job enqueued." });
+        await _eventService.PublishEventAsync(InventoryAlert.Domain.Events.EventTypes.SyncPricesRequested, new { }, ct);
+        return Accepted(new { Message = "Price sync job enqueued via event bus." });
     }
 }

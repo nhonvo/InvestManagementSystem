@@ -56,6 +56,11 @@ public class IntegrationMessageRouter(
                     _backgroundJobs.Enqueue<NewsSyncJob>(job => job.ExecuteAsync(CancellationToken.None));
                     return true;
 
+                case EventTypes.SyncPricesRequested:
+                    _logger.LogInformation("[MessageRouter] SyncPricesRequested received. Enqueuing SyncPricesJob.");
+                    _backgroundJobs.Enqueue<SyncPricesJob>(job => job.ExecuteAsync(CancellationToken.None));
+                    return true;
+
                 case EventTypes.TestFailureRequested:
                     _logger.LogCritical("[MessageRouter] TestFailureRequested received. Throwing for retry testing.");
                     throw new InvalidOperationException("E2E Test Poison Message Failure");

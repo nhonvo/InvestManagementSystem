@@ -17,6 +17,11 @@
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Docker.DotNet" />
+    <PackageReference Include="Respawn" />
+    <PackageReference Include="WireMock.Net" />
+    <PackageReference Include="AWSSDK.SQS" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,11 +34,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\InventoryAlert.Domain\InventoryAlert.Domain.csproj" />
     <ProjectReference Include="..\InventoryAlert.Api\InventoryAlert.Api.csproj" />
     <ProjectReference Include="..\InventoryAlert.Worker\InventoryAlert.Worker.csproj" />
+    <ProjectReference Include="..\InventoryAlert.Infrastructure\InventoryAlert.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

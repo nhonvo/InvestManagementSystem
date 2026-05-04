@@ -23,6 +23,7 @@ services:
       - Redis__ConnectionString=redis:6379
       - Finnhub__ApiKey=test-key-for-e2e
       - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Seq__ServerUrl=http://seq:80
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
@@ -58,6 +59,7 @@ services:
       - Redis__ConnectionString=redis:6379
       - Finnhub__ApiKey=test-key-for-e2e
       - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Seq__ServerUrl=http://seq:80
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_HTTP_PORTS=8080
       - AWS_ACCESS_KEY_ID=test
