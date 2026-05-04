@@ -2,8 +2,11 @@ using System.Data.Common;
 using InventoryAlert.Api.Configuration;
 using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
+using InventoryAlert.Infrastructure.Persistence.Postgres;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Respawn;
 using WireMock.Server;
@@ -47,8 +50,15 @@ public class TestFixture : IAsyncLifetime
         ApiActionConfig = new ActionTestConfig(LogReader);
 
         // ── DB Cleanup Setup (Respawn) ──
-        _dbConnection = new NpgsqlConnection(settings.Database.DefaultConnection);
-        await _dbConnection.OpenAsync();
+        var connectionString = settings.Database.DefaultConnection;
+        
+        // Robust connection with retries (Postgres might be slow to initialize DBs)
+        await ExecuteWithRetry(async () => 
+        {
+            if (_dbConnection != null) await _dbConnection.DisposeAsync();
+            _dbConnection = new NpgsqlConnection(connectionString);
+            await _dbConnection.OpenAsync();
+        }, 5, TimeSpan.FromSeconds(2));
         
         _respawner = await Respawner.CreateAsync(_dbConnection, new RespawnerOptions
         {
@@ -56,6 +66,23 @@ public class TestFixture : IAsyncLifetime
             SchemasToInclude = new[] { "public" },
             TablesToIgnore = new[] { new Respawn.Graph.Table("__EFMigrationsHistory") }
         });
+    }
+
+    private async Task ExecuteWithRetry(Func<Task> action, int maxRetries, TimeSpan delay)
+    {
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (Exception ex) when (i < maxRetries - 1)
+            {
+                Console.WriteLine($"[TestFixture] Connection attempt {i + 1} failed: {ex.Message}. Retrying in {delay.TotalSeconds}s...");
+                await Task.Delay(delay);
+            }
+        }
     }
 
     public async Task ResetStateAsync()
@@ -66,7 +93,14 @@ public class TestFixture : IAsyncLifetime
         // ── Reset Container WireMock (for Tier 2/3) ──
         var containerWireMockUrl = Configuration["WiremockSettings:BaseUrl"] ?? "http://localhost:9091";
         using var client = new HttpClient();
-        await client.PostAsync($"{containerWireMockUrl}/__admin/reset", null);
+        try 
+        {
+            await client.PostAsync($"{containerWireMockUrl}/__admin/reset", null);
+        }
+        catch (Exception)
+        {
+            // Ignore if container wiremock is not available
+        }
 
         // ── Seed Default Admin User (for legacy test compatibility) ──
         using var scope = ServiceProvider.CreateScope();
