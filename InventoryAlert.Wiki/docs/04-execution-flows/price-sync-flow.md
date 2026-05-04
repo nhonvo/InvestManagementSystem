@@ -2,7 +2,7 @@
 
 > Orchestration pipeline for global market synchronization, alert evaluation, and in-app notification delivery.
 
-## Sequence (v2 Architecture)
+## Sequence (current architecture)
 
 ```mermaid
 sequenceDiagram
@@ -10,45 +10,38 @@ sequenceDiagram
     participant Job as SyncPricesJob
     participant Finnhub as Finnhub API
     participant DB as PostgreSQL
-    participant Redis as Redis Cache
-    participant SQS as Amazon SQS
+    participant Redis as Redis
 
-    HF->>Job: Trigger (every 15 minutes)
-    Job->>DB: SELECT DISTINCT TickerSymbols FROM StockListing
+    HF->>Job: Trigger (Scheduled)
+    Job->>DB: SELECT TickerSymbols FROM StockListing
 
-    loop For each symbol
-        Job->>Redis: GET quote:{symbol}
-        alt Cache HIT (< 30s)
-            Redis-->>Job: cached quote
-        else Cache MISS
-            Job->>Finnhub: GET /quote?symbol={symbol}
-            Finnhub-->>Job: { currentPrice, change, ... }
-            Job->>Redis: SET quote:{symbol} TTL=30s
-        end
+    Note over Job,Finnhub: Part 1: Parallel Quote Sync
+    loop Parallel.ForEachAsync (concurrency = WorkerSettings.MaxDegreeOfParallelism)
+        Job->>Finnhub: GET /quote?symbol={symbol}
+        Finnhub-->>Job: { currentPrice, ... }
+        Job->>Job: Collect into Bag<PriceHistory>
+    end
+    Job->>DB: AddRangeAsync(PriceHistories)
 
-        Job->>DB: INSERT INTO PriceHistory
-
-        Note over Job,DB: Alert Evaluation
-        Job->>DB: SELECT active AlertRules WHERE TickerSymbol = symbol
-        loop For each active AlertRule
-            alt Condition == PercentDropFromCost
-                Job->>DB: SELECT Trades WHERE UserId = rule.UserId AND TickerSymbol = symbol
-                Job->>Job: Compute cost basis + unrealized loss %
-            end
+    Note over Job,DB: Part 2: Batch Alert Evaluation
+    Job->>DB: SELECT AlertRules WHERE TickerSymbol IN (processedSymbols)
+    loop For each symbol processed
+        loop For each rule
             alt Rule is breached
-                Job->>Redis: GET cooldown:alert:{symbol}
-                alt Not in cooldown
-                    Job->>DB: INSERT Notification { UserId, Message, TickerSymbol }
-                    Job->>Redis: SET cooldown:alert:{symbol} TTL=24h
-                    Job->>SQS: Publish inventoryalert.pricing.price-drop.v1
-                    alt TriggerOnce = true
-                        Job->>DB: UPDATE AlertRule SET IsActive = false
-                    end
+                Job->>Job: Collect into List<Notification>
+                alt TriggerOnce = true
+                    Job->>Job: Update Rule Status
                 end
             end
         end
     end
-    Job->>DB: SaveChangesAsync
+
+    Note over Job,DB: Part 3: Bulk Dispatch
+    Job->>DB: AddRangeAsync(Notifications)
+    loop For each notification
+        Job->>Redis: SignalR backplane push (IAlertNotifier)
+    end
+    Job->>DB: SaveChangesAsync (Single Transaction)
 ```
 
 ---
@@ -69,28 +62,23 @@ sequenceDiagram
 
 | Feature | Detail |
 |---|---|
-| **Global Normalization** | `SyncPricesJob` fetches only distinct tickers. 50 users watching AAPL = 1 Finnhub call. |
-| **30s Quote Cache** | Prevents duplicate Finnhub calls within a single sync cycle. Key: `quote:{symbol}`. |
-| **Trade-Based Cost Basis** | `PercentDropFromCost` evaluates against the user's actual bought positions, not a stale snapshot. |
-| **In-App Notification** | Alert breaches write to the `Notification` table — UI badge updates instantly. |
-| **24h Cooldown** | `cooldown:alert:{symbol}` Redis key prevents repeated alerts within 24 hours for the same symbol. |
+| **Parallel I/O** | `SyncPricesJob` uses `Parallel.ForEachAsync` to fetch quotes, significantly reducing latency. |
+| **Bulk Persistence** | Uses `AddRangeAsync` for PriceHistories and Notifications to minimize EF Core overhead. |
+| **N+1 Avoidance** | Fetches all relevant `AlertRules` in a single query using `GetBySymbolsAsync`. |
+| **Evaluator + Cooldown** | `IAlertRuleEvaluator` applies rule logic and enforces a Redis cooldown key to prevent alert storms. |
+| **In-App Notification** | Alert breaches write to the `Notification` table, then are pushed via SignalR (`IAlertNotifier`). |
+| **Single Transaction** | All state changes (history, notifications, rule updates) are saved in one unit of work. |
 | **TriggerOnce** | If `rule.TriggerOnce = true`, rule is disabled automatically after first breach. |
-| **User Isolation** | `LowHoldingsCount` and `PercentDropFromCost` always filter by `(UserId, TickerSymbol)`. Never aggregate across users. |
+| **User Isolation** | `LowHoldingsCount` and `PercentDropFromCost` always filter by `(UserId, TickerSymbol)`. |
 
 ---
 
-## SQS Event Payload
+## Relationship to SQS (integration events)
 
-The `inventoryalert.pricing.price-drop.v1` event published by `SyncPricesJob` follows the `EventEnvelope` pattern:
+SQS is used for event-driven evaluation paths that are separate from the scheduled `SyncPricesJob`:
 
-```json
-{
-  "eventType": "inventoryalert.pricing.price-drop.v1",
-  "correlationId": "...",
-  "payload": {
-    "symbol": "TSLA"
-  }
-}
-```
-
-`PriceAlertHandler` in the Worker consumes this and performs a secondary evaluation to confirm the breach is still valid before triggering any additional side-effects (e.g., third-party relay).
+- The API can publish an `EventEnvelope` to SQS (see `POST /api/v1/events`).
+- The Worker polls SQS continuously (`ProcessQueueJob`) and routes known event types:
+  - `inventoryalert.pricing.price-drop.v1` → `MarketPriceAlertHandler`
+  - `inventoryalert.inventory.stock-low.v1` → `LowHoldingsHandler`
+  - `inventoryalert.news.sync-requested.v1` → enqueue `NewsSyncJob`

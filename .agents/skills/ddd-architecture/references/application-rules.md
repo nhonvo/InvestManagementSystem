@@ -8,17 +8,17 @@ Capturing a blank entity before the transaction scope and referencing it if the 
 
 ```csharp
 // ❌ WRONG:
-Product updated = new();
+AlertRule updated = new();
 await _unitOfWork.ExecuteTransactionAsync(async () => {
     updated = await _repo.UpdateAsync(requestEntity);
 }, ct);
-return MapToResponse(updated); // Returns completely blank Product on exception fallback
+return MapToResponse(updated); // Returns completely blank entity on exception fallback
 ```
 
 **Required Pattern**:
 ```csharp
 // ✅ CORRECT:
-ProductResponse result = null!;
+AlertRuleResponse result = null!;
 await _unitOfWork.ExecuteTransactionAsync(async () => {
     var updated = await _repo.UpdateAsync(domainEntity);
     result = MapToResponse(updated); // Extracted only on success
@@ -27,5 +27,5 @@ return result;
 ```
 
 ### DTO Mapping
-- Never return the raw `Product` Domain entity outside the Application layer.
-- Use `private static` mapper methods inside the Service, such as `MapToResponse(Product product)` or `MapToEntity(ProductRequest request)`.
+- Never return raw Domain entities outside the Application layer.
+- Use `private static` mapper methods inside the Service, such as `MapToResponse(AlertRule rule)` or `MapToEntity(AlertRuleRequest request)`.

@@ -5,9 +5,10 @@ using InventoryAlert.Domain.Interfaces;
 
 namespace InventoryAlert.Api.Services;
 
-public class EventService(IEventPublisher eventPublisher) : IEventService
+public class EventService(IEventPublisher eventPublisher, ICorrelationProvider correlationProvider) : IEventService
 {
     private readonly IEventPublisher _eventPublisher = eventPublisher;
+    private readonly ICorrelationProvider _correlationProvider = correlationProvider;
 
     private async Task PublishEnvelopeAsync<TPayload>(string eventType, TPayload payload, CancellationToken ct)
     {
@@ -15,6 +16,7 @@ public class EventService(IEventPublisher eventPublisher) : IEventService
         {
             EventType = eventType,
             Source = "InventoryAlert.Api",
+            CorrelationId = _correlationProvider.GetCorrelationId(),
             Payload = JsonSerializer.Serialize(payload)
         };
         await _eventPublisher.PublishAsync(envelope, ct);

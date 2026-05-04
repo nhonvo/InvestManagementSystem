@@ -2,12 +2,22 @@
 description: Audit of repository naming, project locations, and documentation structure alignment.
 type: reference
 status: draft
-version: 1.0
+version: 1.1
 tags: [audit, naming, structure, documentation, inventoryalert]
-last_updated: 2026-04-23
+last_updated: 2026-04-30
 ---
 
 # Naming & Project Location Audit
+
+## Verification Snapshot (as of 2026-04-30)
+
+Checked against the current workspace contents:
+
+- Top-level layout matches the documented structure: `.agents/`, `doc/`, `InventoryManagementSystem/`, `InventoryAlert.UI/`, `InventoryAlert.Wiki/`.
+- Solution file exists at `InventoryManagementSystem/InventoryManagementSystem.sln`.
+- The listed `.csproj` projects exist under `InventoryManagementSystem/` (Api/Domain/Infrastructure/Worker + test projects + Sample).
+- API route prefixes are `/api/v1/...` (controllers use `Route("api/v1/[controller]")`).
+- Historical `InventoryAlert.Contracts` references still exist under `doc/archive/` and in `.gitignore` (coverage artifacts), as expected for archived/historical content.
 
 ## Canonical Naming Standard (Recommended)
 
@@ -48,7 +58,7 @@ flowchart TB
 
 ### Why this standard
 
-- Prevents “three names for one system” drift (`InventoryManagementSystem` vs `InvestManagementSystem` vs `InventoryAlert`).
+- Prevents “multiple names for one system” drift (`InventoryManagementSystem` vs `InventoryAlert`).
 - Keeps solution-level naming stable while allowing multiple apps/modules under the umbrella.
 - Makes docs and onboarding clearer: umbrella = repo/solution, product = app.
 
@@ -139,7 +149,36 @@ Internal docs may contain links to planned directories (e.g., `doc/plan/*`) that
 
 **Recommendation**
 - Keep `doc/README.md` as an index of files that exist *now*.
-- Put aspirational plans under `doc/archive/` (or create the actual `doc/plan/` structure if it becomes active work).
+ - Put aspirational plans under `doc/archive/` (or create the actual `doc/plan/` structure if it becomes active work).
+
+### 4) Legacy product identity remnants (`FinanceAlert` / `InventoryManagementSystem` / `finance_*`)
+
+Some files still contain historical naming that conflicts with the **current product name** (`InventoryAlert`).
+
+**Recommendation (preferred approach)**
+
+- Do **not** mass-rename everything to `InventoryAlert`.
+  - Keep the umbrella/repo/solution name stable as `InventoryManagementSystem` (repo + solution root + `InventoryManagementSystem.sln`).
+  - Keep the product/application identity as `InventoryAlert` (projects + UI + Wiki).
+- Do a **targeted rename pass** to replace `FinanceAlert` / `finance_*` remnants with `InventoryAlert` **only where they represent product identity** (docs, docker config labels, service names, JWT issuer/audience labels, etc.).
+
+**Observed targets (update to InventoryAlert where appropriate)**
+
+- `InventoryAlert.Wiki/docusaurus.config.ts`:
+  - `url`, `baseUrl`, `organizationName`, `projectName`, `editUrl` should not be hardcoded; derive from `GITHUB_REPOSITORY_OWNER` / `GITHUB_REPOSITORY` during CI builds to survive repo renames.
+- `InventoryManagementSystem/docker-compose.yml`:
+  - `POSTGRES_DB: finance_alert_db`
+  - healthcheck references `finance_alert_db`
+- `InventoryManagementSystem/InventoryAlert.Worker/Program.cs`:
+  - `opts.ServerName = "finance-worker"`
+- `InventoryManagementSystem/InventoryAlert.Api/appsettings.Example.json`:
+  - `Database:DefaultConnection` uses `finance_alert_db`
+  - `Jwt:Audience = "FinanceAlert.Web"`
+  - `Jwt:Issuer = "FinanceAlert.Api"`
+- `InventoryManagementSystem/InventoryAlert.Worker/appsettings.Example.json`:
+  - `Database:DefaultConnection` uses `finance_alert_db`
+- `InventoryManagementSystem/InventoryAlert.Api/Program.cs`:
+  - Dev JWT key fallback uses `FinanceAlert_...`
 
 ## BM25 Indexing Scope (Docs)
 

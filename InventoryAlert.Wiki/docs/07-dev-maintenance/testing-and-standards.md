@@ -1,89 +1,6 @@
-# Testing & Coding Standards
+# Coding Standards & Patterns
 
-## Testing Stack
-
-- **xUnit** — Test runner
-- **Moq** — Mocking framework
-- **FluentAssertions** — Human-readable assertions
-- **RestSharp** — HTTP client for E2E tests
-- **EF Core InMemory** — Integration test database
-
-## Test Projects
-
-| Project | Purpose |
-|---|---|
-| `InventoryAlert.UnitTests` | Services, repositories, and domain logic (mocked dependencies) |
-| `InventoryAlert.IntegrationTests` | Repository-level tests using EF Core InMemory |
-| `InventoryAlert.E2ETests` | Full HTTP roundtrip tests against running Docker stack |
-| `InventoryAlert.ArchitectureTests` | Layer dependency enforcement (NetArchTest) |
-
-## Test Naming Convention
-
-```
-MethodName_StateUnderTest_ExpectedBehavior
-// Examples:
-CreateAlert_ValidInput_ReturnsCreatedAlert
-GetQuote_FinnhubReturnsZero_ReturnsNull
-SyncPrices_RuleBreached_WritesNotification
-OpenPosition_SymbolNotInCatalog_ThrowsInvalidOperation
-```
-
----
-
-## Key Testing Patterns
-
-### Mocking `IUnitOfWork.ExecuteTransactionAsync`
-
-The delegate **must** be invoked in the mock, otherwise nothing inside the lambda runs:
-
-```csharp
-_unitOfWorkMock
-    .Setup(u => u.ExecuteTransactionAsync(
-        It.IsAny<Func<Task>>(),
-        It.IsAny<CancellationToken>()))
-    .Returns<Func<Task>, CancellationToken>((action, _) => action());
-```
-
-### Verify Trade Ledger Calls
-
-```csharp
-_tradeRepoMock.Verify(r => r.AddAsync(It.Is<Trade>(t =>
-    t.TickerSymbol == "AAPL" &&
-    t.Quantity == 10 &&
-    t.Type == TradeType.Buy &&
-    t.UserId == expectedUserId),
-    It.IsAny<CancellationToken>()),
-    Times.Once);
-```
-
-### E2E Test Base Setup
-
-```csharp
-// BaseE2ETest.cs — all E2E tests inherit this
-protected async Task EnsureAuthenticatedAsync()
-{
-    var request = new RestRequest("api/auth/login", Method.Post);
-    request.AddJsonBody(new LoginRequest("admin", "password"));
-    var response = await Client.ExecuteAsync<AuthResponse>(request);
-    JwtToken = response.Data!.AccessToken;
-}
-```
-
-### Event Flow Testing (CQRS)
-For endpoints that trigger background processes (like `POST /api/v1/events`), E2E testing ensures:
-1. The API responds correctly with `202 Accepted`.
-2. The infrastructure successfully routed the payload. E2E tests can verify side-effects by waiting a small delay and verifying the final state via a GET request to the read-store.
-
-> ⚠️ **E2E tests require the Docker stack to be running** (`docker compose up --build`).
-
-### Integration Test Database Naming
-
-```csharp
-// Use unique DB name per test class to prevent state bleed
-var options = new DbContextOptionsBuilder<AppDbContext>()
-    .UseInMemoryDatabase(Guid.NewGuid().ToString())
-    .Options;
-```
+This page focuses on the technical standards and recurring patterns for .NET 10 development in InventoryAlert. For a high-level overview of how to test the system, see the **[Test Strategy & Guide](./test-strategy.md)**.
 
 ---
 
@@ -101,18 +18,17 @@ var options = new DbContextOptionsBuilder<AppDbContext>()
 | **`AsNoTracking()`** | Required on all read-only EF Core queries |
 | **FluentValidation** | Applied at Web layer only; controllers must not contain inline `if` validation |
 
-## Transaction Capture Pattern
+---
+
+## Common Patterns
+
+### Transaction Capture Pattern
+
+Ensure results are captured *inside* the transaction block to avoid returning stale or blank entities.
 
 ```csharp
-// ❌ BAD — blank entity returned if lambda throws
-StockListing updated = new();
-await _unitOfWork.ExecuteTransactionAsync(async () => {
-    updated = await _repo.UpdateAsync(entity);
-}, ct);
-return MapToResponse(updated); // may map a blank StockListing!
-
 // ✅ GOOD — result assigned inside the lambda
-PortfolioPositionResponse result = null!; // null-forgiving acceptable here: assigned before read
+PortfolioPositionResponse result = null!; 
 await _unitOfWork.ExecuteTransactionAsync(async () => {
     var updated = await _repo.UpdateAsync(entity);
     result = MapToResponse(updated);
@@ -120,19 +36,32 @@ await _unitOfWork.ExecuteTransactionAsync(async () => {
 return result;
 ```
 
+### Async Polling Helper (Tests)
+
+Used in E2E tests to wait for background worker side-effects.
+
+```csharp
+await WaitHelper.WaitForConditionAsync(async () => {
+    var res = await Client.GetAsync("/api/v1/notifications");
+    return res.IsSuccessStatusCode;
+}, timeoutSeconds: 15);
+```
+
+---
+
 ## Git Commit Convention
 
-```
-<type>(<scope>): <short description>
+Follow the standard `type(scope): message` format.
 
-Types: feat | fix | test | refactor | chore | docs
-Scope: domain | application | infrastructure | web | tests
-```
+| Type | Description |
+|---|---|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `test` | Adding or updating tests |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `docs` | Documentation only changes |
+| `chore` | Maintenance tasks |
 
-Examples:
-```
-feat(application): add BulkImport to PortfolioService
-fix(infrastructure): remove async keyword from GenericRepository.UpdateAsync
-test(application): add E2E coverage for AlertRulesController
-refactor(web): extract trade recording to PortfolioService
-```
+**Scopes**: `domain`, `infra`, `api`, `worker`, `ui`, `tests`.
+
+*Example: `feat(api): add position bulk import`*

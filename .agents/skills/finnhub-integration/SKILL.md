@@ -1,6 +1,6 @@
 ---
 name: finnhub-integration
-description: Provides guidelines for implementing, syncing, and testing Finnhub API integrations. Use this when extending the external price sync service, working on FinnhubPricesSyncWorker, or managing stock/ticker REST responses.
+description: Provides guidelines for implementing, syncing, and testing Finnhub API integrations. Use this when extending the external price sync service, worker jobs, or stock/ticker REST responses.
 ---
 
 # Finnhub API Integration
@@ -43,16 +43,16 @@ public async Task<FinnhubQuoteResponse?> GetQuoteAsync(string tickerSymbol, Canc
 }
 ```
 
-## Background Sync (`FinnhubPriceSyncWorker`)
+## Background Sync (Worker jobs / hosted services)
 
-The worker uses a `PeriodicTimer` for non-blocking execution inside a `BackgroundService`.
+Background processing runs in `InventoryAlert.Worker` (Hangfire jobs + queue polling). If you add a hosted service (or any long-lived singleton), remember:
 
-**Critical rule**: BackgroundServices resolve as Singleton by default. `IUnitOfWork` and Repositories are Scoped. 
-If modifying the worker, **you must use an `IServiceScopeFactory`** to resolve scoped dependencies safely, otherwise, an `InvalidOperationException` throws on startup.
+**Critical rule**: Hosted services resolve as Singleton by default. `IUnitOfWork`, repositories, and most application services are Scoped.
+If you need scoped dependencies, **use an `IServiceScopeFactory`** to resolve them safely.
 
 ```csharp
 using var scope = _scopeFactory.CreateScope();
-var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+var stockDataService = scope.ServiceProvider.GetRequiredService<IStockDataService>();
 
 // Safely execute cycle...
 ```

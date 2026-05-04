@@ -9,9 +9,30 @@ namespace InventoryAlert.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class NotificationsController(INotificationService notificationService) : ControllerBase
+public class NotificationsController(
+    INotificationService notificationService,
+    IAlertNotifier alertNotifier) : ControllerBase
 {
     private readonly INotificationService _notificationService = notificationService;
+    private readonly IAlertNotifier _alertNotifier = alertNotifier;
+
+    [HttpPost("test-signalr")]
+    public async Task<IActionResult> TestSignalR([FromQuery] string message, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notification = new InventoryAlert.Domain.Entities.Postgres.Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.Parse(userId),
+            Message = message,
+            TickerSymbol = "TEST",
+            CreatedAt = DateTime.UtcNow,
+            IsRead = false
+        };
+
+        await _alertNotifier.NotifyAsync(notification, ct);
+        return Ok(new { Sent = true, UserId = userId });
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<NotificationResponse>>> GetNotifications([FromQuery] bool onlyUnread = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)

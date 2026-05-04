@@ -17,8 +17,8 @@
 | `GET /api/v1/quote` | `GET /stocks/{symbol}/quote` | `StockDataService` |
 | `GET /api/v1/stock/profile2` | `GET /stocks/{symbol}/profile` | `StockDataService` |
 | `GET /api/v1/stock/market-status` | `GET /market/status` | `StockDataService` |
-| `GET /api/v1/news` | `GET /market/news` | `StockDataService` |
-| `GET /api/v1/company-news` | `GET /stocks/{symbol}/news` | `CompanyNewsJob` |
+| `GET /api/v1/news` | `GET /market/news` | `NewsSyncJob` (sync) + `StockDataService` (read) |
+| `GET /api/v1/company-news` | `GET /stocks/{symbol}/news` | `NewsSyncJob` (sync) + `StockDataService` (read) |
 | `GET /api/v1/search` | `GET /stocks/search` | Discovery flow |
 | `GET /api/v1/stock/metric` | `GET /stocks/{symbol}/financials` | `SyncMetricsJob` |
 | `GET /api/v1/stock/earnings` | `GET /stocks/{symbol}/earnings` | `SyncEarningsJob` |
@@ -108,13 +108,12 @@ var messages = await _sqsHelper.ReceiveMessagesAsync(queueUrl, maxMessages: 10, 
 
 ## Redis
 
-- **Purpose**: Quote caching, SQS deduplication, alert cooldown, Finnhub rate limiting
+- **Purpose**: Quote caching, SQS idempotency markers, alert cooldown
 - **Local**: `localhost:6379` (Docker: `inventory-cache`)
 - **Namespaces**:
 
 | Key | TTL | Purpose |
 |---|---|---|
 | `quote:{symbol}` | 30s | Cached Finnhub quote |
-| `dedup:sqs:{messageId}` | 30 min | SQS exactly-once guard |
-| `cooldown:alert:{symbol}` | 24h | Prevent alert storms |
-| `finnhub:ratelimit` | Rolling 60s | Rate limit counter (cap 55 rpm) |
+| `msg:processed:{messageId}` | 24h | SQS idempotency marker (written after successful processing) |
+| `inventoryalert:alerts:cooldown:v1:{userId}:{ruleId}` | 24h | Alert cooldown gate (per user + rule) |

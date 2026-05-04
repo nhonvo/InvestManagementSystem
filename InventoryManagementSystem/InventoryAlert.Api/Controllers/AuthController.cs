@@ -18,13 +18,15 @@ public class AuthController(IAuthService authService, IHttpContextAccessor httpC
     private static CookieOptions BuildRefreshCookieOptions(HttpContext httpContext, DateTime expiresAt)
     {
         // Important: SameSite=None cookies must also be Secure, otherwise modern browsers will reject them.
-        // For non-HTTPS local/dev calls, fall back to Lax + non-secure cookies.
+        // For localhost/dev, browsers allow Secure cookies over HTTP.
         var isHttps = httpContext.Request.IsHttps;
+        var isLocal = httpContext.Request.Host.Host == "localhost" || httpContext.Request.Host.Host == "127.0.0.1";
+
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = isHttps,
-            SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+            Secure = isHttps, // Only secure if actually HTTPS
+            SameSite = (isHttps || isLocal) ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/",
             Expires = expiresAt
         };

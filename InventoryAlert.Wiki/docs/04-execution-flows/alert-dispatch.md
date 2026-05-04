@@ -1,106 +1,72 @@
 # Alert Dispatch Flow
 
-> How the system evaluates alert rules and delivers in-app notifications.
+> How the system evaluates alert rules and delivers real-time in-app notifications.
 
 ## Overview
 
-Alert dispatch in InventoryAlert v2 uses a **single unified pipeline** via `AlertRule` entities — evaluated inside `SyncPricesJob` during the price sync loop. In-app `Notification` rows are the primary delivery mechanism, replacing the legacy Telegram integration.
+Alert dispatch uses a **hybrid evaluation pipeline** combining scheduled and event-driven triggers. Both paths use a shared `IAlertRuleEvaluator` for consistent business logic, and delivery is handled via **SignalR** with a **Redis backplane** for instant UI reactivity.
 
 ---
 
-## Alert Evaluation Flow (In `SyncPricesJob`)
+## Hybrid Evaluation Pipeline
+
+The system ensures alert rules are checked whenever relevant data changes.
+
+1.  **Scheduled Path (`SyncPricesJob`)**: Runs on a cron schedule (config: `WorkerSettings.Schedules.SyncPrices`). Scans symbols, fetches quotes, evaluates rules, persists notifications, and pushes via SignalR.
+2.  **Event Path (`MarketPriceAlertHandler`)**: Triggered by SQS events (EventType: `inventoryalert.pricing.price-drop.v1`) for a specific symbol + price.
+3.  **Holdings Path (`LowHoldingsHandler`)**: Triggered by SQS events (EventType: `inventoryalert.inventory.stock-low.v1`) when a user’s holdings drop below a threshold.
+
+### Shared Evaluator Logic (`IAlertRuleEvaluator`)
 
 ```mermaid
 flowchart TD
-    A[SyncPricesJob runs every 15 min] --> B[For each TickerSymbol in StockListing]
-    B --> C[Fetch quote from Finnhub or Redis cache]
-    C --> D[INSERT PriceHistory row]
-    D --> E[Load active AlertRules for symbol]
-    E --> F{For each AlertRule}
-    F --> G{Condition type?}
-    G -- PriceAbove/Below --> H[Compare CurrentPrice vs TargetValue]
-    G -- PercentDropFromCost --> I[Compute cost basis from Trade ledger for this user/symbol]
+    A[Trigger: Price Update or Trade] --> B[Load active AlertRules for symbol/user]
+    B --> C{For each AlertRule}
+    C --> G{Condition breached?}
+    G -- PriceAbove/Below --> H[Direct Comparison]
+    G -- PercentDropFromCost --> I[Compute cost basis from Trade ledger]
     G -- LowHoldingsCount --> J[SUM Buy - SUM Sell from Trade ledger]
-    H & I & J --> K{Condition breached?}
-    K -- No --> F
-    K -- Yes --> L{Redis cooldown active?}
-    L -- Yes --> M[Skip — cooldown:alert:{symbol} exists]
-    L -- No --> N[INSERT Notification row for UserId]
-    N --> O[SET cooldown:alert:{symbol} TTL=24h]
-    O --> P[Publish inventoryalert.pricing.price-drop.v1 to SQS]
+    
+    H & I & J --> K{Breached?}
+    K -- Yes --> L{Redis Cooldown active?}
+    L -- Yes --> M[Skip — inventoryalert:alerts:cooldown:v1:{userId}:{ruleId} exists]
+    L -- No --> N[1. INSERT Notification row]
+    N --> O[2. SET inventoryalert:alerts:cooldown:v1:{userId}:{ruleId} TTL=24h]
+    O --> P[3. Push via SignalR HubContext]
     P --> Q{TriggerOnce?}
     Q -- Yes --> R[UPDATE AlertRule SET IsActive = false]
-    Q -- No --> F
+    Q -- No --> C
 ```
 
 ---
 
-## LowHoldingsCount (Handled by `LowHoldingsHandler`)
+## Real-Time Delivery (SignalR)
 
-This condition is **event-driven** — triggered immediately when a `Sell` trade is recorded (not on the 15-minute sync cycle):
+SignalR provides an instant push architecture:
 
-```mermaid
-flowchart TD
-    A[User executes trade via POST /portfolio/symbol/trades] --> B[PortfolioService records Trade]
-    B --> C{Type == Sell?}
-    C -- Yes --> D[Publish inventoryalert.inventory.stock-low.v1 to SQS]
-    D --> E[LowHoldingsHandler consumes event]
-    E --> F[Compute net holdings for UserId + TickerSymbol]
-    F --> G{Holdings < TargetValue?}
-    G -- Yes --> H[INSERT Notification row]
-    G -- No --> I[Skip]
-```
+1.  **Hub Host**: `InventoryAlert.Api` hosts the `NotificationHub` at `/hubs/notifications`.
+2.  **The Signal**: When the Worker (producer) identifies a breach, it calls `NotifyAsync` on the `IAlertNotifier`.
+3.  **The Relay**: The notifier publishes the `NotificationResponse` to the **Redis Backplane**.
+4.  **The Push**: Redis relays the message to all Api instances. The instance holding the user's connection pushes the JSON payload over the **WebSocket** tunnel.
+5.  **The UI**: The Next.js `NotificationProvider` receives the event and updates the navbar badge instantly.
 
 ---
 
-## SQS Event Contracts
+## Notification Schema
 
-### `PriceDropPayload` → `PriceAlertHandler`
+Notifications are now categorized for better UX:
 
-```json
-{
-  "eventType": "inventoryalert.pricing.price-drop.v1",
-  "payload": { "Symbol": "AAPL" }
-}
-```
-
-### `LowHoldingsAlertPayload` → `LowHoldingsHandler`
-
-```json
-{
-  "eventType": "inventoryalert.inventory.stock-low.v1",
-  "payload": {
-    "UserId": "00000000-0000-0000-0000-000000000002",
-    "TickerSymbol": "MSFT",
-    "Threshold": 5
-  }
-}
-```
+| Field | Detail |
+|---|---|
+| **Type** | `Price`, `Holdings`, `System`, `News` |
+| **Severity** | `Info`, `Warning`, `Critical` |
+| **Status** | Real-time state maintained via React Context + SignalR. |
 
 ---
 
-## Notification Delivery
+## Deduplication & Cooldown
 
-All alert breaches write a `Notification` row:
-
-```csharp
-new Notification
-{
-    UserId = rule.UserId,
-    AlertRuleId = rule.Id,
-    TickerSymbol = rule.TickerSymbol,
-    Message = $"⚠️ {rule.TickerSymbol} price dropped to ${currentPrice:F2} — breaches your {rule.Condition} rule ({rule.TargetValue})",
-    IsRead = false,
-    CreatedAt = DateTime.UtcNow
-}
-```
-
-The UI polls `GET /api/v1/notifications/unread-count` every 30 seconds to update the bell badge.
-
----
-
-## Deduplication
-
-All SQS messages pass through `ProcessQueueJob` which uses Redis `SET NX`:
-- Key: `dedup:sqs:{messageId}` — TTL 30 min
-- Per-symbol alert cooldown: `cooldown:alert:{symbol}` — TTL 24 hours
+To prevent "Alert Storms," the system enforces a cooldown gate:
+- **Key Pattern**: `inventoryalert:alerts:cooldown:v1:{userId}:{ruleId}`
+- **Standard TTL**: 24 hours (set by the shared `IAlertRuleEvaluator`)
+- **SQS message idempotency**: `msg:processed:{messageId}` (24h TTL) prevents processing the same SQS message multiple times in the native polling worker.

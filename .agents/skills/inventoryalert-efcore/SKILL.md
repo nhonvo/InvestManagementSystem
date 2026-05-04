@@ -8,9 +8,9 @@ description: Project-specific design and optimization rules for PostgreSQL table
 This skill outlines the Antigravity setup for managing PostgreSQL data safely through EF Core within the `InventoryAlert.Api.Infrastructure` namespace.
 
 ## Schema Configuration
-We actively separate Entity classes (POCOs) from schema configuration. Do not clutter `Product.cs` with database mapping attributes like `[Table]` or `[Column]`. 
+We actively separate Entity classes (POCOs) from schema configuration. Do not clutter entity classes with database mapping attributes like `[Table]` or `[Column]`.
 
-Instead, place all constraints in the `Infrastructure/Persistence/Configurations/` directory using `IEntityTypeConfiguration<T>`.
+Instead, place all constraints in `InventoryAlert.Infrastructure/Persistence/Postgres/Configurations/` using `IEntityTypeConfiguration<T>`.
 
 *   **String Defaults:** Postgres treats empty strings and `null` string distinctively. Always ensure strings default to `string.Empty` domain-side unless configured to allow null schema-side.
 *   **Precision Specs:** Decimal fields mapping to monetary values (like `CurrentPrice`) must have precision explicit formats: `builder.Property(x => x.CurrentPrice).HasPrecision(18, 4);`.

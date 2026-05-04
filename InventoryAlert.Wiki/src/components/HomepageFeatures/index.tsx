@@ -27,7 +27,7 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         Powerful background workers using <strong>Hangfire</strong> and <strong>Amazon SQS</strong> 
-        to synchronize Finnhub stock quotes and dispatch real-time Telegram notifications.
+        to synchronize Finnhub stock quotes and dispatch real-time In-App notifications.
       </>
     ),
   },

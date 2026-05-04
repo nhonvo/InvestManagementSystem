@@ -10,7 +10,7 @@ tags: [workflow, migration, efcore, database, postgresql, inventoryalert]
 
 # /db-migration — EF Core Migration
 
-**Objective**: Create, review, and apply an EF Core migration for schema changes in `InventoryAlert.Api`.
+**Objective**: Create, review, and apply an EF Core migration for schema changes (migrations live in `InventoryAlert.Infrastructure`).
 
 ---
 
@@ -34,7 +34,7 @@ tags: [workflow, migration, efcore, database, postgresql, inventoryalert]
 
 - `dotnet-ef` installed: `dotnet tool install -g dotnet-ef`
 - PostgreSQL running: `docker-compose up postgres -d`
-- `appsettings.Development.json` has valid `ConnectionStrings.DefaultConnection`
+- `appsettings.Development.json` has valid `Database.DefaultConnection`
 - Working directory: solution root `InventoryManagementSystem/`
 
 ---
@@ -50,20 +50,20 @@ dotnet ef --version
 ### 2. Create the migration
 
 ```bash
-dotnet ef migrations add <MigrationName> --project InventoryAlert.Api --output-dir Infrastructure/Persistence/Migrations
+dotnet ef migrations add <MigrationName> --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api --output-dir Migrations
 ```
 
 Example:
 ```bash
-dotnet ef migrations add AddStockAlertThresholdToProduct --project InventoryAlert.Api --output-dir Infrastructure/Persistence/Migrations
+dotnet ef migrations add AddNotificationDetails --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api --output-dir Migrations
 ```
 
 > **Naming convention**: PascalCase `Verb + Entity + Detail`
-> Examples: `AddStockAlertThresholdToProduct` · `CreateOrderTable` · `RenameTickerSymbolColumn`
+> Examples: `AddNotificationDetails` · `CreateOrderTable` · `RenameTickerSymbolColumn`
 
 ### 3. Review the generated migration
 
-Open `Infrastructure/Persistence/Migrations/<timestamp>_<Name>.cs`:
+Open `InventoryManagementSystem/InventoryAlert.Infrastructure/Migrations/<timestamp>_<Name>.cs`:
 
 - `Up()` — adds/changes exactly what you intended
 - `Down()` — correctly reverses it
@@ -72,13 +72,13 @@ Open `Infrastructure/Persistence/Migrations/<timestamp>_<Name>.cs`:
 ### 4. Apply the migration
 
 ```bash
-dotnet ef database update --project InventoryAlert.Api
+dotnet ef database update --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api
 ```
 
 ### 5. Verify it applied
 
 ```bash
-dotnet ef migrations list --project InventoryAlert.Api
+dotnet ef migrations list --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api
 ```
 
 New migration shows `(Applied)`.
@@ -86,8 +86,8 @@ New migration shows `(Applied)`.
 ### 6. Rollback if needed
 
 ```bash
-dotnet ef database update <PreviousMigrationName> --project InventoryAlert.Api
-dotnet ef migrations remove --project InventoryAlert.Api
+dotnet ef database update <PreviousMigrationName> --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api
+dotnet ef migrations remove --project InventoryAlert.Infrastructure --startup-project InventoryAlert.Api
 ```
 
 ---
@@ -95,7 +95,7 @@ dotnet ef migrations remove --project InventoryAlert.Api
 ## Notes
 
 - Migrations run **automatically on startup** via `db.Database.Migrate()` in `Program.cs`
-- Seed data lives in `AppDbContext.OnModelCreating` via `HasData()`
+- Seed data (dev/docker) is initialized via `DatabaseSeeder` in Infrastructure
 - For production: run migrations in CI, not at startup
 - Connection string format:
   ```

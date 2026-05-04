@@ -30,6 +30,8 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
+    .Enrich.WithProperty("Service", "InventoryAlert.Api")
+    .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production")
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
     .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
     .WriteTo.File("logs/inventoryalert-.log",
@@ -55,6 +57,7 @@ try
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
+    builder.Services.AddTransient<RequestResponseLoggingMiddleware>();
 
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>
@@ -86,7 +89,7 @@ try
     {
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
         {
-            jwtKey = "FinanceAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
+            jwtKey = "InventoryAlert_Temporary_Default_Key_For_Dev_Only_1234567890";
             Log.Warning("Using temporary default JWT key. NOT FOR PRODUCTION.");
         }
         else
@@ -110,20 +113,27 @@ try
             {
                 OnMessageReceived = context =>
                 {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (string.IsNullOrEmpty(authHeader)) return Task.CompletedTask;
-
-                    // If the header starts with 'ey' (JWT start) and doesn't have 'Bearer ', 
-                    // extract it manually to improve DX for manual curl/tool calls.
-                    if (authHeader.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase))
+                    // SignalR Query String handling (Standard for WebSockets)
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    
+                    if (!string.IsNullOrEmpty(accessToken) && 
+                        path.StartsWithSegments(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute))
                     {
-                        context.Token = authHeader;
+                        context.Token = accessToken;
                     }
+
                     return Task.CompletedTask;
                 }
             };
         });
     builder.Services.AddAuthorization();
+
+    // ─── SignalR with Redis Backplane ─────────────────────────────────────────
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
+            options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
+        });
 
     // ─── API / Core Services ──────────────────────────────────────────────────
     builder.Services.AddEndpointsApiExplorer();
@@ -166,8 +176,8 @@ try
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseMiddleware<PerformanceMiddleware>();
+    app.UseMiddleware<GlobalExceptionMiddleware>();
 
     app.UseResponseCompression();
     app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
@@ -190,6 +200,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<InventoryAlert.Infrastructure.Hubs.NotificationHub>(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute);
     app.Run();
 }
 catch (Exception ex)

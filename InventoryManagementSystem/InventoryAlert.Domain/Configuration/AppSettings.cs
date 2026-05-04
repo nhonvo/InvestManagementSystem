@@ -7,4 +7,10 @@ public class AppSettings
     public SharedFinnhubSettings Finnhub { get; set; } = new();
     public RedisSettings Redis { get; set; } = new();
     public SharedSeqSettings Seq { get; set; } = new();
+    public ApiOptions Api { get; set; } = new();
+
+    public class ApiOptions
+    {
+        public bool EnableBodyLogging { get; set; } = false;
+    }
 }

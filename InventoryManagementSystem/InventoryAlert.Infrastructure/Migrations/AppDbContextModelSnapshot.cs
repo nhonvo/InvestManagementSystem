@@ -156,9 +156,15 @@ namespace InventoryAlert.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
                     b.Property<string>("TickerSymbol")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

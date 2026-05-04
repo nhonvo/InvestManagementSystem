@@ -1,28 +1,15 @@
 'use client'
 
 import { useState, useEffect } from "react";
-import { fetchApi } from "@/lib/api";
 import Link from "next/link";
+import { useNotifications } from "./NotificationProvider";
 
 export default function NotificationBell() {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const checkNotifications = async () => {
-      try {
-        const data = await fetchApi("/api/v1/notifications/unread-count");
-        if (typeof data === 'number') setUnreadCount(data);
-        else if (data && typeof data.count === 'number') setUnreadCount(data.count);
-      } catch (err) {
-        console.error("Failed to fetch notification count", err);
-      }
-    };
-
-    checkNotifications();
-    const interval = setInterval(checkNotifications, 30000); // Poll every 30s as per spec
-    return () => clearInterval(interval);
   }, []);
 
   if (!mounted) return null;

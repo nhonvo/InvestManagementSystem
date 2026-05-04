@@ -61,6 +61,7 @@ public class WatchlistServiceTests
         var result = await _sut.AddToWatchlistAsync(symbol, UserId, Ct);
 
         // Assert
+        result.Should().NotBeNull();
         result.Symbol.Should().Be(symbol);
         _uow.Verify(u => u.WatchlistItems.AddAsync(It.Is<WatchlistItem>(w => w.TickerSymbol == symbol), Ct), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(Ct), Times.Once);

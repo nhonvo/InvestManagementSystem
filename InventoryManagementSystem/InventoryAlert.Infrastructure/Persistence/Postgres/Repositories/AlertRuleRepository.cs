@@ -21,4 +21,11 @@ public class AlertRuleRepository(AppDbContext context)
             .Where(x => x.TickerSymbol == symbol && x.IsActive)
             .ToListAsync(ct);
     }
+
+    public async Task<IEnumerable<AlertRule>> GetBySymbolsAsync(IEnumerable<string> symbols, CancellationToken ct = default)
+    {
+        return await _dbSet
+            .Where(x => symbols.Contains(x.TickerSymbol) && x.IsActive)
+            .ToListAsync(ct);
+    }
 }

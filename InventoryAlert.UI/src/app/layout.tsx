@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import ThemeProvider from '@/components/ThemeProvider'
 import NavbarWrapper from '@/components/NavbarWrapper'
+import { NotificationProvider } from '@/components/NotificationProvider'
 
 // System font stack — avoids network requests during Docker builds
 const fontStyle = {
@@ -41,11 +42,13 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          {/* NavbarWrapper is a client component that owns searchOpen state */}
-          <NavbarWrapper />
-          <main className="flex-1 overflow-auto max-w-screen-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-            {children}
-          </main>
+          <NotificationProvider>
+            {/* NavbarWrapper is a client component that owns searchOpen state */}
+            <NavbarWrapper />
+            <main className="flex-1 overflow-auto max-w-screen-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+              {children}
+            </main>
+          </NotificationProvider>
         </ThemeProvider>
       </body>
     </html>

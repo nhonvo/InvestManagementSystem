@@ -5,5 +5,6 @@ namespace InventoryAlert.Domain.Interfaces;
 public interface IStockListingRepository : IGenericRepository<StockListing>
 {
     Task<StockListing?> FindBySymbolAsync(string symbol, CancellationToken ct);
+    Task<IEnumerable<StockListing>> FindBySymbolsAsync(IEnumerable<string> symbols, CancellationToken ct);
     Task<IEnumerable<StockListing>> SearchAsync(string query, CancellationToken ct);
 }

@@ -22,10 +22,26 @@ public static class AlertConstants
 
 public static class CacheKeys
 {
-    public static string ProductQuote(string symbol) => $"product:quote:{symbol}";
-    public static string AlertHistory(string symbol) => $"alert:history:{symbol}";
-    public static string JobLastRun(string jobName) => $"job:last-run:{jobName}";
-    public static string NewsLatest(string symbol) => $"news:{symbol}:latest";
+    // API Caches
+    public static string Quote(string symbol) => $"inventoryalert:api:quote30s:v1:{symbol.ToUpperInvariant()}";
+    public static string Metrics(string symbol) => $"inventoryalert:api:metrics1h:v1:{symbol.ToUpperInvariant()}";
+    public static string Peers(string symbol) => $"inventoryalert:api:peers1d:v1:{symbol.ToUpperInvariant()}";
+    
+    public static string Search(string query)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query.Trim().ToLowerInvariant()));
+        var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        return $"inventoryalert:api:search4h:v1:{hash}";
+    }
+
+    // Worker/Infrastructure
+    public static string AlertCooldown(Guid userId, Guid ruleId) => $"inventoryalert:alerts:cooldown:v1:{userId}:{ruleId}";
+    public static string GlobalAlertCooldown(string symbol) => $"inventoryalert:worker:global-cooldown:v1:{symbol.ToUpperInvariant()}";
+    public static string MessageProcessed(string messageId) => $"inventoryalert:worker:msg-processed:v1:{messageId}";
+
+    // Legacy or internal 
+    public static string JobLastRun(string jobName) => $"inventoryalert:worker:job-last-run:v1:{jobName}";
 }
 
 public static class SqsHeaders

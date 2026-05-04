@@ -154,17 +154,14 @@ InventoryManagementSystem/
 │   │   ├── SyncEarningsJob.cs
 │   │   ├── SyncRecommendationsJob.cs
 │   │   ├── SyncInsidersJob.cs
-│   │   ├── CompanyNewsJob.cs
-│   │   ├── MarketNewsJob.cs
+│   │   ├── NewsSyncJob.cs
 │   │   ├── CleanupPriceHistoryJob.cs
 │   │   ├── ProcessQueueJob.cs
-│   │   └── SqsScheduledPollerJob.cs
 │   └── IntegrationEvents/
 │       ├── Routing/IntegrationMessageRouter.cs
 │       └── Handlers/
-│           ├── PriceAlertHandler.cs
+│           ├── MarketPriceAlertHandler.cs
 │           ├── LowHoldingsHandler.cs
-│           ├── CompanyNewsHandler.cs
 │           └── DefaultHandler.cs
 │
 ├── InventoryAlert.UnitTests/

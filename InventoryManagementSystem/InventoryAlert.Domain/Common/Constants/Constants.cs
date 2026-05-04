@@ -7,7 +7,7 @@ public static class ApplicationConstants
 
     public static class Messages
     {
-        public const string ProductNotFound = "Product with id {0} was not found.";
+        public const string StockListingNotFound = "Stock listing with id {0} was not found.";
         public const string InvalidCredentials = "Invalid credentials.";
         public const string AuthConfigMissing = "Authentication is not safely configured.";
         public const string JwtKeyMissing = "JWT Key is missing.";
@@ -18,7 +18,6 @@ public static class ApplicationConstants
     public static class HttpClientNames
     {
         public const string Finnhub = "Finnhub";
-        public const string Telegram = "Telegram";
     }
 }
 
@@ -30,6 +29,7 @@ public enum ErrorRespondCode
     CONFLICT,
     BAD_REQUEST,
     UNAUTHORIZED,
+    FORBIDDEN,
     INTERNAL_ERROR,
     UNPROCESSABLE_ENTITY,
     GENERAL_ERROR

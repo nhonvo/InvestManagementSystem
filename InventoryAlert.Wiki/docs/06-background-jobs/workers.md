@@ -8,6 +8,7 @@ The background worker operates in a highly-concurrent hybrid capacity targeting 
 | :--- | :--- | :--- |
 | **Scheduled Jobs** | Hangfire (PostgreSQL Backed) | Recurring cron-based polling routines (Price Sync, Metrics Refresh, News Batching). |
 | **Event Handlers** | Amazon SQS + Redis | Reactive tasks triggered by API events (price alerts, low holdings, news on-demand). |
+| **Real-time Push** | SignalR + Redis Backplane | Instant delivery of detected alerts from Worker to UI. |
 
 ```mermaid
 graph TD
@@ -21,7 +22,10 @@ graph TD
     Finnhub --> DB[("PostgreSQL")]
     Finnhub --> Dynamo[("DynamoDB (News)")]
 
-    Job -->|If AlertRule Breached| SQS[("Amazon SQS")]
+    Job -->|If AlertRule Breached| DB
+    Job -->|Push SignalR| Redis[(Redis Backplane)]
+    Redis -->|Relay| API[InventoryAlert.Api Hub]
+    API -->|WebSocket| UI[Frontend Client]
 ```
 
 ---
@@ -30,57 +34,63 @@ graph TD
 
 Running inside `InventoryAlert.Worker`, driven by Hangfire cron schedules.
 
-| Job | Cron Schedule | Finnhub Endpoint | Key Duty |
+Schedules are configurable via `WorkerSettings.Schedules.*` (with sensible defaults in code and environment overrides via `appsettings*.json`).
+
+InventoryAlert uses a total of **8 background jobs** (7 recurring via Hangfire + 1 continuous SQS listener).
+
+| Job | Schedule setting | Finnhub Endpoint | Key duty |
 |---|---|---|---|
-| **SyncPricesJob** | `*/15 * * * *` (every 15 min) | `/quote` | Full sweep of `StockListing` → updates `PriceHistory` → evaluates `AlertRule` → writes `Notification` |
-| **SyncMetricsJob** | `0 6 * * *` (daily 06:00 UTC) | `/stock/metric` | Updates `StockMetric` table for all active symbols |
-| **SyncEarningsJob** | `0 7 * * *` (daily 07:00 UTC) | `/stock/earnings` | Refreshes `EarningsSurprise` rows for watchlisted symbols |
-| **SyncRecommendationsJob** | `0 8 * * 1` (weekly, Monday) | `/stock/recommendation` | Refreshes `RecommendationTrend` for portfolio + watchlist symbols |
-| **SyncInsidersJob** | `0 8 * * *` (daily 08:00 UTC) | `/stock/insider-transactions` | Pulls last 100 insider transactions for actively-watched symbols |
-| **CompanyNewsJob** | `0 */6 * * *` (every 6 hours) | `/company-news` | Batch syncs company news → DynamoDB `CompanyNews` |
-| **SyncMarketNewsHandler** | `0 */2 * * *` (every 2 hours) | `/news` | Hangfire Cron trigger OR SQS ad-hoc trigger → DynamoDB `MarketNews` |
-| **CleanupPriceHistoryJob** | `@daily` (00:00 UTC) | — | Deletes `PriceHistory` rows older than 1 year (batched, `LIMIT 10000`) |
-| **ProcessQueueJob** | Continuous long-poll | — | SQS consumer with Redis-based idempotency (30-min window) |
+| **SyncPricesJob** | `Schedules.SyncPrices` | `/quote` | Parallel fetch → insert `PriceHistory` → batch evaluate `AlertRule` → insert `Notification` → SignalR push |
+| **SyncMetricsJob** | `Schedules.SyncMetrics` | `/stock/metric` | Refresh cached `StockMetric` rows |
+| **SyncEarningsJob** | `Schedules.SyncEarnings` | `/stock/earnings` | Refresh `EarningsSurprise` rows |
+| **SyncRecommendationsJob** | `Schedules.SyncRecommendations` | `/stock/recommendation` | Refresh `RecommendationTrend` rows |
+| **SyncInsidersJob** | `Schedules.SyncInsiders` | `/stock/insider-transactions` | Refresh `InsiderTransaction` rows |
+| **NewsSyncJob** | `Schedules.MarketNews` | `/news` & `/company-news` | Consolidated market + company news sync (DynamoDB read-model) |
+| **CleanupPriceHistoryJob** | `Schedules.CleanupPrices` | — | Deletes `PriceHistory` rows older than 1 year |
+| **ProcessQueueJob** | Continuous | — | Native SQS poller + router + idempotency |
 
 ---
 
-## The Core Evaluation Pipeline: `SyncPricesJob`
+## The Optimized Evaluation Pipeline: `SyncPricesJob`
+
+The current architecture uses high-concurrency quote fetching and batch rule evaluation:
 
 ```text
-1. Collect distinct active TickerSymbols from StockListing
-2. For each symbol → Fetch Finnhub /quote → INSERT PriceHistory
-3. Load all active AlertRules for this symbol
-4. Evaluate breach conditions:
-   - PriceAbove / PriceBelow: direct comparison
-   - PercentDropFromCost: compute via Trade ledger (UserId + TickerSymbol)
-   - LowHoldingsCount: SUM(Buy) - SUM(Sell) for user
-5. On breach + not in 24h Redis cooldown:
-   → Create Notification entity
-   → Publish SQS event for async handler relay
-6. Mark TriggerOnce rules as IsActive = false
+1. Collect active TickerSymbols from StockListing.
+2. PART 1 (Parallel Sync):
+   - Fetch Finnhub /quote in parallel (MaxDegreeOfParallelism=5).
+   - Batch insert into PriceHistory using AddRangeAsync.
+3. PART 2 (Batch Alert Check):
+   - Fetch all active AlertRules for processed symbols in ONE query.
+   - Evaluate breach conditions (direct comparison or cost-basis math).
+4. PART 3 (Real-time Notification):
+   - Batch insert Notification records.
+   - For each breach: Push via `IAlertNotifier` (SignalR via Redis backplane).
+5. COMMIT: Single SaveChangesAsync call for all history, notifications, and rule updates.
 ```
 
-### Key Design Decision: In-Memory Alert Evaluation
+### Key Performance Highlights
 
-Evaluation happens inside `SyncPricesJob` while holding trade data in scope:
-- **State Guarantee**: `PercentDropFromCost` evaluation requires the full `Trade` ledger for that user/ticker pair. Done while the data is fresh.
-- **Cooldown**: Redis `cooldown:alert:{symbol}` (24h TTL) prevents alert storms.
-- **Notification Creation**: `Notification` rows are written directly, populating the UI badge instantly before any SQS relay fires.
+- **Parallel I/O**: Reduces sync time by fetching multiple quotes simultaneously.
+- **N+1 Avoidance**: Repository-level batch fetching for alert rules.
+- **Backplane Delivery**: Alert detection in Worker triggers Hub delivery in Api instantly via Redis.
 
 ---
 
 ## Event Handlers (SQS Topology)
 
-Located in `IntegrationEvents/Handlers`. Operating under CQRS Command-Query principles.
+Located in `IntegrationEvents/Handlers`, invoked by `IntegrationMessageRouter` after messages are pulled from SQS by `ProcessQueueJob`.
 
 | Handler | SQS Event Type | Role |
 |---|---|---|
-| **MarketPriceAlertHandler** | `inventoryalert.pricing.price-drop.v1` | Price fetch → cache update → `PriceHistory` insert → full `AlertRule` evaluate for symbol |
-| **LowHoldingsHandler** | `inventoryalert.inventory.stock-low.v1` | Queries `Trade` ledger by `(UserId, TickerSymbol)` → checks `AlertRule[LowHoldingsCount]` |
-| **CompanyNewsAlertHandler** | `inventoryalert.news.headline.v1` | Immediate sync of ticker news → DynamoDB `CompanyNews` |
-| **SyncCompanyNewsHandler** | `inventoryalert.news.company-sync-requested.v1` | Manual UI-triggered sync of specific ticker news |
-| **SyncMarketNewsHandler** | `inventoryalert.news.sync-requested.v1` | On-demand UI command to refresh general Market News feed |
-| **DefaultHandler** | `*` (unmatched) | Log + acknowledge. Prevents poison-message queue blockage. |
+| **MarketPriceAlertHandler** | `inventoryalert.pricing.price-drop.v1` | Evaluate rules for a specific symbol + price payload and push notifications |
+| **LowHoldingsHandler** | `inventoryalert.inventory.stock-low.v1` | Persist + push a holdings notification for a specific user + symbol |
+| **NewsSyncJob** (via Router) | `inventoryalert.news.sync-requested.v1` | Enqueue the consolidated news sync job |
+| **DefaultHandler** | `*` (unmatched) | Log + acknowledge (prevents poison-message blockage) |
+
+Notes:
+
+- `inventoryalert.news.company-sync-requested.v1` is defined in `EventTypes`, but is not currently routed by `IntegrationMessageRouter`.
 
 ---
 
@@ -91,12 +101,3 @@ The worker is equipped with health check endpoints exposed via HTTP (port `8080`
 - **Liveness & Readiness**: `GET /health`
 - **Dependency Checks**: Verified connectivity to PostgreSQL on startup.
 - **Docker Integration**: Configured with `interval: 10s` and `retries: 5` to ensure background services stay responsive.
-
----
-
-## Protective Redundancy
-
-1. **Failure Tolerance**: Handlers inherit a retry/timeout policy — absolute limit of **5 failure iterations** before the message is acknowledged and dropped.
-2. **Dead-Letter Guarding**: Exceeding retry limits ejects payloads to DLQ for manual developer analysis.
-3. **Idempotency**: `dedup:sqs:{messageId}` Redis key (30 min TTL) prevents double-processing across split-brain deployments.
-4. **Rate Limit Guard**: `finnhub:ratelimit` Redis counter caps Finnhub calls at 55 rpm (buffer below the 60/min free limit).

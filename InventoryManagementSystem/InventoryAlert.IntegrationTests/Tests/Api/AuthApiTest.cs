@@ -34,7 +34,12 @@ public class AuthApiTest : BaseIntegrationTest
         loginResponse.Data.Should().NotBeNull();
         loginResponse.Data.AccessToken.Should().NotBeNullOrEmpty();
         _output.WriteLine($"Access Token: {loginResponse.Data.AccessToken}");
-        _output.WriteLine(loginResponse.Cookies[0].Value);
+        
+        var cookie = loginResponse.Cookies?.FirstOrDefault(c => c.Name == "refreshToken");
+        if (cookie != null)
+        {
+            _output.WriteLine($"Refresh Cookie found: {cookie.Value.Substring(0, 5)}...");
+        }
     }
 
     [Fact]
@@ -80,7 +85,7 @@ public class AuthApiTest : BaseIntegrationTest
 
         var loginResponse = await client.LoginAsync(username, password);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var refreshTokenCookie = loginResponse.Cookies.FirstOrDefault(c => c.Name == "refreshToken");
+        var refreshTokenCookie = loginResponse.Cookies?.FirstOrDefault(c => c.Name == "refreshToken");
         refreshTokenCookie.Should().NotBeNull();
 
         // Act

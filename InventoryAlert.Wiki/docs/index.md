@@ -7,7 +7,7 @@ sidebar_position: 1
 
 Welcome to the **InventoryAlert** System Wiki — the single source of truth for architecture, operational runbooks, and API contracts.
 
-InventoryAlert is a real-time stock portfolio and alerting ecosystem built on **.NET 10** and **Next.js 15**. It tracks global stock prices via Finnhub, evaluates user-defined Alert Rules, and delivers in-app notifications when thresholds are crossed.
+InventoryAlert is a real-time stock portfolio and alerting ecosystem built on **.NET 10** and **Next.js 15 (App Router)**. It tracks global stock prices via Finnhub, evaluates user-defined Alert Rules, and delivers in-app notifications when thresholds are crossed.
 
 > **v2 Note**: The system has been fully refactored from an inventory-management domain to a finance-domain vocabulary. `Product` → `StockListing`, `StockTransaction` → `Trade`, Telegram → In-App Notifications.
 
@@ -42,7 +42,7 @@ How the system talks to the outside world and background workloads.
 - **[Internal API Reference](./05-api-services/internal-api.md)** — All v1 endpoints: Auth, Portfolio, Stocks, Market, Watchlist, AlertRules, Notifications, Events.
 - **[Event Handling](./05-api-services/event-handling.md)** — SQS topology, event type strings, deduplication pattern.
 - **[External Integrations](./05-api-services/external-integrations.md)** — Finnhub, SQS, DynamoDB, Redis integration details.
-- **[Background Workers](./06-background-jobs/workers.md)** — All 10 Hangfire jobs with cron schedules and Finnhub endpoints.
+- **[Background Workers](./06-background-jobs/workers.md)** — All 8 background jobs (7 recurring + 1 continuous) with cron schedules and Finnhub endpoints.
 - **[Hangfire Monitoring](./06-background-jobs/hangfire-monitoring.md)** — Dashboard guide, job catalog, failure impact.
 
 ### 🛠️ Developer Guide
@@ -51,7 +51,8 @@ Everything you need to run, build, and maintain the platform.
 
 - **[Getting Started](./07-dev-maintenance/getting-started.md)** — Docker commands, seed credentials, service URLs.
 - **[.NET CLI Reference](./07-dev-maintenance/dotnet-commands.md)** — Migrations, test commands, publish guide.
-- **[Testing & Standards](./07-dev-maintenance/testing-and-standards.md)** — xUnit patterns, C# 12 rules, E2E base setup.
+- **[Testing & Standards](./07-dev-maintenance/testing-and-standards.md)** — C# 12 rules, primary constructors, and common patterns.
+- **[Test Structure & App Quality](./07-dev-maintenance/test-strategy.md)** — Test project architecture, CI/CD gates, and runtime observability.
 - **[Operational Runbook](./07-dev-maintenance/operational-runbook.md)** — Troubleshooting guide, DB queries, common debug scenarios.
 - **[AI Agent Workflows](./07-dev-maintenance/ai-agent-workflows.md)** — Slash commands, transaction capture patterns, file placement rules.
 

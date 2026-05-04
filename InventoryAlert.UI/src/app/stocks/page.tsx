@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { fetchApi } from "@/lib/api";
+import Pagination from "@/components/ui/Pagination";
 
 // Spec §4.4: StockProfileResponse (used for catalog browse)
 interface StockListing {
@@ -199,26 +200,13 @@ export default function StockCatalog() {
       </div>
 
       {!isSearchMode && (
-        <div className="flex items-center justify-between pb-10">
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              disabled={currentPage === 1 || loading}
-              onClick={() => setCurrentPage((p) => p - 1)}
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-xl text-xs font-semibold uppercase disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <button
-              disabled={currentPage === totalPages || loading}
-              onClick={() => setCurrentPage((p) => p + 1)}
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-xl text-xs font-semibold uppercase disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+        <div className="border border-zinc-200 dark:border-white/5 rounded-3xl bg-white dark:bg-zinc-900 overflow-hidden shadow-sm dark:shadow-none">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            isLoading={loading}
+          />
         </div>
       )}
     </div>
