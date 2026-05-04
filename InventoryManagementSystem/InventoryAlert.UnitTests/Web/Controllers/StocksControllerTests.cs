@@ -13,12 +13,13 @@ public class StocksControllerTests
 {
     private readonly Mock<IStockDataService> _stockDataService = new();
     private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly Mock<IEventService> _eventService = new();
     private readonly StocksController _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     public StocksControllerTests()
     {
-        _sut = new StocksController(_stockDataService.Object, _uow.Object);
+        _sut = new StocksController(_stockDataService.Object, _uow.Object, _eventService.Object);
     }
 
     [Fact]
@@ -66,10 +67,10 @@ public class StocksControllerTests
     }
 
     [Fact]
-    public void TriggerSync_ReturnsAccepted_ForAdmin()
+    public async Task TriggerSync_ReturnsAccepted_ForAdmin()
     {
         // Act
-        var result = _sut.TriggerSync();
+        var result = await _sut.TriggerSync(Ct);
 
         // Assert
         result.Should().BeOfType<AcceptedResult>();

@@ -4,6 +4,8 @@ using FluentAssertions;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using InventoryAlert.Domain.Configuration;
+using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Domain.Events.Payloads;
 using InventoryAlert.Worker.IntegrationEvents.Routing;
@@ -18,15 +20,19 @@ public class IntegrationMessageRouterTests
 {
     private readonly Mock<IRawDefaultHandler> _rawHandlerMock = new();
     private readonly Mock<IBackgroundJobClient> _jobClientMock = new();
+    private readonly Mock<ICorrelationProvider> _correlationMock = new();
     private readonly Mock<ILogger<IntegrationMessageRouter>> _loggerMock = new();
     private readonly IntegrationMessageRouter _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     public IntegrationMessageRouterTests()
     {
+        var settings = new AppSettings { Finnhub = new SharedFinnhubSettings() };
         _sut = new IntegrationMessageRouter(
             _rawHandlerMock.Object,
             _jobClientMock.Object,
+            _correlationMock.Object,
+            settings,
             _loggerMock.Object);
     }
 

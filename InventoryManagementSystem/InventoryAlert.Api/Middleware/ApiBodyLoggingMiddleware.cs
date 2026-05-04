@@ -50,11 +50,11 @@ public class ApiBodyLoggingMiddleware(ILogger<ApiBodyLoggingMiddleware> logger, 
             // 5. Log structured JSON
             var correlationId = context.Items["X-Correlation-Id"]?.ToString() ?? "N/A";
             
-            using var scope = logger.BeginScope(new Dictionary<string, object>
+            using var scope = logger.BeginScope(new Dictionary<string, object?>
             {
                 ["CorrelationId"] = correlationId,
-                ["RequestBody"] = TryParseJson(requestBodyText),
-                ["ResponseBody"] = TryParseJson(responseBodyText)
+                ["RequestBody"] = TryParseJson(requestBodyText) ?? "N/A",
+                ["ResponseBody"] = TryParseJson(responseBodyText) ?? "N/A"
             });
 
             logger.LogInformation("API Payload | CID: {CorrelationId} | Method: {Method} | Path: {Path}", 

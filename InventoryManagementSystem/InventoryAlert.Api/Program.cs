@@ -154,24 +154,20 @@ try
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
+    app.UseMiddleware<GlobalExceptionMiddleware>(); // Global error handling early
+
+    app.UseResponseCompression();
+    app.UseStaticFiles();
     
-    // 1. Auth first to populate User
+    app.UseRouting();
+    app.UseCors("AllowAll");
+    
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // 2. Compression must be OUTER to loggers
-    app.UseResponseCompression();
-    
-    // 3. Loggers capture raw JSON
     app.UseMiddleware<PerformanceMiddleware>();
     app.UseMiddleware<ApiBodyLoggingMiddleware>();
     
-    // 4. GlobalException innermost to catch controller errors
-    app.UseMiddleware<GlobalExceptionMiddleware>();
-
-    app.UseStaticFiles();
-    app.UseRouting();
-    app.UseCors("AllowAll");
     app.UseResponseCaching();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
