@@ -105,7 +105,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssemblyContaining<CreatePositionRequestValidator>();
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
-        services.AddScoped<ICorrelationProvider, CorrelationProvider>();
+        services.AddSingleton<ICorrelationProvider, CorrelationProvider>();
         services.AddScoped<IAlertNotifier, NotificationAlertNotifier>();
         services.AddScoped<IAlertRuleEvaluator, AlertRuleEvaluator>();
 

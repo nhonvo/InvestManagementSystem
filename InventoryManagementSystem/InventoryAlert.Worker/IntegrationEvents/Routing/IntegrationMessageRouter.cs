@@ -4,6 +4,7 @@ using Hangfire;
 using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Domain.Events;
 using InventoryAlert.Domain.Events.Payloads;
+using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.Worker.IntegrationEvents.Handlers;
 using InventoryAlert.Worker.Interfaces;
 using InventoryAlert.Worker.ScheduledJobs;
@@ -17,14 +18,34 @@ namespace InventoryAlert.Worker.IntegrationEvents.Routing;
 public class IntegrationMessageRouter(
     IRawDefaultHandler rawHandler,
     IBackgroundJobClient backgroundJobs,
+    ICorrelationProvider correlationProvider,
+    AppSettings settings,
     ILogger<IntegrationMessageRouter> logger) : IIntegrationMessageRouter
 {
     private readonly IRawDefaultHandler _rawHandler = rawHandler;
     private readonly IBackgroundJobClient _backgroundJobs = backgroundJobs;
+    private readonly ICorrelationProvider _correlationProvider = correlationProvider;
     private readonly ILogger<IntegrationMessageRouter> _logger = logger;
+    private readonly bool _enablePayloadLogging = settings.Worker?.EnablePayloadLogging ?? false;
 
     public async Task<bool> RouteEnvelopeAsync(EventEnvelope envelope, CancellationToken ct)
     {
+        var correlationId = envelope.CorrelationId ?? envelope.MessageId;
+        _correlationProvider.SetCorrelationId(correlationId);
+
+        using var _ = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = correlationId,
+            ["MessageId"] = envelope.MessageId,
+            ["EventType"] = envelope.EventType
+        });
+
+        if (_enablePayloadLogging)
+        {
+            _logger.LogInformation("[MessageRouter] Routing envelope for EventType: {EventType} | MessageId: {MessageId} | Payload: {Payload}", 
+                envelope.EventType, envelope.MessageId, envelope.Payload);
+        }
+
         try
         {
             if (string.IsNullOrEmpty(envelope.EventType))

@@ -14,6 +14,17 @@ public class CorrelationIdEnricher(ICorrelationProvider correlationProvider) : I
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
+        // 1. If property already exists and has a real value, don't overwrite it.
+        // This allows ILogger.BeginScope or LogContext.PushProperty to take precedence.
+        if (logEvent.Properties.TryGetValue("CorrelationId", out var existing))
+        {
+            var value = existing.ToString().Trim('\"');
+            if (!string.IsNullOrEmpty(value) && value != "N/A")
+            {
+                return;
+            }
+        }
+
         var correlationId = _correlationProvider.GetCorrelationId();
         var property = propertyFactory.CreateProperty("CorrelationId", correlationId);
         logEvent.AddOrUpdateProperty(property);

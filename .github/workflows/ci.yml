@@ -109,10 +109,15 @@ jobs:
       shell: bash
       working-directory: InventoryManagementSystem
 
-    - name: Integration Test
+    - name: Integration Test - Api
       run: |
         cp InventoryManagementSystem/InventoryAlert.IntegrationTests/appsettings.test.json appsettings.test.json
-        dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal
+        dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal --filter Category=Api
+
+    - name: Integration Test - Jobs
+      run: |
+        cp InventoryManagementSystem/InventoryAlert.IntegrationTests/appsettings.test.json appsettings.test.json
+        dotnet test InventoryManagementSystem/InventoryAlert.IntegrationTests/InventoryAlert.IntegrationTests.csproj --no-restore --no-build --configuration Release --verbosity normal --filter Category=Jobs
 
     - name: Run E2E Tests
       run: dotnet test InventoryAlert.E2ETests/InventoryAlert.E2ETests.csproj --no-restore --configuration Release --verbosity normal

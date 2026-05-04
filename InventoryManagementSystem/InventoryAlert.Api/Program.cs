@@ -48,8 +48,8 @@ try
     
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
+    builder.Services.AddTransient<ApiBodyLoggingMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
-    builder.Services.AddTransient<RequestResponseLoggingMiddleware>();
 
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>
@@ -154,16 +154,22 @@ try
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
+    
+    // 1. Auth first to populate User
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    // 2. Compression must be OUTER to loggers
+    app.UseResponseCompression();
+    
+    // 3. Loggers capture raw JSON
     app.UseMiddleware<PerformanceMiddleware>();
+    app.UseMiddleware<ApiBodyLoggingMiddleware>();
+    
+    // 4. GlobalException innermost to catch controller errors
     app.UseMiddleware<GlobalExceptionMiddleware>();
 
-    app.UseResponseCompression();
     app.UseStaticFiles();
-
-    if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Docker"))
-    {
-        app.UseHttpsRedirection();
-    }
     app.UseRouting();
     app.UseCors("AllowAll");
     app.UseResponseCaching();
@@ -174,8 +180,6 @@ try
     }
 
     app.ConfigureHealthCheck();
-    app.UseAuthentication();
-    app.UseAuthorization();
     app.MapControllers();
     app.MapHub<InventoryAlert.Infrastructure.Hubs.NotificationHub>(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute);
     app.Run();
