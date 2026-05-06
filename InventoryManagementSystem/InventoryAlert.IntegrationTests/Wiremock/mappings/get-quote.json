@@ -3,10 +3,12 @@
     "method": "GET",
     "urlPath": "/quote",
     "queryParameters": {
-      "token": {
-        "matches": ".+"
-      },
       "symbol": {
+        "matches": ".+"
+      }
+    },
+    "headers": {
+      "X-Finnhub-Token": {
         "matches": ".+"
       }
     }
