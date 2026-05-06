@@ -3,6 +3,7 @@ using InventoryAlert.IntegrationTests.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
+using RestSharp.Serializers.Json;
 using RestSharp.Serializers.NewtonsoftJson;
 
 namespace InventoryAlert.IntegrationTests.Fixtures;
@@ -43,7 +44,7 @@ public class InjectionFixture : IDisposable
         {
             Timeout = TimeSpan.FromSeconds(settings.WiremockSettings.TimeoutSeconds)
         };
-        var mockFinnhubRestClient = new RestClient(mockFinnhubOptions, configureSerialization: s => s.UseNewtonsoftJson());
+        var mockFinnhubRestClient = new RestClient(mockFinnhubOptions, configureSerialization: s => s.UseSystemTextJson());
         services.AddSingleton(new MockFinnhubClient(mockFinnhubRestClient));
 
         ServiceProvider = services.BuildServiceProvider();

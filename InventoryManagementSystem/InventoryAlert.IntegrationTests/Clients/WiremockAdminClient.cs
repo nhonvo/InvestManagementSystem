@@ -25,12 +25,12 @@ public class WiremockAdminClient
         return await _client.ExecutePostAsync(request);
     }
 
-    public async Task<RestResponse<WiremockCountResponse>> GetCountGetQuotesRequestsAsync()
+    public async Task<RestResponse<WiremockCountResponse>> GetCountOfGetQuotesRequestsAsync()
     {
         var body = new WiremockCountGetQuoteRequest()
         {
             Method = "GET",
-            UrlPath = "/",
+            UrlPath = "/quote",
             Headers = new Dictionary<string, MatchPattern>
             {
                 ["X-Finnhub-Token"] = new MatchPattern
