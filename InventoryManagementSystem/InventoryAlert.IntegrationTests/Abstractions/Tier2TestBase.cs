@@ -15,21 +15,32 @@ public abstract class Tier2TestBase : IAsyncLifetime
     protected readonly TestFixture Fixture;
     protected readonly ITestOutputHelper Output;
     protected readonly RestClient Client;
+    protected readonly IServiceProvider Services;
+    private readonly IServiceScope _scope;
 
     protected Tier2TestBase(TestFixture fixture, ITestOutputHelper output)
     {
         Fixture = fixture;
         Output = output;
         
-        var baseUrl = Fixture.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8080/api/v1";
+        // Use the in-process HttpClient from the factory
+        var httpClient = Fixture.CreateTestClient();
         
-        var options = new RestClientOptions(baseUrl);
-        Client = new RestClient(options, configureSerialization: s => s.UseSystemTextJson(new JsonSerializerOptions
+        // Wrap it in RestClient for the tests that use RestSharp
+        var options = new RestClientOptions
+        {
+            BaseUrl = new Uri(httpClient.BaseAddress!, "api/v1/")
+        };
+        
+        Client = new RestClient(httpClient, options, configureSerialization: s => s.UseSystemTextJson(new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
             Converters = { new JsonStringEnumConverter() }
         }));
+
+        _scope = fixture.Services.CreateScope();
+        Services = _scope.ServiceProvider;
     }
 
     public virtual async Task InitializeAsync()
@@ -37,7 +48,11 @@ public abstract class Tier2TestBase : IAsyncLifetime
         await Fixture.ResetStateAsync();
     }
 
-    public virtual Task DisposeAsync() => Task.CompletedTask;
+    public virtual Task DisposeAsync()
+    {
+        _scope.Dispose();
+        return Task.CompletedTask;
+    }
 
     protected async Task<TestResult<T>> RunAction<T>(Func<Task<RestResponse<T>>> action)
     {

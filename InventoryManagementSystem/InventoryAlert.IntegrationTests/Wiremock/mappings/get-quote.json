@@ -7,7 +7,7 @@
         "matches": ".+"
       },
       "symbol": {
-        "matches": ".+"
+        "matches": "^(AAPL|MSFT|GOOGL)$"
       }
     }
   },

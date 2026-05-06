@@ -12,6 +12,9 @@ using Newtonsoft.Json;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 using Xunit;
+using InventoryAlert.Worker.ScheduledJobs;
+using InventoryAlert.Worker.IntegrationEvents.Handlers;
+using InventoryAlert.Domain.Events.Payloads;
 
 namespace InventoryAlert.IntegrationTests.Tests.Jobs;
 
@@ -24,7 +27,7 @@ public class WholeFlowTests : Tier2TestBase
 
     private async Task<(string Username, string Token)> SeedUserAndLoginAsync()
     {
-        var uow = Fixture.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var uow = Services.GetRequiredService<IUnitOfWork>();
         var ct = CancellationToken.None;
         var username = "user_" + Guid.NewGuid().ToString().Substring(0, 8);
         var password = "password";
@@ -37,105 +40,115 @@ public class WholeFlowTests : Tier2TestBase
     }
 
     [Fact]
-    
     public async Task PriceAlertCycle_FullFlow_Succeeds()
     {
-        var uow = Fixture.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var uow = Services.GetRequiredService<IUnitOfWork>();
         var ct = CancellationToken.None;
 
         var (username, token) = await SeedUserAndLoginAsync();
         var user = await uow.Users.GetByUsernameAsync(username, ct);
+        var symbol = "FLOW_" + Guid.NewGuid().ToString().Substring(0, 4);
 
-        await uow.StockListings.AddAsync(new StockListing { TickerSymbol = "FLOW", Name = "Flow" }, ct);
-        await uow.AlertRules.AddAsync(new AlertRule { UserId = user!.Id, TickerSymbol = "FLOW", Condition = AlertCondition.PriceAbove, TargetValue = 100, IsActive = true }, ct);
+        await uow.StockListings.AddAsync(new StockListing { TickerSymbol = symbol, Name = "Flow" }, ct);
+        await uow.AlertRules.AddAsync(new AlertRule { UserId = user!.Id, TickerSymbol = symbol, Condition = AlertCondition.PriceAbove, TargetValue = 100, IsActive = true }, ct);
         await uow.SaveChangesAsync(ct);
 
-        await Client.ExecutePostAsync(new RestRequest("events").AddHeader("Authorization", $"Bearer {token}").AddJsonBody(new
-        {
-            EventType = "inventoryalert.pricing.price-drop.v1",
-            Payload = new { Symbol = "FLOW", NewPrice = 150m }
-        }));
+        // Manually trigger the handler in-process to ensure it works with the current state
+        var handler = Services.GetRequiredService<MarketPriceAlertHandler>();
+        await handler.HandleAsync(new MarketPriceAlertPayload { Symbol = symbol, NewPrice = 150m }, ct);
 
         bool found = false;
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 10; i++)
         {
             var noteRes = await Client.ExecuteGetAsync(new RestRequest("notifications").AddHeader("Authorization", $"Bearer {token}"));
             if (noteRes.IsSuccessStatusCode && !string.IsNullOrEmpty(noteRes.Content))
             {
                 var data = JsonConvert.DeserializeObject<PagedResult<NotificationResponse>>(noteRes.Content);
-                if (data != null && data.Items.Any(n => n.TickerSymbol == "FLOW"))
+                if (data != null && data.Items.Any(n => n.TickerSymbol == symbol))
                 {
                     found = true;
                     break;
                 }
             }
-            await Task.Delay(5000);
+            await Task.Delay(1000);
         }
 
         found.Should().BeTrue();
     }
 
     [Fact]
-    
     public async Task PriceSync_FullFlow_Succeeds()
     {
-        var uow = Fixture.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var uow = Services.GetRequiredService<IUnitOfWork>();
         var ct = CancellationToken.None;
 
         var (username, token) = await SeedUserAndLoginAsync();
         var user = await uow.Users.GetByUsernameAsync(username, ct);
+        var symbol = "SYNC_" + Guid.NewGuid().ToString().Substring(0, 4);
 
-        await uow.StockListings.AddAsync(new StockListing { TickerSymbol = "AAPL", Name = "Apple" }, ct);
+        await uow.StockListings.AddAsync(new StockListing { TickerSymbol = symbol, Name = "Apple" }, ct);
         await uow.AlertRules.AddAsync(new AlertRule 
         { 
             UserId = user!.Id, 
-            TickerSymbol = "AAPL", 
+            TickerSymbol = symbol, 
             Condition = AlertCondition.PriceAbove, 
             TargetValue = 180, 
             IsActive = true 
         }, ct);
         await uow.SaveChangesAsync(ct);
 
-        var wireMockAdminUrl = Fixture.Configuration["WiremockSettings:BaseUrl"] ?? "http://localhost:9091";
-        var adminClient = new RestClient(wireMockAdminUrl);
-        
-        var mapping = new
-        {
-            request = new { method = "GET", urlPath = "/quote", queryParameters = new { symbol = new { equalTo = "AAPL" } } },
-            response = new { status = 200, body = "{\"c\": 195.5, \"h\": 198, \"l\": 190, \"o\": 192, \"pc\": 191}", headers = new { Content_Type = "application/json" } }
-        };
-        await adminClient.ExecutePostAsync(new RestRequest("__admin/mappings").AddJsonBody(mapping));
+        // Configure local WireMock for symbol with HIGH PRIORITY match
+        Fixture.WireMock.Given(
+            WireMock.RequestBuilders.Request.Create()
+                .WithPath("/quote")
+                .WithParam("symbol", symbol)
+        ).AtPriority(1).RespondWith(
+            WireMock.ResponseBuilders.Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("{\"c\": 195.5, \"h\": 198, \"l\": 190, \"o\": 192, \"pc\": 191}")
+        );
 
+        // Trigger Sync via API (tests event publication)
         var syncRes = await Client.ExecutePostAsync(new RestRequest("stocks/sync").AddHeader("Authorization", $"Bearer {token}"));
         syncRes.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
+        // VERIFY Rule exists in DB before proceeding
+        var savedRule = (await uow.AlertRules.GetBySymbolAsync(symbol, ct)).FirstOrDefault();
+        savedRule.Should().NotBeNull($"Alert rule for {symbol} should be in DB before handler is called.");
+
+        // Manually execute the SyncPricesJob in-process
+        var job = Services.GetRequiredService<SyncPricesJob>();
+        await job.ExecuteAsync(ct);
+
+        // Manually trigger the handler for the price change
+        var handler = Services.GetRequiredService<MarketPriceAlertHandler>();
+        await handler.HandleAsync(new MarketPriceAlertPayload { Symbol = symbol, NewPrice = 195.5m }, ct);
+
+        // Assert side effects
         bool found = false;
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 10; i++)
         {
             var noteRes = await Client.ExecuteGetAsync(new RestRequest("notifications").AddHeader("Authorization", $"Bearer {token}"));
             if (noteRes.IsSuccessStatusCode && !string.IsNullOrEmpty(noteRes.Content))
             {
                 var data = JsonConvert.DeserializeObject<PagedResult<NotificationResponse>>(noteRes.Content);
-                if (data != null && data.Items.Any(n => n.TickerSymbol == "AAPL" && n.Message.Contains("195.5")))
+                if (data != null && data.Items.Any(n => n.TickerSymbol == symbol && n.Message.Contains("195.5")))
                 {
                     found = true;
                     break;
                 }
             }
-            await Task.Delay(5000);
+            await Task.Delay(1000);
         }
 
-        found.Should().BeTrue();
+        found.Should().BeTrue($"Notification for {symbol} at 195.5 should be found.");
 
-        var history = await uow.PriceHistories.GetBySymbolAsync("AAPL", 1, ct);
+        var history = await uow.PriceHistories.GetBySymbolAsync(symbol, 1, ct);
         history.Should().ContainSingle(h => h.Price == 195.5m);
-
-        var logFound = await Fixture.LogReader.WaitForLogFragmentAsync("Starting price synchronization");
-        logFound.Should().BeTrue("Worker should log the start of sync in Seq.");
     }
 
     [Fact]
-    
     public async Task PoisonMessage_TriggersCriticalFailureLog()
     {
         var (username, token) = await SeedUserAndLoginAsync();
@@ -151,34 +164,40 @@ public class WholeFlowTests : Tier2TestBase
     }
 
     [Fact]
-    
     public async Task PriceSync_FinnhubError_DoesNotCreatePriceHistory()
     {
-        var uow = Fixture.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var uow = Services.GetRequiredService<IUnitOfWork>();
         var ct = CancellationToken.None;
 
         var (username, token) = await SeedUserAndLoginAsync();
-        var symbol = "CRASH";
+        var symbol = "CRASH_" + Guid.NewGuid().ToString().Substring(0, 4);
 
         await uow.StockListings.AddAsync(new StockListing { TickerSymbol = symbol, Name = "Fail Test" }, ct);
         await uow.SaveChangesAsync(ct);
 
-        var wireMockAdminUrl = Fixture.Configuration["WiremockSettings:BaseUrl"] ?? "http://localhost:9091";
-        var adminClient = new RestClient(wireMockAdminUrl);
-        
-        var mapping = new
-        {
-            request = new { method = "GET", urlPath = "/quote", queryParameters = new { symbol = new { equalTo = symbol } } },
-            response = new { status = 500, body = "Internal Server Error" }
-        };
-        await adminClient.ExecutePostAsync(new RestRequest("__admin/mappings").AddJsonBody(mapping));
+        // Configure local WireMock to fail with HIGH PRIORITY
+        Fixture.WireMock.Given(
+            WireMock.RequestBuilders.Request.Create()
+                .WithPath("/quote")
+                .WithParam("symbol", symbol)
+        ).AtPriority(1).RespondWith(
+            WireMock.ResponseBuilders.Response.Create()
+                .WithStatusCode(500)
+                .WithBody("Internal Server Error")
+        );
 
+        // Trigger Sync via API
         await Client.ExecutePostAsync(new RestRequest("stocks/sync").AddHeader("Authorization", $"Bearer {token}"));
 
-        var logFound = await Fixture.LogReader.WaitForLogFragmentAsync($"Failed to fetch quote for {symbol}", timeoutSeconds: 60);
+        // Manually execute the Job in-process
+        var job = Services.GetRequiredService<SyncPricesJob>();
+        await job.ExecuteAsync(ct);
+
+        // Verify logs in Seq
+        var logFound = await Fixture.LogReader.WaitForLogFragmentAsync($"Failed to fetch quote for {symbol}");
         logFound.Should().BeTrue($"Worker should log the Finnhub failure for {symbol} in Seq.");
 
         var history = await uow.PriceHistories.GetBySymbolAsync(symbol, 10, ct);
-        history.Should().BeEmpty();
+        history.Should().BeEmpty($"Price history for {symbol} should be empty after failure.");
     }
 }

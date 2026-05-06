@@ -50,4 +50,14 @@ public class RedisHelper(IConnectionMultiplexer redis, ILogger<RedisHelper> logg
     {
         return await _db.KeyExistsAsync(key);
     }
+
+    public async Task FlushDatabaseAsync(CancellationToken ct = default)
+    {
+        var endpoints = redis.GetEndPoints();
+        foreach (var endpoint in endpoints)
+        {
+            var server = redis.GetServer(endpoint);
+            await server.FlushDatabaseAsync(_db.Database);
+        }
+    }
 }

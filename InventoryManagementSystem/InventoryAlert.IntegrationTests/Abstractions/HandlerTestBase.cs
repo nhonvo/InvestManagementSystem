@@ -5,15 +5,18 @@ using Xunit;
 
 namespace InventoryAlert.IntegrationTests.Abstractions;
 
-public abstract class HandlerTestBase : IClassFixture<TestFixture>, IAsyncLifetime
+[Collection("IntegrationTests")]
+public abstract class HandlerTestBase : IAsyncLifetime
 {
     protected readonly TestFixture Fixture;
     protected readonly IServiceProvider Provider;
+    private readonly IServiceScope _scope;
 
     protected HandlerTestBase(TestFixture fixture)
     {
         Fixture = fixture;
-        Provider = fixture.ServiceProvider;
+        _scope = fixture.Services.CreateScope();
+        Provider = _scope.ServiceProvider;
     }
 
     public virtual async Task InitializeAsync()
@@ -21,7 +24,11 @@ public abstract class HandlerTestBase : IClassFixture<TestFixture>, IAsyncLifeti
         await Fixture.ResetStateAsync();
     }
 
-    public virtual Task DisposeAsync() => Task.CompletedTask;
+    public virtual Task DisposeAsync()
+    {
+        _scope.Dispose();
+        return Task.CompletedTask;
+    }
 
     protected T GetService<T>() where T : notnull => Provider.GetRequiredService<T>();
 

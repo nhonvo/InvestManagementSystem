@@ -26,6 +26,8 @@ services:
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
+      # - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Database__DefaultConnection=Host=db;Database=inventory_alert_db;Username=postgres;Password=postgres
     depends_on:
       db:
         condition: service_healthy
@@ -60,6 +62,8 @@ services:
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
+      # - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Database__DefaultConnection=Host=db;Database=inventory_alert_db;Username=postgres;Password=postgres
     depends_on:
       db:
         condition: service_healthy

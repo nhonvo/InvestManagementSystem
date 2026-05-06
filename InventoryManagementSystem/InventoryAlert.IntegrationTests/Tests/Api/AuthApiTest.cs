@@ -28,7 +28,7 @@ public class AuthApiTest : Tier2TestBase
         var password = "password";
 
         // Seed user directly in DB
-        var uow = Fixture.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var uow = Services.GetRequiredService<IUnitOfWork>();
         var user = new User
         {
             Username = username,

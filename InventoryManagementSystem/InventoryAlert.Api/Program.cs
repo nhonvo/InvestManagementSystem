@@ -148,7 +148,10 @@ try
             using var scope = app.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await dbContext.Database.MigrateAsync();
-            await InventoryAlert.Infrastructure.Persistence.Postgres.DatabaseSeeder.SeedAsync(dbContext, app.Logger);
+            if (Environment.GetEnvironmentVariable("SKIP_SEEDING") != "true")
+            {
+                await InventoryAlert.Infrastructure.Persistence.Postgres.DatabaseSeeder.SeedAsync(dbContext, app.Logger);
+            }
         });
     }
 
@@ -189,4 +192,7 @@ finally
     Log.CloseAndFlush();
 }
 
-public partial class Program { }
+namespace InventoryAlert.Api
+{
+    public partial class Program { }
+}

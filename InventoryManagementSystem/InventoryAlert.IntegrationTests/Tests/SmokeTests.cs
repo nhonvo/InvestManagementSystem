@@ -37,17 +37,19 @@ public class SmokeTests(TestFixture fixture) : IAsyncLifetime
 
     [Fact]
     [Trait("Category", "Smoke")]
-    public void DI_CanResolveServiceAndCaptureLog()
+    public async Task DI_CanResolveServiceAndCaptureLog()
     {
         // Arrange
-        var service = fixture.ServiceProvider.GetRequiredService<IStockDataService>();
-        var logger = fixture.ServiceProvider.GetRequiredService<ILogger<SmokeTests>>();
+        using var scope = fixture.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IStockDataService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SmokeTests>>();
 
         // Act
         logger.LogInformation("Smoke test log entry");
 
         // Assert
         service.Should().NotBeNull();
-        fixture.LoggerProvider.Entries.Should().Contain(e => e.Message == "Smoke test log entry");
+        var logFound = await fixture.LogReader.WaitForLogFragmentAsync("Smoke test log entry");
+        logFound.Should().BeTrue("Smoke test log should be captured in Seq.");
     }
 }

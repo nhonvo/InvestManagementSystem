@@ -68,7 +68,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var tickerSymbol = "TSLA";
         
         // Seed StockListing
-        using (var scope = Fixture.ServiceProvider.CreateScope())
+        using (var scope = Fixture.Services.CreateScope())
         {
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
@@ -139,7 +139,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var tickerSymbol = "TSLA";
         
         // Seed StockListing
-        using (var scope = Fixture.ServiceProvider.CreateScope())
+        using (var scope = Fixture.Services.CreateScope())
         {
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
@@ -209,7 +209,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var tickerSymbol = "TSLA";
         
         // Seed StockListing
-        using (var scope = Fixture.ServiceProvider.CreateScope())
+        using (var scope = Fixture.Services.CreateScope())
         {
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
