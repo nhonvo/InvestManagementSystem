@@ -157,7 +157,8 @@ try
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<GlobalExceptionMiddleware>(); // Global error handling early
+    app.UseMiddleware<PerformanceMiddleware>(); // Moved up to capture final status
+    app.UseMiddleware<GlobalExceptionMiddleware>(); 
 
     app.UseResponseCompression();
     app.UseStaticFiles();
@@ -168,7 +169,6 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseMiddleware<PerformanceMiddleware>();
     app.UseMiddleware<ApiBodyLoggingMiddleware>();
     
     app.UseResponseCaching();

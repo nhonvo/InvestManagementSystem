@@ -54,6 +54,9 @@ public class TestFixture : WebApplicationFactory<InventoryAlert.Api.Program>, IA
         Environment.SetEnvironmentVariable("Database__DefaultConnection", Configuration["Database:DefaultConnection"]);
         Environment.SetEnvironmentVariable("Redis__ConnectionString", Configuration["Redis:ConnectionString"]);
         Environment.SetEnvironmentVariable("Aws__EndpointUrl", Configuration["Aws:EndpointUrl"]);
+        Environment.SetEnvironmentVariable("Aws__SnsTopicArn", Configuration["Aws:SnsTopicArn"]);
+        Environment.SetEnvironmentVariable("Aws__SqsQueueUrl", Configuration["Aws:SqsQueueUrl"]);
+        Environment.SetEnvironmentVariable("Aws__SqsDlqUrl", Configuration["Aws:SqsDlqUrl"]);
         Environment.SetEnvironmentVariable("Finnhub__ApiBaseUrl", WireMock.Urls[0]);
         Environment.SetEnvironmentVariable("Seq__ServerUrl", Configuration["Seq:ServerUrl"] ?? "http://localhost:5341");
         Environment.SetEnvironmentVariable("SKIP_SEEDING", "true");
