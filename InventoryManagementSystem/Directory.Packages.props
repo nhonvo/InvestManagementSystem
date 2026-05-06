@@ -42,8 +42,9 @@
     <PackageVersion Include="RestSharp" Version="114.0.0" />
     <PackageVersion Include="RestSharp.Serializers.NewtonsoftJson" Version="114.0.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.13.20" />
-    <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageVersion Include="Serilog.Sinks.Seq" Version="9.0.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.12.14" />
@@ -51,6 +52,9 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.11.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
+    <PackageVersion Include="Respawn" Version="6.2.1" />
+    <PackageVersion Include="WireMock.Net" Version="1.7.3" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageVersion Include="Xunit.Extensions.AssemblyFixture" Version="2.6.0" />

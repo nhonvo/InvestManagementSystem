@@ -3,6 +3,7 @@ using FluentAssertions;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
@@ -14,11 +15,10 @@ public class ALertRuleSmokeTest : BaseIntegrationTest
     private readonly AlertRuleClient _alertRuleClient;
     private readonly AuthClient _authClient;
 
-    public ALertRuleSmokeTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public ALertRuleSmokeTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
-        var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
-        _alertRuleClient = new AlertRuleClient(restClient);
-        _authClient = new AuthClient(restClient);
+        _alertRuleClient = new AlertRuleClient(Client);
+        _authClient = new AuthClient(Client);
     }
 
     [Fact]

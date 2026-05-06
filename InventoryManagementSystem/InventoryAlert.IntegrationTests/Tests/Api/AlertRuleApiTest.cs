@@ -2,29 +2,32 @@
 using FluentAssertions;
 using InventoryAlert.Domain.DTOs;
 using InventoryAlert.Domain.Entities.Postgres;
+using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
 using InventoryAlert.IntegrationTests.TestUtils.Assertions;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
+[Trait("Category", "Api")]
 public class AlertRuleApiTest : BaseIntegrationTest
 {
     private readonly AlertRuleClient _alertRuleClient;
     private readonly AuthClient _authClient;
     
-    public AlertRuleApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public AlertRuleApiTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
     {
-        var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
-        _alertRuleClient = new AlertRuleClient(restClient);
-        _authClient = new AuthClient(restClient);
+        _alertRuleClient = new AlertRuleClient(Client);
+        _authClient = new AuthClient(Client);
     }
 
     [Fact]
+    
     public async Task GetAlertRules_ShouldReturnAlertRules_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -41,6 +44,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task GetAlertRules_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -54,6 +58,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task CreateAlertRules_ShouldReturnAlertRule_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -61,6 +66,18 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var accessToken = loginResponse.Data!.AccessToken;
 
         var tickerSymbol = "TSLA";
+        
+        // Seed StockListing
+        using (var scope = Fixture.Services.CreateScope())
+        {
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
+            {
+                await uow.StockListings.AddAsync(new StockListing { TickerSymbol = tickerSymbol, Name = "Tesla Inc" }, CancellationToken.None);
+                await uow.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+
         var condition = AlertCondition.PriceBelow;
         var targetValue = 100M;
         var triggerOnce = false;
@@ -75,7 +92,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         response.Data.Should().NotBeNull();
         try
         {
-            response.Data.Id.Should().NotBe(Guid.Empty);
+            response.Data!.Id.Should().NotBe(Guid.Empty);
             response.Data.TickerSymbol.Should().Be(tickerSymbol);
             response.Data.Condition.Should().Be(condition);
             response.Data.TargetValue.Should().Be(targetValue);
@@ -85,11 +102,13 @@ public class AlertRuleApiTest : BaseIntegrationTest
         finally
         {
             // Clean up
-            await _alertRuleClient.DeleteAlertRuleAsync(accessToken, response.Data.Id);
+            if (response.Data != null)
+                await _alertRuleClient.DeleteAlertRuleAsync(accessToken, response.Data.Id);
         }
     }
 
     [Fact]
+    
     public async Task CreateAlertRules_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -110,6 +129,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task DeleteAlertRules_ShouldReturnOk_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -117,6 +137,18 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var accessToken = loginResponse.Data!.AccessToken;
 
         var tickerSymbol = "TSLA";
+        
+        // Seed StockListing
+        using (var scope = Fixture.Services.CreateScope())
+        {
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
+            {
+                await uow.StockListings.AddAsync(new StockListing { TickerSymbol = tickerSymbol, Name = "Tesla Inc" }, CancellationToken.None);
+                await uow.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+
         var condition = AlertCondition.PriceBelow;
         var targetValue = 100M;
         var triggerOnce = false;
@@ -124,6 +156,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var alertRule = new AlertRuleRequest(tickerSymbol, condition, targetValue, triggerOnce);
 
         var createResponse = await _alertRuleClient.CreateAlertRuleAsync(accessToken, alertRule);
+        createResponse.Data.Should().NotBeNull();
 
         // Act
         var deleteResponse = await _alertRuleClient.DeleteAlertRuleAsync(accessToken, createResponse.Data!.Id);
@@ -133,6 +166,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task DeleteAlertRules_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -147,6 +181,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task DeleteAlertRules_ShouldReturnNotFound_WhenAlertRuleIdIsInvalid()
     {
         // Arrange
@@ -154,7 +189,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var accessToken = loginResponse.Data!.AccessToken;
 
         var alertRuleId = Guid.NewGuid();
-        _output.WriteLine(alertRuleId.ToString());
+        Output.WriteLine(alertRuleId.ToString());
 
         // Act
         var deleteResponse = await _alertRuleClient.DeleteAlertRuleAsync(accessToken, alertRuleId);
@@ -164,6 +199,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task ToggleAlertRule_ShouldReturnAlertRule_WhenUserIsAuthenticated()
     {
         // Arrange
@@ -171,6 +207,18 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var accessToken = loginResponse.Data!.AccessToken;
 
         var tickerSymbol = "TSLA";
+        
+        // Seed StockListing
+        using (var scope = Fixture.Services.CreateScope())
+        {
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            if (await uow.StockListings.FindBySymbolAsync(tickerSymbol, CancellationToken.None) == null)
+            {
+                await uow.StockListings.AddAsync(new StockListing { TickerSymbol = tickerSymbol, Name = "Tesla Inc" }, CancellationToken.None);
+                await uow.SaveChangesAsync(CancellationToken.None);
+            }
+        }
+
         var condition = AlertCondition.PriceBelow;
         var targetValue = 100M;
         var triggerOnce = false;
@@ -178,6 +226,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
         var alertRule = new AlertRuleRequest(tickerSymbol, condition, targetValue, triggerOnce);
 
         var createResponse = await _alertRuleClient.CreateAlertRuleAsync(accessToken, alertRule);
+        createResponse.Data.Should().NotBeNull();
         var id = createResponse.Data!.Id;
         var isActive = false;
         
@@ -189,17 +238,19 @@ public class AlertRuleApiTest : BaseIntegrationTest
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             response.Data.Should().NotBeNull();
-            response.Data.Id.Should().Be(id);
+            response.Data!.Id.Should().Be(id);
             response.Data.IsActive.Should().Be(isActive);
         }
         finally
         {
             // Clean up
-            await _alertRuleClient.DeleteAlertRuleAsync(accessToken, createResponse.Data.Id);
+            if (createResponse.Data != null)
+                await _alertRuleClient.DeleteAlertRuleAsync(accessToken, createResponse.Data.Id);
         }
     }
 
     [Fact]
+    
     public async Task ToggleAlertRule_ShouldReturnUnauthorized_WhenUserIsNotAuthenticated()
     {
         // Arrange
@@ -215,6 +266,7 @@ public class AlertRuleApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task ToggleAlertRule_ShouldReturnNotFound_WhenAlertRuleIsNotExist()
     {
         // Arrange

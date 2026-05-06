@@ -4,12 +4,12 @@ using InventoryAlert.Api.Middleware;
 using InventoryAlert.Api.ServiceExtensions;
 using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Infrastructure.Persistence.Postgres;
+using InventoryAlert.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Polly;
 using Serilog;
-using Serilog.Events;
 
 // ─── Early Configuration Binding for Bootstrap ───────────────────────────────
 var configuration = new ConfigurationBuilder()
@@ -19,25 +19,12 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-
-var bootstrapSettings = configuration.Get<ApiSettings>()
+var settings = configuration.Get<ApiSettings>()
     ?? throw new InvalidOperationException("AppSettings configuration is missing.");
-
 
 // ─── Serilog bootstrap ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("Service", "InventoryAlert.Api")
-    .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production")
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-    .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
-    .WriteTo.File("logs/inventoryalert-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .ApplyBaseConfiguration(settings, "InventoryAlert.Api")
     .CreateLogger();
 
 try
@@ -45,29 +32,33 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // ─── Serilog ──────────────────────────────────────────────────────────────
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ApplyBaseConfiguration(settings, "InventoryAlert.Api")
+            .ReadFrom.Services(services)
+            .Enrich.With(services.GetRequiredService<CorrelationIdEnricher>());
+    });
 
-    // ─── Clean Configuration Injection ────────────────────────────────────────
-    // Re-bind to ensure consistency with the container's environment
-    var settings = builder.Configuration.Get<ApiSettings>() ?? bootstrapSettings;
-
+    // ─── DI Registrations ─────────────────────────────────────────────────────
     builder.Services.AddSingleton(settings);
     builder.Services.AddSingleton<AppSettings>(settings);
+    builder.Services.AddCorrelationEnricher();
     builder.Services.AddHttpContextAccessor();
+    
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
     builder.Services.AddTransient<PerformanceMiddleware>();
+    builder.Services.AddTransient<ApiBodyLoggingMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
-    builder.Services.AddTransient<RequestResponseLoggingMiddleware>();
 
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
     builder.Services.AddCors(options =>
     {
-        // Dev: allow all origins for local tooling. Production: restrict to configured origins.
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Docker"))
         {
             options.AddPolicy("AllowAll",
                 policy => policy
-                    .SetIsOriginAllowed(origin => true) // Echoes back the origin instead of '*' to allow credentials
+                    .SetIsOriginAllowed(origin => true)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials());
@@ -113,44 +104,35 @@ try
             {
                 OnMessageReceived = context =>
                 {
-                    // SignalR Query String handling (Standard for WebSockets)
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
-                    
                     if (!string.IsNullOrEmpty(accessToken) && 
                         path.StartsWithSegments(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute))
                     {
                         context.Token = accessToken;
                     }
-
                     return Task.CompletedTask;
                 }
             };
         });
     builder.Services.AddAuthorization();
 
-    // ─── SignalR with Redis Backplane ─────────────────────────────────────────
     builder.Services.AddSignalR()
         .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
             options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
         });
 
-    // ─── API / Core Services ──────────────────────────────────────────────────
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerOpenAPI(settings);
     builder.Services.SetupMvc();
     builder.Services.AddCompressionCustom();
     builder.Services.SetupHealthCheck(settings);
     builder.Services.AddResponseCaching();
+    builder.Services.AddWebApiInfrastructure(settings);
 
-    builder.Services
-        .AddWebApiInfrastructure(settings);
-
-
-    // ─── Build ────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // ─── Auto-migrate on startup (Dev/Docker only) ──────────────────────────
+    // ─── Auto-migrate ─────────────────────────────────────────────────────────
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
     {
         var retryPolicy = Policy
@@ -158,37 +140,37 @@ try
             .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 (exception, timeSpan, retryCount, context) =>
                 {
-                    app.Logger.LogWarning("Database migration failed. Retry {RetryCount} in {RetryDelaySeconds}s. Error: {ErrorMessage}", retryCount, timeSpan.TotalSeconds, exception.Message);
+                    app.Logger.LogWarning("Database migration failed. Retry {RetryCount} in {RetryDelaySeconds}s.", retryCount, timeSpan.TotalSeconds);
                 });
 
         await retryPolicy.ExecuteAsync(async () =>
         {
             using var scope = app.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            app.Logger.LogInformation("Applying database migrations...");
             await dbContext.Database.MigrateAsync();
-            app.Logger.LogInformation("Database migration complete.");
-
-            await InventoryAlert.Infrastructure.Persistence.Postgres.DatabaseSeeder.SeedAsync(
-                dbContext, app.Logger);
+            if (Environment.GetEnvironmentVariable("SKIP_SEEDING") != "true")
+            {
+                await InventoryAlert.Infrastructure.Persistence.Postgres.DatabaseSeeder.SeedAsync(dbContext, app.Logger);
+            }
         });
     }
 
-    // ─── Middleware Pipeline ──────────────────────────────────────────────────
+    // ─── Pipeline ─────────────────────────────────────────────────────────────
     app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<PerformanceMiddleware>();
-    app.UseMiddleware<GlobalExceptionMiddleware>();
+    app.UseMiddleware<PerformanceMiddleware>(); // Moved up to capture final status
+    app.UseMiddleware<GlobalExceptionMiddleware>(); 
 
     app.UseResponseCompression();
-    app.UseStaticFiles();                           // serves wwwroot/ (dashboard)
-
-    if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Docker"))
-    {
-        app.UseHttpsRedirection();
-    }
+    app.UseStaticFiles();
+    
     app.UseRouting();
     app.UseCors("AllowAll");
+    
+    app.UseAuthentication();
+    app.UseAuthorization();
 
+    app.UseMiddleware<ApiBodyLoggingMiddleware>();
+    
     app.UseResponseCaching();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
@@ -197,8 +179,6 @@ try
     }
 
     app.ConfigureHealthCheck();
-    app.UseAuthentication();
-    app.UseAuthorization();
     app.MapControllers();
     app.MapHub<InventoryAlert.Infrastructure.Hubs.NotificationHub>(InventoryAlert.Domain.Interfaces.SignalRConstants.NotificationHubRoute);
     app.Run();
@@ -212,5 +192,7 @@ finally
     Log.CloseAndFlush();
 }
 
-public partial class Program { }
-
+namespace InventoryAlert.Api
+{
+    public partial class Program { }
+}

@@ -1,6 +1,9 @@
 # Coding Standards & Patterns
 
-This page focuses on the technical standards and recurring patterns for .NET 10 development in InventoryAlert. For a high-level overview of how to test the system, see the **[Test Strategy & Guide](./test-strategy.md)**.
+This page focuses on the technical standards and recurring patterns for .NET 10 development in InventoryAlert.
+
+For a high-level overview of how to test the system, see the **[Test Structure & App Quality](./test-strategy.md)**.
+For technical details on the three integration tiers, see **[Integration Testing Tiers](./integration-testing-tiers.md)**.
 
 ---
 

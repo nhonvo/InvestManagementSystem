@@ -1,7 +1,9 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using InventoryAlert.Domain.Configuration;
 using InventoryAlert.Domain.Interfaces;
 using InventoryAlert.Infrastructure;
+using InventoryAlert.Infrastructure.Utilities;
 using InventoryAlert.Worker;
 using InventoryAlert.Worker.Configuration;
 using InventoryAlert.Worker.Hosting;
@@ -12,7 +14,6 @@ using InventoryAlert.Worker.ScheduledJobs;
 using InventoryAlert.Worker.Utilities;
 using InventoryAlert.Worker.Extensions;
 using Serilog;
-using Serilog.Events;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
@@ -21,28 +22,31 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var bootstrapSettings = configuration.Get<WorkerSettings>()
+var settings = configuration.Get<WorkerSettings>()
     ?? throw new InvalidOperationException("WorkerSettings configuration is missing.");
 
+// ─── Serilog bootstrap ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("Hangfire", LogEventLevel.Information)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("Service", "InventoryAlert.Worker")
-    .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production")
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-    .WriteTo.Seq(bootstrapSettings.Seq.ServerUrl)
+    .ApplyBaseConfiguration(settings, "InventoryAlert.Worker")
     .CreateLogger();
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
-    builder.Services.AddSerilog();
 
-    var settings = builder.Configuration.Get<WorkerSettings>() ?? bootstrapSettings;
+    // ─── Serilog ──────────────────────────────────────────────────────────────
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ApplyBaseConfiguration(settings, "InventoryAlert.Worker")
+            .ReadFrom.Services(services)
+            .Enrich.With(services.GetRequiredService<CorrelationIdEnricher>());
+    });
+
     builder.Services.AddSingleton(settings);
     builder.Services.AddSingleton<InventoryAlert.Domain.Configuration.AppSettings>(settings);
+    builder.Services.AddCorrelationEnricher();
+    builder.Services.AddHttpContextAccessor();
 
     builder.Services.AddInfrastructure(settings);
     builder.Services.SetupHealthCheck(settings);
@@ -58,7 +62,6 @@ try
     });
 
     // ─── SignalR with Redis Backplane ─────────────────────────────────────────
-    // Note: The Worker doesn't host hubs, but needs this to send messages via the backplane.
     builder.Services.AddSignalR()
         .AddStackExchangeRedis(settings.Redis.ConnectionString, options => {
             options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("InventoryAlert_SignalR");
@@ -77,18 +80,15 @@ try
     // Integration Event Handlers
     builder.Services.AddScoped<MarketPriceAlertHandler>();
     builder.Services.AddScoped<LowHoldingsHandler>();
+    builder.Services.AddScoped<IRawDefaultHandler, DefaultHandler>();
+    builder.Services.AddScoped<InventoryAlert.Worker.Interfaces.IIntegrationMessageRouter, IntegrationMessageRouter>();
+    builder.Services.AddScoped<ISqsHelper, SqsHelper>();
 
     builder.Services.AddHostedService<JobSchedulerService>();
     builder.Services.AddHostedService<SqsListenerService>();
 
-    builder.Services.AddScoped<IRawDefaultHandler, DefaultHandler>();
-    builder.Services.AddScoped<InventoryAlert.Worker.Interfaces.IIntegrationMessageRouter, IntegrationMessageRouter>();
-
-    builder.Services.AddScoped<ISqsHelper, SqsHelper>();
-
     var app = builder.Build();
 
-    // Allow remote dashboard access in Dev/Docker
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
         Authorization = new[] { new DevDashboardAuthorizationFilter() }

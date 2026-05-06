@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/company-news",
+    "queryParameters": {
+      "token": { "matches": ".+" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": "[]",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

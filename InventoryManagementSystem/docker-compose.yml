@@ -21,19 +21,18 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - Redis__ConnectionString=redis:6379
-      - Finnhub__ApiKey=test-key-for-e2e
-      - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Seq__ServerUrl=http://seq:80
+      - Api__EnableBodyLogging=true
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
+      # - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Database__DefaultConnection=Host=db;Database=inventory_alert_db;Username=postgres;Password=postgres
     depends_on:
       db:
         condition: service_healthy
       moto-init:
         condition: service_completed_successfully
-
-      wiremock:
-        condition: service_healthy
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
@@ -56,13 +55,15 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - Redis__ConnectionString=redis:6379
-      - Finnhub__ApiKey=test-key-for-e2e
-      - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Seq__ServerUrl=http://seq:80
+      - Worker__EnablePayloadLogging=true
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_HTTP_PORTS=8080
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
+      # - Finnhub__ApiBaseUrl=http://wiremock:8080
+      - Database__DefaultConnection=Host=db;Database=inventory_alert_db;Username=postgres;Password=postgres
     depends_on:
       db:
         condition: service_healthy
@@ -85,9 +86,9 @@ services:
     image: postgres:17-alpine
     container_name: inventory-db
     environment:
-      POSTGRES_DB: inventory_alert_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      - POSTGRES_DB=inventory_alert_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     ports:
       - "5433:5432"
     volumes:

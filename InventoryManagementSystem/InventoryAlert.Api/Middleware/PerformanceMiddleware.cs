@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Security.Claims;
+using InventoryAlert.Domain.Configuration;
 
 namespace InventoryAlert.Api.Middleware;
 
 /// <summary>
-/// Centralized request logger. Generates exactly one structured log per HTTP request.
+/// Monitors and logs the execution time and status code of every HTTP request.
 /// </summary>
 public class PerformanceMiddleware(ILogger<PerformanceMiddleware> logger) : IMiddleware
 {
@@ -24,9 +25,16 @@ public class PerformanceMiddleware(ILogger<PerformanceMiddleware> logger) : IMid
             var userId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Anonymous";
             var correlationId = context.Items["X-Correlation-Id"]?.ToString() ?? "N/A";
 
-            // Structured logging enables high-performance filtering in Seq/ELK
             var level = statusCode >= 500 ? LogLevel.Error : (elapsedMs > 500 ? LogLevel.Warning : LogLevel.Information);
             
+            using var scope = logger.BeginScope(new Dictionary<string, object>
+            {
+                ["UserId"] = userId,
+                ["CorrelationId"] = correlationId,
+                ["ElapsedMs"] = elapsedMs,
+                ["StatusCode"] = statusCode
+            });
+
             logger.Log(level, 
                 "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs:F3}ms | User: {UserId} | CID: {CorrelationId}",
                 context.Request.Method,

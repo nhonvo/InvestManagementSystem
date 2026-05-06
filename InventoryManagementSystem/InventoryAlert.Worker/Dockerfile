@@ -24,7 +24,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
 
 # Install dependencies (gcompat for native libs usage)
-RUN apk add --no-cache icu-libs curl gcompat
+RUN apk add --no-cache icu-libs curl gcompat krb5-libs
 
 # Configure runtime for Alpine (Globalization)
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false

@@ -94,119 +94,71 @@ fi
 # 3. DynamoDB initialization
 # --------------------------------------------------
 echo "Initializing DynamoDB..."
-# Create table (ignore error if already exists)
-aws dynamodb create-table \
-    --table-name inventory-event-logs \
-    --attribute-definitions \
-        AttributeName=EventType,AttributeType=S \
-        AttributeName=MessageId,AttributeType=S \
-    --key-schema \
-    AttributeName=EventType,KeyType=HASH \
-    AttributeName=MessageId,KeyType=RANGE \
-    --billing-mode PAY_PER_REQUEST \
-    --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "Table 'inventory-event-logs' might already exist"
 
-aws dynamodb update-time-to-live \
-    --table-name inventory-event-logs \
-    --time-to-live-specification "Enabled=true, AttributeName=TTL" \
-    --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "TTL for 'inventory-event-logs' might already be enabled"
+# Function to create table if it doesn't exist
+create_table_if_not_exists() {
+    TABLE_NAME=$1
+    ATTR_DEFS=$2
+    KEY_SCHEMA=$3
+    TTL_ATTR=$4
 
-# Create news table
-aws dynamodb create-table \
-    --table-name inventoryalert-company-news \
-    --attribute-definitions \
-        AttributeName=PK,AttributeType=S \
-        AttributeName=SK,AttributeType=S \
-    --key-schema \
-    AttributeName=PK,KeyType=HASH \
-    AttributeName=SK,KeyType=RANGE \
-    --billing-mode PAY_PER_REQUEST \
-    --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "Table 'inventoryalert-company-news' might already exist"
+    echo "Checking table $TABLE_NAME..."
+    if aws dynamodb describe-table --table-name "$TABLE_NAME" --endpoint-url "$ENDPOINT_URL" --region "$REGION" > /dev/null 2>&1; then
+        echo "  [SKIP] Table '$TABLE_NAME' already exists."
+    else
+        echo "  [CREATE] Table '$TABLE_NAME'..."
+        aws dynamodb create-table \
+            --table-name "$TABLE_NAME" \
+            --attribute-definitions $ATTR_DEFS \
+            --key-schema $KEY_SCHEMA \
+            --billing-mode PAY_PER_REQUEST \
+            --endpoint-url "$ENDPOINT_URL" \
+            --region "$REGION"
+        
+        echo "  [UPDATE] Enabling TTL for '$TABLE_NAME' on attribute '$TTL_ATTR'..."
+        aws dynamodb update-time-to-live \
+            --table-name "$TABLE_NAME" \
+            --time-to-live-specification "Enabled=true, AttributeName=$TTL_ATTR" \
+            --endpoint-url "$ENDPOINT_URL" \
+            --region "$REGION"
+    fi
+}
 
-aws dynamodb update-time-to-live \
-    --table-name inventoryalert-company-news \
-    --time-to-live-specification "Enabled=true, AttributeName=TTL" \
-    --endpoint-url "$ENDPOINT_URL" \
-    --region "$REGION" || echo "TTL for 'inventoryalert-company-news' might already be enabled"
+# inventory-event-logs
+create_table_if_not_exists "inventory-event-logs" \
+    "AttributeName=EventType,AttributeType=S AttributeName=MessageId,AttributeType=S" \
+    "AttributeName=EventType,KeyType=HASH AttributeName=MessageId,KeyType=RANGE" \
+    "TTL"
+
+# inventoryalert-company-news
+create_table_if_not_exists "inventoryalert-company-news" \
+    "AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S" \
+    "AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE" \
+    "TTL"
 
 # inventoryalert-market-news
-aws dynamodb create-table \
-  --table-name inventoryalert-market-news \
-  --attribute-definitions \
-    AttributeName=PK,AttributeType=S \
-    AttributeName=SK,AttributeType=S \
-  --key-schema \
-    AttributeName=PK,KeyType=HASH \
-    AttributeName=SK,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "Table 'inventoryalert-market-news' might already exist"
-
-aws dynamodb update-time-to-live \
-  --table-name inventoryalert-market-news \
-  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "TTL for 'inventoryalert-market-news' might already be enabled"
+create_table_if_not_exists "inventoryalert-market-news" \
+    "AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S" \
+    "AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE" \
+    "Ttl"
 
 # inventory-price-history
-aws dynamodb create-table \
-  --table-name inventory-price-history \
-  --attribute-definitions \
-    AttributeName=TickerSymbol,AttributeType=S \
-    AttributeName=Timestamp,AttributeType=S \
-  --key-schema \
-    AttributeName=TickerSymbol,KeyType=HASH \
-    AttributeName=Timestamp,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "Table 'inventory-price-history' might already exist"
-
-aws dynamodb update-time-to-live \
-  --table-name inventory-price-history \
-  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "TTL for 'inventory-price-history' might already be enabled"
+create_table_if_not_exists "inventory-price-history" \
+    "AttributeName=TickerSymbol,AttributeType=S AttributeName=Timestamp,AttributeType=S" \
+    "AttributeName=TickerSymbol,KeyType=HASH AttributeName=Timestamp,KeyType=RANGE" \
+    "Ttl"
 
 # inventory-recommendations
-aws dynamodb create-table \
-  --table-name inventory-recommendations \
-  --attribute-definitions \
-    AttributeName=Symbol,AttributeType=S \
-    AttributeName=Period,AttributeType=S \
-  --key-schema \
-    AttributeName=Symbol,KeyType=HASH \
-    AttributeName=Period,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "Table 'inventory-recommendations' might already exist"
-
-aws dynamodb update-time-to-live \
-  --table-name inventory-recommendations \
-  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "TTL for 'inventory-recommendations' might already be enabled"
+create_table_if_not_exists "inventory-recommendations" \
+    "AttributeName=Symbol,AttributeType=S AttributeName=Period,AttributeType=S" \
+    "AttributeName=Symbol,KeyType=HASH AttributeName=Period,KeyType=RANGE" \
+    "Ttl"
 
 # inventory-earnings
-aws dynamodb create-table \
-  --table-name inventory-earnings \
-  --attribute-definitions \
-    AttributeName=Symbol,AttributeType=S \
-    AttributeName=Period,AttributeType=S \
-  --key-schema \
-    AttributeName=Symbol,KeyType=HASH \
-    AttributeName=Period,KeyType=RANGE \
-  --billing-mode PAY_PER_REQUEST \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "Table 'inventory-earnings' might already exist"
-
-aws dynamodb update-time-to-live \
-  --table-name inventory-earnings \
-  --time-to-live-specification "Enabled=true,AttributeName=Ttl" \
-  --endpoint-url "$ENDPOINT_URL" \
-  --region "$REGION" || echo "TTL for 'inventory-earnings' might already be enabled"
+create_table_if_not_exists "inventory-earnings" \
+    "AttributeName=Symbol,AttributeType=S AttributeName=Period,AttributeType=S" \
+    "AttributeName=Symbol,KeyType=HASH AttributeName=Period,KeyType=RANGE" \
+    "Ttl"
 
 echo "=== Combined Init Complete ==="
 exit 0

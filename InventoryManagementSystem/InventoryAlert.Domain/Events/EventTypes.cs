@@ -17,6 +17,9 @@ public static class EventTypes
     /// <summary>Fired by the UI to request a manual sync of market news.</summary>
     public const string SyncMarketNewsRequested = "inventoryalert.news.sync-requested.v1";
 
+    /// <summary>Fired by the UI to request a manual sync of price data.</summary>
+    public const string SyncPricesRequested = "inventoryalert.pricing.sync-requested.v1";
+
     /// <summary>Fired by the UI to request a manual sync of news for a specific ticker.</summary>
     public const string SyncCompanyNewsRequested = "inventoryalert.news.company-sync-requested.v1";
 
@@ -28,6 +31,7 @@ public static class EventTypes
         MarketPriceAlert,
         StockLowAlert,
         SyncMarketNewsRequested,
+        SyncPricesRequested,
         SyncCompanyNewsRequested,
         TestFailureRequested
     };

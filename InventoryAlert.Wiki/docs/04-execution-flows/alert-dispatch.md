@@ -52,6 +52,15 @@ SignalR provides an instant push architecture:
 
 ---
 
+## Traceability & Observability
+
+Every alert flow is traceable via a unique **CorrelationId**:
+
+1.  **API Initiated**: The `X-Correlation-Id` from the HTTP request is propagated to the SQS `EventEnvelope`.
+2.  **Worker Context**: The `IntegrationMessageRouter` extracts the `CorrelationId` from the envelope and pushes it to the Serilog `LogContext`.
+3.  **Cross-Project Trace**: Logs in Seq from both the API and Worker are grouped by this ID, allowing deterministic verification in integration tests using `SeqLogReader`.
+4.  **Message Metadata**: Each log entry also includes `MessageId` and `EventType` for granular debugging.
+
 ## Notification Schema
 
 Notifications are now categorized for better UX:

@@ -7,7 +7,6 @@ public static class CompressionExtension
 {
     private static readonly string[] Second =
     [
-        "application/json",
         "application/xml",
         "text/plain",
         "image/png",

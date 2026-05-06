@@ -30,7 +30,7 @@ public class PortfolioService(
             .Take(query.PageSize);
 
         var positions = new List<PortfolioPositionResponse>();
-        var symbols = pagedItems.Select(x => x.TickerSymbol).ToList();
+        var symbols = pagedItems.Select(x => x.TickerSymbol).Distinct().ToList();
 
         if (symbols.Any())
         {

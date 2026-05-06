@@ -3,25 +3,26 @@ using FluentAssertions;
 using InventoryAlert.IntegrationTests.Abstractions;
 using InventoryAlert.IntegrationTests.Clients;
 using InventoryAlert.IntegrationTests.Fixtures;
+using InventoryAlert.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using Xunit.Abstractions;
 
 namespace InventoryAlert.IntegrationTests.Tests.Api;
 
+[Trait("Category", "Api")]
 public class MarketApiTest : BaseIntegrationTest
 {
     private readonly MarketClient _marketClient;
     private readonly AuthClient _authClient;
-    
-    public MarketApiTest(InjectionFixture fixture, ITestOutputHelper output) : base(fixture, output)
-    {
-        var restClient = fixture.ServiceProvider.GetRequiredService<RestClient>();
-        _marketClient = new MarketClient(restClient);
-        _authClient = new AuthClient(restClient);
-    }
 
+    public MarketApiTest(TestFixture fixture, ITestOutputHelper output) : base(fixture, output)
+    {
+        _marketClient = new MarketClient(Client);
+        _authClient = new AuthClient(Client);
+    }
     [Fact]
+    
     public async Task GetMarketStatus_ShouldReturnMarketStatus_Always()
     {
         // Arrange
@@ -32,10 +33,11 @@ public class MarketApiTest : BaseIntegrationTest
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Data.Should().NotBeNull();
-        _output.WriteLine($"Market Status: {response.Content}");
+        Output.WriteLine($"Market Status: {response.Content}");
     }
 
     [Fact]
+    
     public async Task GetMarketNews_ShouldReturnMarketNews_WhenTokenIsValid()
     {
         // Arrange
@@ -52,6 +54,7 @@ public class MarketApiTest : BaseIntegrationTest
     }
 
     [Fact]
+    
     public async Task GetMarketNews_ShouldReturnUnauthorized_WhenTokenIsInvalid()
     {
         // Arrange
