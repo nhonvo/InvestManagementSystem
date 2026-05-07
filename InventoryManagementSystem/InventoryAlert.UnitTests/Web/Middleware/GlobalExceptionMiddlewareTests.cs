@@ -109,7 +109,7 @@ public class GlobalExceptionMiddlewareTests
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(context.Response.Body);
         var responseBody = await reader.ReadToEndAsync();
-        responseBody.Should().Contain("An error has occurred.");
+        responseBody.Should().Contain("An unhandled error has occurred.");
     }
 }
 

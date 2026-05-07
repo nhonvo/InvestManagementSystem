@@ -32,6 +32,16 @@ public class StockDataServiceTests
         _uow.Setup(u => u.Recommendations).Returns(new Mock<IRecommendationTrendRepository>().Object);
         _uow.Setup(u => u.Insiders).Returns(new Mock<IInsiderTransactionRepository>().Object);
 
+        // Mock ExecuteSynchronizedAsync to execute the delegate
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<StockListing?>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<StockListing?>>, CancellationToken>((func, ct) => func());
+            
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<StockListing>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<StockListing>>, CancellationToken>((func, ct) => func());
+
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<StockMetric?>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<StockMetric?>>, CancellationToken>((func, ct) => func());
+
         _redis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_cache.Object);
 
         _sut = new StockDataService(
@@ -113,14 +123,6 @@ public class StockDataServiceTests
         // Assert
         result.Should().NotBeNull();
         result!.Peers.Should().Contain("NVDA");
-        /* 
-        _cache.Verify(c => c.StringSetAsync(
-            It.IsAny<RedisKey>(), 
-            It.IsAny<RedisValue>(), 
-            It.IsAny<TimeSpan?>(), 
-            It.IsAny<When>(), 
-            It.IsAny<CommandFlags>()), Times.Once);
-        */
     }
 
     [Fact]
@@ -138,5 +140,3 @@ public class StockDataServiceTests
         _finnhub.Verify(f => f.GetMarketStatusAsync(It.IsAny<string>(), Ct), Times.AtLeast(3));
     }
 }
-
-

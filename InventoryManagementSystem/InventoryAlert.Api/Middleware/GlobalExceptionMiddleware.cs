@@ -42,7 +42,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
         {
             UserFriendlyException ufe => ufe.UserFriendlyMessage,
             KeyNotFoundException or NotFoundException or FluentValidation.ValidationException or InventoryAlert.Domain.Common.Exceptions.ValidationException or ArgumentException or UnauthorizedAccessException => exception.Message,
-            _ => "An error has occurred."
+            _ => "An unhandled error has occurred."
         };
 
         context.Response.StatusCode = (int)statusCode;

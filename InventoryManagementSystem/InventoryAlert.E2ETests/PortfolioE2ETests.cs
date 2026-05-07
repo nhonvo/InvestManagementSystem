@@ -17,7 +17,7 @@ public class PortfolioE2ETests : BaseE2ETest
         var request = CreateAuthenticatedRequest("api/v1/portfolio/positions", Method.Get);
         var response = await Client.ExecuteAsync<PagedResult<PortfolioPositionResponse>>(request);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, $"Error Response: {response.Content}");
         response.Data.Should().NotBeNull();
     }
 

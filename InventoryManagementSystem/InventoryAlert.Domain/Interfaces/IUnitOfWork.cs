@@ -17,4 +17,6 @@ public interface IUnitOfWork
     Task SaveChangesAsync(CancellationToken cancellationToken);
     Task ExecuteTransactionAsync(Action action, CancellationToken cancellationToken);
     Task ExecuteTransactionAsync(Func<Task> action, CancellationToken cancellationToken);
+    Task<T> ExecuteSynchronizedAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken);
+    Task ExecuteSynchronizedAsync(Func<Task> action, CancellationToken cancellationToken);
 }

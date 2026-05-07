@@ -156,9 +156,9 @@ try
     }
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
-    app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<PerformanceMiddleware>(); // Moved up to capture final status
     app.UseMiddleware<GlobalExceptionMiddleware>(); 
+    app.UseMiddleware<CorrelationIdMiddleware>();
+    app.UseMiddleware<PerformanceMiddleware>(); 
 
     app.UseResponseCompression();
     app.UseStaticFiles();

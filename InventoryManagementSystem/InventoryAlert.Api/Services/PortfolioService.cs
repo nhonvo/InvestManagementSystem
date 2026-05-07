@@ -16,27 +16,22 @@ public class PortfolioService(
     public async Task<PagedResult<PortfolioPositionResponse>> GetPositionsPagedAsync(PortfolioQueryParams query, string userId, CancellationToken ct)
     {
         var userGuid = Guid.Parse(userId);
-        var watchlistItems = await _unitOfWork.WatchlistItems.GetByUserIdAsync(userId, ct);
-
-        // Filter by search query if present
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            watchlistItems = watchlistItems.Where(x => x.TickerSymbol.Contains(query.Search, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var totalItems = watchlistItems.Count();
-        var pagedItems = watchlistItems
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize);
+        
+        var (pagedItems, totalItems) = await _unitOfWork.WatchlistItems.GetPagedByUserIdAsync(
+            userId, query.PageNumber, query.PageSize, query.Search, ct);
 
         var positions = new List<PortfolioPositionResponse>();
         var symbols = pagedItems.Select(x => x.TickerSymbol).Distinct().ToList();
 
         if (symbols.Any())
         {
-            var tradesList = await _unitOfWork.Trades.GetByUserAndSymbolsAsync(userGuid, symbols, ct);
-            var listingsList = await _unitOfWork.StockListings.FindBySymbolsAsync(symbols, ct);
+            var tradesList = await _unitOfWork.ExecuteSynchronizedAsync(
+                () => _unitOfWork.Trades.GetByUserAndSymbolsAsync(userGuid, symbols, ct), ct);
+                
+            var listingsList = await _unitOfWork.ExecuteSynchronizedAsync(
+                () => _unitOfWork.StockListings.FindBySymbolsAsync(symbols, ct), ct);
 
+            // Parallel fetching (Safe if StockDataService uses ExecuteSynchronizedAsync internally)
             var quotesTasks = symbols.Select(s => _stockDataService.GetQuoteAsync(s, ct));
             var quotesResult = await Task.WhenAll(quotesTasks);
             var quotesDict = quotesResult.Where(q => q != null).ToDictionary(q => q!.Symbol, q => q!);
@@ -47,11 +42,11 @@ public class PortfolioService(
             foreach (var item in pagedItems)
             {
                 var symbol = item.TickerSymbol;
-                var trades = tradesBySymbol.GetValueOrDefault(symbol) ?? new List<Trade>();
-                
                 if (!listingsDict.TryGetValue(symbol, out var listing)) continue;
 
                 var quote = quotesDict.GetValueOrDefault(symbol);
+                var trades = tradesBySymbol.GetValueOrDefault(symbol) ?? [];
+                
                 var currentPrice = quote?.Price ?? 0;
 
                 var netHoldings = trades
@@ -103,16 +98,19 @@ public class PortfolioService(
     public async Task<PortfolioPositionResponse?> GetPositionBySymbolAsync(string symbol, string userId, CancellationToken ct)
     {
         var userGuid = Guid.Parse(userId);
-        var trades = await _unitOfWork.Trades.GetByUserAndSymbolAsync(userGuid, symbol, ct);
+        
+        var trades = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.Trades.GetByUserAndSymbolAsync(userGuid, symbol, ct), ct);
 
         if (!trades.Any())
         {
-            // If no trades, see if it's just on watchlist
-            var watchlist = await _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, symbol, ct);
+            var watchlist = await _unitOfWork.ExecuteSynchronizedAsync(
+                () => _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, symbol, ct), ct);
             if (watchlist == null) return null;
         }
 
-        var listing = await _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct);
+        var listing = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.StockListings.FindBySymbolAsync(symbol, ct), ct);
         if (listing == null) return null;
 
         var quote = await _stockDataService.GetQuoteAsync(symbol, ct);
@@ -156,8 +154,8 @@ public class PortfolioService(
 
     public async Task<IEnumerable<PortfolioAlertResponse>> GetPortfolioAlertsAsync(string userId, CancellationToken ct)
     {
-        var userGuid = Guid.Parse(userId);
-        var rules = await _unitOfWork.AlertRules.GetByUserIdAsync(userId, ct);
+        var rules = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.AlertRules.GetByUserIdAsync(userId, ct), ct);
         var activeRules = rules.Where(r => r.IsActive);
 
         var alerts = new List<PortfolioAlertResponse>();
@@ -171,7 +169,7 @@ public class PortfolioService(
             {
                 AlertCondition.PriceAbove => quote.Price > rule.TargetValue,
                 AlertCondition.PriceBelow => quote.Price < rule.TargetValue,
-                _ => false // Other rules handled elsewhere or more complex
+                _ => false 
             };
 
             if (breached)
@@ -180,7 +178,7 @@ public class PortfolioService(
                     rule.TickerSymbol,
                     quote.Price,
                     rule.TargetValue,
-                    0, // percent loss calculation needs cost basis
+                    0, 
                     DateTime.UtcNow));
             }
         }
@@ -194,14 +192,12 @@ public class PortfolioService(
 
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            // 1. Ensure StockListing exists (Discovery flow handled in StockDataService/Controller usually, but here as fallback)
             var listing = await _unitOfWork.StockListings.FindBySymbolAsync(request.TickerSymbol, ct);
             if (listing == null)
             {
                 throw new InvalidOperationException($"Symbol {request.TickerSymbol} must be resolved before opening a position.");
             }
 
-            // 2. Add to Watchlist (implied by position)
             var existingWatch = await _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, request.TickerSymbol, ct);
             if (existingWatch == null)
             {
@@ -213,7 +209,6 @@ public class PortfolioService(
                 }, ct);
             }
 
-            // 3. Record Initial Trade
             await _unitOfWork.Trades.AddAsync(new Trade
             {
                 UserId = userGuid,
@@ -224,7 +219,6 @@ public class PortfolioService(
                 TradedAt = request.TradedAt ?? DateTime.UtcNow
             }, ct);
 
-            await _unitOfWork.SaveChangesAsync(ct);
         }, ct);
 
         return await GetPositionBySymbolAsync(request.TickerSymbol, userId, ct)
@@ -270,7 +264,6 @@ public class PortfolioService(
                 TradedAt = DateTime.UtcNow
             }, ct);
 
-            await _unitOfWork.SaveChangesAsync(ct);
         }, ct);
 
         return await GetPositionBySymbolAsync(symbol, userId, ct)
@@ -283,28 +276,24 @@ public class PortfolioService(
 
         await _unitOfWork.ExecuteTransactionAsync(async () =>
         {
-            // Guard: Check for active alert rules
             var rules = await _unitOfWork.AlertRules.GetByUserIdAsync(userId, ct);
             if (rules.Any(r => r.TickerSymbol == symbol && r.IsActive))
             {
                 throw new InvalidOperationException("Cannot remove a position with active alert rules. Delete rules first.");
             }
 
-            // 1. Remove watchlist entry (cascades or manual)
             var watch = await _unitOfWork.WatchlistItems.GetByUserAndSymbolAsync(userId, symbol, ct);
             if (watch != null)
             {
                 await _unitOfWork.WatchlistItems.DeleteAsync(watch, ct);
             }
 
-            // 2. Remove all trades
             var trades = await _unitOfWork.Trades.GetByUserAndSymbolAsync(userGuid, symbol, ct);
             foreach (var trade in trades)
             {
                 await _unitOfWork.Trades.DeleteAsync(trade, ct);
             }
 
-            await _unitOfWork.SaveChangesAsync(ct);
         }, ct);
     }
 }

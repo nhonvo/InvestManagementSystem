@@ -2,9 +2,10 @@ using InventoryAlert.Domain.Interfaces;
 
 namespace InventoryAlert.Infrastructure.Persistence.Postgres.Repositories;
 
-public class UnitOfWork : IUnitOfWork
+public class UnitOfWork : IUnitOfWork, IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public UnitOfWork(AppDbContext context)
     {
@@ -69,5 +70,37 @@ public class UnitOfWork : IUnitOfWork
             await transaction.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    public async Task<T> ExecuteSynchronizedAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task ExecuteSynchronizedAsync(Func<Task> action, CancellationToken cancellationToken)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        _lock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

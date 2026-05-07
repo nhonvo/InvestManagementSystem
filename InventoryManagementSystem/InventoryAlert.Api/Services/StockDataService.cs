@@ -39,7 +39,6 @@ public class StockDataService(
         var q = await _finnhub.GetQuoteAsync(symbol, ct);
         if (q?.CurrentPrice is null or 0)
         {
-            // Fallback: If we have a listing, don't 404. Return a 'Zero' quote.
             if (listing != null)
             {
                 return new StockQuoteResponse(symbol, 0, 0, 0, 0, 0, 0, 0, DateTime.UtcNow);
@@ -78,11 +77,12 @@ public class StockDataService(
             return JsonSerializer.Deserialize<StockMetricResponse>((string)cached!, _json);
 
         var listing = await EnsureListingAsync(symbol, ct);
-        var metric = await _unitOfWork.Metrics.GetBySymbolAsync(symbol, ct);
+        
+        var metric = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.Metrics.GetBySymbolAsync(symbol, ct), ct);
         
         if (metric == null)
         {
-            // Fallback if listing exists but metrics are not yet synced
             if (listing != null)
             {
                 return new StockMetricResponse(symbol, null, null, null, null, null, null, null, null, DateTime.UtcNow);
@@ -103,7 +103,9 @@ public class StockDataService(
 
     public async Task<IEnumerable<EarningsSurpriseResponse>> GetEarningsAsync(string symbol, CancellationToken ct = default)
     {
-        var items = await _unitOfWork.Earnings.GetBySymbolAsync(symbol, ct);
+        var items = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.Earnings.GetBySymbolAsync(symbol, ct), ct);
+            
         return items.Select(e => new EarningsSurpriseResponse(
             e.Period, e.ActualEps, e.EstimateEps, e.SurprisePercent, e.ReportDate));
     }
@@ -112,7 +114,9 @@ public class StockDataService(
 
     public async Task<IEnumerable<RecommendationResponse>> GetRecommendationsAsync(string symbol, CancellationToken ct = default)
     {
-        var items = await _unitOfWork.Recommendations.GetBySymbolAsync(symbol, ct);
+        var items = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.Recommendations.GetBySymbolAsync(symbol, ct), ct);
+            
         return items.Select(r => new RecommendationResponse(
             r.Period, r.StrongBuy, r.Buy, r.Hold, r.Sell, r.StrongSell));
     }
@@ -121,7 +125,9 @@ public class StockDataService(
 
     public async Task<IEnumerable<InsiderTransactionResponse>> GetInsidersAsync(string symbol, CancellationToken ct = default)
     {
-        var items = await _unitOfWork.Insiders.GetBySymbolAsync(symbol, ct);
+        var items = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.Insiders.GetBySymbolAsync(symbol, ct), ct);
+            
         return items.Select(i => new InsiderTransactionResponse(
             i.Name, i.Share, i.Value, i.TransactionDate, i.FilingDate, i.TransactionCode));
     }
@@ -240,39 +246,38 @@ public class StockDataService(
 
     private async Task<StockListing?> EnsureListingAsync(string symbol, CancellationToken ct)
     {
-        var normalizedSymbol = symbol.ToUpperInvariant();
-        var listing = await _unitOfWork.StockListings.FindBySymbolAsync(normalizedSymbol, ct);
+        var normalized = symbol.ToUpperInvariant();
+
+        // 1. Initial check (Synchronized)
+        var listing = await _unitOfWork.ExecuteSynchronizedAsync(
+            () => _unitOfWork.StockListings.FindBySymbolAsync(normalized, ct), ct);
         if (listing != null) return listing;
 
-        // Discovery Flow: Symbol not in DB, fetch from Finnhub Profile
-        var profile = await _finnhub.GetProfileAsync(normalizedSymbol, ct);
+        // 2. Parallel API call
+        var profile = await _finnhub.GetProfileAsync(normalized, ct);
         if (profile == null) return null;
 
-        listing = new StockListing
+        // 3. Save (Synchronized with double-check)
+        return await _unitOfWork.ExecuteSynchronizedAsync(async () =>
         {
-            TickerSymbol = normalizedSymbol.Length > 10 ? normalizedSymbol[..10] : normalizedSymbol,
-            Name = profile.Name?.Length > 200 ? profile.Name[..200] : (profile.Name ?? normalizedSymbol),
-            Exchange = profile.Exchange?.Length > 50 ? profile.Exchange[..50] : profile.Exchange,
-            Currency = profile.Currency?.Length > 10 ? profile.Currency[..10] : profile.Currency,
-            Country = profile.Country?.Length > 10 ? profile.Country[..10] : profile.Country,
-            Industry = profile.Industry?.Length > 100 ? profile.Industry[..100] : profile.Industry,
-            Logo = profile.Logo?.Length > 1000 ? profile.Logo[..1000] : profile.Logo,
-            WebUrl = profile.WebUrl?.Length > 1000 ? profile.WebUrl[..1000] : profile.WebUrl
-        };
+            var existing = await _unitOfWork.StockListings.FindBySymbolAsync(normalized, ct);
+            if (existing != null) return existing;
 
-        try
-        {
-            await _unitOfWork.StockListings.AddAsync(listing, ct);
+            var newListing = new StockListing
+            {
+                TickerSymbol = normalized.Length > 10 ? normalized[..10] : normalized,
+                Name = profile.Name?.Length > 200 ? profile.Name[..200] : (profile.Name ?? normalized),
+                Exchange = profile.Exchange?.Length > 50 ? profile.Exchange[..50] : profile.Exchange,
+                Currency = profile.Currency?.Length > 10 ? profile.Currency[..10] : profile.Currency,
+                Country = profile.Country?.Length > 10 ? profile.Country[..10] : profile.Country,
+                Industry = profile.Industry?.Length > 100 ? profile.Industry[..100] : profile.Industry,
+                Logo = profile.Logo?.Length > 1000 ? profile.Logo[..1000] : profile.Logo,
+                WebUrl = profile.WebUrl?.Length > 1000 ? profile.WebUrl[..1000] : profile.WebUrl
+            };
+
+            await _unitOfWork.StockListings.AddAsync(newListing, ct);
             await _unitOfWork.SaveChangesAsync(ct);
-            _logger.LogInformation("[Discovery] Persisted metadata for new symbol {Symbol}", normalizedSymbol);
-        }
-        catch (Exception ex)
-        {
-            // Handle Race Condition: If another thread added it between our Find and Add
-            _logger.LogWarning(ex, "[Discovery] Failed to persist {Symbol}. Likely already exists or validation error.", normalizedSymbol);
-            return await _unitOfWork.StockListings.FindBySymbolAsync(normalizedSymbol, ct);
-        }
-
-        return listing;
+            return newListing;
+        }, ct);
     }
 }

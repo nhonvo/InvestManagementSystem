@@ -12,15 +12,23 @@ public class CompanyNewsDynamoRepository(IAmazonDynamoDB dynamoDbClient, ILogger
 {
     public async Task<IEnumerable<CompanyNewsDynamoEntry>> GetLatestBySymbolAsync(string symbol, int limit, CancellationToken ct)
     {
-        var config = new DynamoDBOperationConfig
+        try
         {
-            BackwardQuery = true
-        };
+            var config = new DynamoDBOperationConfig
+            {
+                BackwardQuery = true
+            };
 
 #pragma warning disable CS0618
-        var query = _context.QueryAsync<CompanyNewsDynamoEntry>($"SYMBOL#{symbol}", config);
+            var query = _context.QueryAsync<CompanyNewsDynamoEntry>($"SYMBOL#{symbol}", config);
 #pragma warning restore CS0618
-        var result = await query.GetNextSetAsync(ct);
-        return result.Take(limit);
+            var result = await query.GetNextSetAsync(ct);
+            return result.Take(limit);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[DynamoDB] Failed to query company news for {Symbol}. Returning empty list.", symbol);
+            return [];
+        }
     }
 }

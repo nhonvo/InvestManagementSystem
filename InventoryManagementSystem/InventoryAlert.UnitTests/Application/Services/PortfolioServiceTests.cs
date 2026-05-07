@@ -23,6 +23,19 @@ public class PortfolioServiceTests
     {
         _sut = new PortfolioService(_uow.Object, _stockData.Object, _logger.Object);
 
+        // Mock ExecuteSynchronizedAsync for various return types
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<IEnumerable<Trade>>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<IEnumerable<Trade>>>, CancellationToken>((func, _) => func());
+
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<StockListing?>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<StockListing?>>, CancellationToken>((func, _) => func());
+
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<IEnumerable<AlertRule>>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<IEnumerable<AlertRule>>>, CancellationToken>((func, _) => func());
+
+        _uow.Setup(u => u.ExecuteSynchronizedAsync(It.IsAny<Func<Task<WatchlistItem?>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<WatchlistItem?>>, CancellationToken>((func, _) => func());
+
         // Standard mock to invoke the transaction delegate
         _uow.Setup(u => u.ExecuteTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
             .Returns<Func<Task>, CancellationToken>((action, _) => action());
@@ -34,7 +47,7 @@ public class PortfolioServiceTests
         // Arrange
         var symbol = "AAPL";
         var listing = new StockListing { Id = 1, TickerSymbol = symbol, Name = "Apple" };
-        var trades = new List<Trade>
+        var trades = (IEnumerable<Trade>)new List<Trade>
         {
             new() { Type = TradeType.Buy, Quantity = 10, UnitPrice = 150m, TickerSymbol = symbol },
             new() { Type = TradeType.Buy, Quantity = 5, UnitPrice = 160m, TickerSymbol = symbol },
@@ -95,7 +108,7 @@ public class PortfolioServiceTests
     {
         // Arrange
         var symbol = "TSLA";
-        var activeRules = new List<AlertRule> {
+        var activeRules = (IEnumerable<AlertRule>)new List<AlertRule> {
             new() { TickerSymbol = symbol, IsActive = true }
         };
         _uow.Setup(u => u.AlertRules.GetByUserIdAsync(UserId, Ct)).ReturnsAsync(activeRules);

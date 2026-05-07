@@ -62,6 +62,10 @@ public static class DependencyInjection
         services.AddSingleton<IAmazonDynamoDB>(_ =>
         {
             var config = new AmazonDynamoDBConfig { ServiceURL = settings.Aws.EndpointUrl };
+            if (settings.Aws.EndpointUrl.Contains("localhost") || settings.Aws.EndpointUrl.Contains("moto"))
+            {
+                return new AmazonDynamoDBClient(new Amazon.Runtime.BasicAWSCredentials("mock", "mock"), config);
+            }
             return new AmazonDynamoDBClient(config);
         });
 
@@ -72,6 +76,10 @@ public static class DependencyInjection
         services.AddSingleton<IAmazonSQS>(_ =>
         {
             var config = new AmazonSQSConfig { ServiceURL = settings.Aws.EndpointUrl };
+            if (settings.Aws.EndpointUrl.Contains("localhost") || settings.Aws.EndpointUrl.Contains("moto"))
+            {
+                return new AmazonSQSClient(new Amazon.Runtime.BasicAWSCredentials("mock", "mock"), config);
+            }
             return new AmazonSQSClient(config);
         });
 
@@ -80,6 +88,10 @@ public static class DependencyInjection
         services.AddSingleton<IAmazonSimpleNotificationService>(_ =>
         {
             var config = new AmazonSimpleNotificationServiceConfig { ServiceURL = settings.Aws.EndpointUrl };
+            if (settings.Aws.EndpointUrl.Contains("localhost") || settings.Aws.EndpointUrl.Contains("moto"))
+            {
+                return new AmazonSimpleNotificationServiceClient(new Amazon.Runtime.BasicAWSCredentials("mock", "mock"), config);
+            }
             return new AmazonSimpleNotificationServiceClient(config);
         });
         services.AddScoped<IEventPublisher, SnsEventPublisher>();
