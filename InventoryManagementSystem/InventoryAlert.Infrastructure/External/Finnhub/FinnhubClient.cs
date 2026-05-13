@@ -183,7 +183,7 @@ public class FinnhubClient(
 
             try
             {
-                var data = JsonSerializer.Deserialize<List<T>>(res.Content ?? "[]", new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var data = JsonSerializer.Deserialize<List<T>>(res.Content ?? "[]", JsonOptions.Default);
                 return new RestResponse<List<T>>(req) { Data = data, StatusCode = res.StatusCode, ResponseStatus = ResponseStatus.Completed };
             }
             catch (JsonException ex)

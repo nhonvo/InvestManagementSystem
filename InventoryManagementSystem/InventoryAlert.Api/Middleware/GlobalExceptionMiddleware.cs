@@ -1,4 +1,5 @@
 using System.Net;
+using InventoryAlert.Api.Extensions;
 using InventoryAlert.Api.Models;
 using InventoryAlert.Domain.Common.Constants;
 using InventoryAlert.Domain.Common.Exceptions;
@@ -17,7 +18,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
         }
         catch (Exception ex)
         {
-            var correlationId = context.Items["X-Correlation-Id"]?.ToString() ?? "N/A";
+            var correlationId = context.GetCorrelationId();
             _logger.LogError(ex, "An unhandled exception has occurred while executing the request. | CID: {CorrelationId}", correlationId);
             await HandleExceptionAsync(context, ex, correlationId);
         }
@@ -31,7 +32,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
         {
             UserFriendlyException ex => (MapStatusCode(ex.ErrorCode), MapErrorCode(ex.ErrorCode)),
             KeyNotFoundException or NotFoundException => (HttpStatusCode.NotFound, ErrorRespondCode.NOT_FOUND),
-            FluentValidation.ValidationException or InventoryAlert.Domain.Common.Exceptions.ValidationException => (HttpStatusCode.BadRequest, ErrorRespondCode.BAD_REQUEST),
+            FluentValidation.ValidationException or ValidationException => (HttpStatusCode.BadRequest, ErrorRespondCode.BAD_REQUEST),
             ArgumentException => (HttpStatusCode.BadRequest, ErrorRespondCode.BAD_REQUEST),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ErrorRespondCode.UNAUTHORIZED),
             _ => (HttpStatusCode.InternalServerError, ErrorRespondCode.GENERAL_ERROR)
@@ -41,7 +42,7 @@ public class GlobalExceptionMiddleware(ILoggerFactory loggerFactory) : IMiddlewa
         var errorMessage = exception switch
         {
             UserFriendlyException ufe => ufe.UserFriendlyMessage,
-            KeyNotFoundException or NotFoundException or FluentValidation.ValidationException or InventoryAlert.Domain.Common.Exceptions.ValidationException or ArgumentException or UnauthorizedAccessException => exception.Message,
+            KeyNotFoundException or NotFoundException or FluentValidation.ValidationException or ValidationException or ArgumentException or UnauthorizedAccessException => exception.Message,
             _ => "An unhandled error has occurred."
         };
 

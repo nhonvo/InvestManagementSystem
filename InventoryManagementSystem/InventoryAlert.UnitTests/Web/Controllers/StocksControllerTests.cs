@@ -1,7 +1,6 @@
 using FluentAssertions;
 using InventoryAlert.Api.Controllers;
 using InventoryAlert.Domain.DTOs;
-using InventoryAlert.Domain.Entities.Postgres;
 using InventoryAlert.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -12,26 +11,30 @@ namespace InventoryAlert.UnitTests.Web.Controllers;
 public class StocksControllerTests
 {
     private readonly Mock<IStockDataService> _stockDataService = new();
-    private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly Mock<IEventService> _eventService = new();
     private readonly StocksController _sut;
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     public StocksControllerTests()
     {
-        _sut = new StocksController(_stockDataService.Object, _uow.Object, _eventService.Object);
+        _sut = new StocksController(_stockDataService.Object);
     }
 
     [Fact]
-    public async Task GetCatalog_ReturnsPagedResult_WithLocalData()
+    public async Task GetCatalog_ReturnsPagedResult_FromService()
     {
         // Arrange
-        var listings = new List<StockListing>
+        var pagedResult = new PagedResult<StockProfileResponse>
         {
-            new() { TickerSymbol = "AAPL", Name = "Apple", Exchange = "NASDAQ", Industry = "Tech" },
-            new() { TickerSymbol = "MSFT", Name = "Microsoft", Exchange = "NASDAQ", Industry = "Tech" }
+            Items = new List<StockProfileResponse>
+            {
+                new("AAPL", "Apple", "NASDAQ", "USD", "USA", "Tech", null, null, null, null),
+                new("MSFT", "Microsoft", "NASDAQ", "USD", "USA", "Tech", null, null, null, null)
+            },
+            TotalItems = 2,
+            PageNumber = 1,
+            PageSize = 10
         };
-        _uow.Setup(u => u.StockListings.GetAllAsync(Ct)).ReturnsAsync(listings);
+        _stockDataService.Setup(s => s.GetCatalogAsync(1, 10, null, null, Ct)).ReturnsAsync(pagedResult);
 
         // Act
         var result = await _sut.GetCatalog(1, 10, null, null, Ct);
@@ -46,33 +49,28 @@ public class StocksControllerTests
     }
 
     [Fact]
-    public async Task GetCatalog_FiltersByExchange()
+    public async Task GetCatalog_PassesFiltersToService()
     {
         // Arrange
-        var listings = new List<StockListing>
+        var pagedResult = new PagedResult<StockProfileResponse>
         {
-            new() { TickerSymbol = "AAPL", Name = "Apple", Exchange = "NASDAQ" },
-            new() { TickerSymbol = "IBM", Name = "IBM", Exchange = "NYSE" }
+            Items = new List<StockProfileResponse>
+            {
+                new("IBM", "IBM", "NYSE", "USD", "USA", "Tech", null, null, null, null)
+            },
+            TotalItems = 1,
+            PageNumber = 1,
+            PageSize = 10
         };
-        _uow.Setup(u => u.StockListings.GetAllAsync(Ct)).ReturnsAsync(listings);
+        _stockDataService.Setup(s => s.GetCatalogAsync(1, 10, "NYSE", "Tech", Ct)).ReturnsAsync(pagedResult);
 
         // Act
-        var result = await _sut.GetCatalog(1, 10, "NYSE", null, Ct);
+        var result = await _sut.GetCatalog(1, 10, "NYSE", "Tech", Ct);
 
         // Assert
         var okResult = result.Result as OkObjectResult;
         var paged = okResult!.Value as PagedResult<StockProfileResponse>;
         paged!.Items.Should().HaveCount(1);
         paged.Items.First().Symbol.Should().Be("IBM");
-    }
-
-    [Fact]
-    public async Task TriggerSync_ReturnsAccepted_ForAdmin()
-    {
-        // Act
-        var result = await _sut.TriggerSync(Ct);
-
-        // Assert
-        result.Should().BeOfType<AcceptedResult>();
     }
 }

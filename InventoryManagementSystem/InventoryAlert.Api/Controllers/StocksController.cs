@@ -8,11 +8,9 @@ namespace InventoryAlert.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/[controller]")]
-public class StocksController(IStockDataService stockDataService, IUnitOfWork unitOfWork, IEventService eventService) : ControllerBase
+public class StocksController(IStockDataService stockDataService) : ControllerBase
 {
     private readonly IStockDataService _stockDataService = stockDataService;
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IEventService _eventService = eventService;
 
     /// <summary>Browse the full global StockListing catalog (paged, filterable).</summary>
     [HttpGet]
@@ -23,25 +21,8 @@ public class StocksController(IStockDataService stockDataService, IUnitOfWork un
         [FromQuery] string? industry = null,
         CancellationToken ct = default)
     {
-        var all = await _unitOfWork.StockListings.GetAllAsync(ct);
-
-        if (!string.IsNullOrWhiteSpace(exchange))
-            all = all.Where(s => s.Exchange?.Equals(exchange, StringComparison.OrdinalIgnoreCase) == true);
-
-        if (!string.IsNullOrWhiteSpace(industry))
-            all = all.Where(s => s.Industry?.Contains(industry, StringComparison.OrdinalIgnoreCase) == true);
-
-        var totalItems = all.Count();
-        var paged = all.Skip((page - 1) * pageSize).Take(pageSize).Select(s => new StockProfileResponse(
-            s.TickerSymbol, s.Name, s.Exchange, s.Currency, s.Country, s.Industry, s.MarketCap, s.Ipo, s.WebUrl, s.Logo));
-
-        return Ok(new PagedResult<StockProfileResponse>
-        {
-            Items = paged,
-            TotalItems = totalItems,
-            PageNumber = page,
-            PageSize = pageSize
-        });
+        var result = await _stockDataService.GetCatalogAsync(page, pageSize, exchange, industry, ct);
+        return Ok(result);
     }
 
     [HttpGet("search")]
@@ -104,14 +85,5 @@ public class StocksController(IStockDataService stockDataService, IUnitOfWork un
     {
         var res = await _stockDataService.GetCompanyNewsAsync(symbol, page, pageSize, ct);
         return Ok(res);
-    }
-
-    /// <summary>[Admin] Manually trigger a global price sync job.</summary>
-    [Authorize(Roles = "Admin")]
-    [HttpPost("sync")]
-    public async Task<IActionResult> TriggerSync(CancellationToken ct)
-    {
-        await _eventService.PublishEventAsync(InventoryAlert.Domain.Events.EventTypes.SyncPricesRequested, new { }, ct);
-        return Accepted(new { Message = "Price sync job enqueued via event bus." });
     }
 }

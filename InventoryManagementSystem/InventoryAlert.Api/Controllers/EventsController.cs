@@ -25,4 +25,13 @@ public class EventsController(IEventService eventService) : ControllerBase
         var types = await _eventService.GetSupportedEventTypesAsync();
         return Ok(types);
     }
+
+    /// <summary>[Admin] Manually trigger a global price sync job.</summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("sync")]
+    public async Task<IActionResult> TriggerSync(CancellationToken ct)
+    {
+        await _eventService.PublishEventAsync(InventoryAlert.Domain.Events.EventTypes.SyncPricesRequested, new { }, ct);
+        return Accepted(new { Message = "Price sync job enqueued via event bus." });
+    }
 }

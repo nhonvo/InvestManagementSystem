@@ -12,7 +12,7 @@ public class AppSettings
 
     public class ApiOptions
     {
-        public bool EnableBodyLogging { get; set; } = false;
+        public bool EnableBodyLogging { get; set; } = true;
     }
 
     public class WorkerOptions

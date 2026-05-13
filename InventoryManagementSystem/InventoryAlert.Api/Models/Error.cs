@@ -1,4 +1,5 @@
 using System.Text.Json;
+using InventoryAlert.Domain.Configuration;
 
 namespace InventoryAlert.Api.Models;
 
@@ -29,8 +30,5 @@ public class ErrorResponse
         CorrelationId = correlationId;
     }
 
-    public override string ToString() => JsonSerializer.Serialize(this, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    });
+    public override string ToString() => JsonSerializer.Serialize(this, JsonOptions.Default);
 }

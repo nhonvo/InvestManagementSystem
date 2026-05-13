@@ -47,8 +47,7 @@ try
     builder.Services.AddHttpContextAccessor();
     
     builder.Services.AddTransient<GlobalExceptionMiddleware>();
-    builder.Services.AddTransient<PerformanceMiddleware>();
-    builder.Services.AddTransient<ApiBodyLoggingMiddleware>();
+    builder.Services.AddTransient<ApiLoggingMiddleware>();
     builder.Services.AddTransient<CorrelationIdMiddleware>();
 
     // ─── Security / Auth / CORS ───────────────────────────────────────────────
@@ -156,9 +155,8 @@ try
     }
 
     // ─── Pipeline ─────────────────────────────────────────────────────────────
-    app.UseMiddleware<GlobalExceptionMiddleware>(); 
     app.UseMiddleware<CorrelationIdMiddleware>();
-    app.UseMiddleware<PerformanceMiddleware>(); 
+    app.UseMiddleware<GlobalExceptionMiddleware>(); 
 
     app.UseResponseCompression();
     app.UseStaticFiles();
@@ -169,7 +167,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseMiddleware<ApiBodyLoggingMiddleware>();
+    app.UseMiddleware<ApiLoggingMiddleware>();
     
     app.UseResponseCaching();
 

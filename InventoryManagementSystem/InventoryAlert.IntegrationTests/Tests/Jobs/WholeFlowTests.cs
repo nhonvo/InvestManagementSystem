@@ -110,7 +110,7 @@ public class WholeFlowTests : Tier2TestBase
         );
 
         // Trigger Sync via API (tests event publication)
-        var syncRes = await Client.ExecutePostAsync(new RestRequest("stocks/sync").AddHeader("Authorization", $"Bearer {token}"));
+        var syncRes = await Client.ExecutePostAsync(new RestRequest("events/sync").AddHeader("Authorization", $"Bearer {token}"));
         syncRes.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
         // VERIFY Rule exists in DB before proceeding
@@ -187,7 +187,7 @@ public class WholeFlowTests : Tier2TestBase
         );
 
         // Trigger Sync via API
-        await Client.ExecutePostAsync(new RestRequest("stocks/sync").AddHeader("Authorization", $"Bearer {token}"));
+        await Client.ExecutePostAsync(new RestRequest("events/sync").AddHeader("Authorization", $"Bearer {token}"));
 
         // Manually execute the Job in-process
         var job = Services.GetRequiredService<SyncPricesJob>();

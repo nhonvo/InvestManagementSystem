@@ -46,6 +46,20 @@ public class EventsControllerTests
         ok!.StatusCode.Should().Be(StatusCodes.Status200OK);
         (ok.Value as IEnumerable<string>).Should().BeEquivalentTo(types);
     }
+
+    [Fact]
+    public async Task TriggerSync_ReturnsAccepted_AndPublishesEvent()
+    {
+        // Act
+        var result = await _sut.TriggerSync(Ct);
+
+        // Assert
+        result.Should().BeOfType<AcceptedResult>();
+        _service.Verify(s => s.PublishEventAsync(
+            InventoryAlert.Domain.Events.EventTypes.SyncPricesRequested,
+            It.IsAny<object>(),
+            Ct), Times.Once);
+    }
 }
 
 

@@ -5,6 +5,7 @@ namespace InventoryAlert.Domain.Interfaces;
 public interface IStockDataService
 {
     // Stocks
+    Task<PagedResult<StockProfileResponse>> GetCatalogAsync(int page, int pageSize, string? exchange, string? industry, CancellationToken ct = default);
     Task<StockQuoteResponse?> GetQuoteAsync(string symbol, CancellationToken ct = default);
     Task<StockProfileResponse?> GetProfileAsync(string symbol, CancellationToken ct = default);
     Task<StockMetricResponse?> GetFinancialsAsync(string symbol, CancellationToken ct = default);

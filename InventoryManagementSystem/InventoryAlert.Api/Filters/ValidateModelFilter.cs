@@ -1,3 +1,4 @@
+using InventoryAlert.Api.Extensions;
 using InventoryAlert.Api.Models;
 using InventoryAlert.Domain.Common.Constants;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +35,7 @@ public class ValidateModelFilter : IActionFilter
                 })
                 .ToList();
 
-            var correlationId = context.HttpContext.Items["X-Correlation-Id"]?.ToString();
+            var correlationId = context.HttpContext.GetCorrelationId();
             context.Result = new BadRequestObjectResult(new ErrorResponse(errors, correlationId));
         }
     }
